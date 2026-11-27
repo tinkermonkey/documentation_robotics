@@ -99,11 +99,9 @@ This is the part a prose plan cannot do, and the reason to model a change at all
   terminal session, so a conversation in the viewer and a session in the terminal see the same
   changeset with the same tools. With `--with-changesets`, the server refuses any write that is not
   staged in a changeset.
-- **Commit stays with the human.** The MCP surface stages, projects and explains. It commits only when
-  a person confirms: `changeset_commit` asks them in a dialog (MCP elicitation) showing the
-  changeset's name, intent, counts and drift, or, from Claude Code, takes their approval of the call
-  in the permission prompt with a token from `changeset_commit_preview`, which showed them the same
-  summary. It refuses when they decline, when no person can confirm, and in DrBot. It never applies. An agent can discard a changeset only by naming it and passing
+- **Commit stays with the human.** The MCP surface stages, projects and explains. It lands a changeset
+  (`changeset_commit`) only when the user asks in the conversation; git and the pull request are the gate,
+  where a person approves what landed. It refuses in DrBot and on a validation error. It never applies. An agent can discard a changeset only by naming it and passing
   `confirm: true`.
 
 ## Model extraction
@@ -168,8 +166,8 @@ keeps the spec and grows the two workflows.
   rename and abandon a changeset; stage, revise and unstage elements and relationships in it; read
   and trace the model as the changeset leaves it; look up what the spec allows; project
   the changeset across the graph with `changeset_impact` and `changeset_brief`; and compare the plan
-  with what was built with `changeset_verify`. It lands a plan with `changeset_commit` once the
-  human confirms it in a dialog. Each planning pass is
+  with what was built with `changeset_verify`. It lands a plan with `changeset_commit` when the
+  human asks. Each planning pass is
   cheap: the brief lists unwired connections and, given the last pass's `revisionToken`, what
   changed since; impact can start from chosen elements.
 - **Claude Code** has `/dr-plan` and the `dr_change_planning` skill, which make "plan this change"

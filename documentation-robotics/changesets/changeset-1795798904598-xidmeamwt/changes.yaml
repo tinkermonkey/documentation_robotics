@@ -1,0 +1,115 @@
+- type: update
+  elementId: motivation.requirement.landing-a-change-needs-a-humans-confirmation
+  layerName: motivation
+  before:
+    id: de220664-6286-46c8-9741-94ab45f0c3c9
+    path: motivation.requirement.landing-a-change-needs-a-humans-confirmation
+    spec_node_id: motivation.requirement
+    type: requirement
+    layer_id: motivation
+    name: Landing a change needs a human's confirmation
+    description: "A changeset reaches the base model only after a person confirms it: in an MCP confirmation dialog (elicitation), in the permission prompt a client forces for changeset_commit (Claude Code, carrying a confirmation token from a preview of the same changeset state), or with the viewer's Apply button. A session where no person can answer (DrBot, a non-interactive run) is refused."
+    attributes:
+      requirementType: functional
+      priority: critical
+      documentation: "A changeset reaches the base model only after a person confirms it: in an MCP confirmation dialog (elicitation), in the permission prompt a client forces for changeset_commit (Claude Code, carrying a confirmation token from a preview of the same changeset state), or with the viewer's Apply button. A session where no person can answer (DrBot, a non-interactive run) is refused. Acceptance: a changeset lands from the Claude desktop Code tab after one approval; no client lands one without a person."
+    metadata: &a1
+      created_at: 2026-11-09T22:04:38.022Z
+      updated_at: 2026-11-09T22:04:38.022Z
+      version: 1
+  after:
+    id: de220664-6286-46c8-9741-94ab45f0c3c9
+    path: motivation.requirement.landing-a-change-needs-a-humans-confirmation
+    spec_node_id: motivation.requirement
+    type: requirement
+    layer_id: motivation
+    name: Landing a change needs a human's confirmation
+    description: "A changeset reaches the base model when the user asks for it in the conversation, and a person approves it in the pull request: the landing's files (the model and the changeset's folder) are committed with the code. changeset_commit asks for no dialog and no token. A session where no person can answer (DrBot, changeset-only mode) can't land; verification and upgrade records are never landed; a validation error refuses the landing. The viewer's Apply is the route for those sessions."
+    attributes:
+      requirementType: functional
+      priority: critical
+      documentation: "Decided 2026-11-26 (#1419), reversing the 2026-11-09 'always elicit' ruling: git and the pull request are the gate. A changeset lands from changeset_commit when the user asks in the conversation (one or several, in order, stopping at the first refusal), and the result names the files to commit. Acceptance: a plan lands from any client in one call after the user's ask; no one lands from a session where no person can answer; a person reviews the landed model in the PR."
+    metadata: *a1
+  timestamp: 2026-11-27T17:02:02.236Z
+  sequenceNumber: 0
+- type: update
+  elementId: product.feature.changeset-commit
+  layerName: product
+  before:
+    id: fdde0a71-d00b-4c56-ae39-db5f2139741e
+    path: product.feature.changeset-commit
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Changeset commit
+    description: "MCP: changeset_commit, which asks the person to confirm through an MCP elicitation dialog, or takes a confirmation token from Claude Code (see Commit confirmation token). It is refused when no person can answer, and a refusal says why and names the route that works: declined, no confirmation came back, or the dialog could not be shown. Drift does not refuse it: the confirmation gives the true count of staged changes the base overlaps and what landing does about each kind, naming up to 10 of each kind, the result names every one, and force is accepted and ignored. A landing holds the changeset's lock from its read to its status save, so a write staged meanwhile either lands with it or is refused naming the changeset; after a landing of the active changeset, writes refuse until a changeset is activated, created or deactivated, instead of falling through to the base model. Viewer: Apply, which lands a drifted changeset too. CLI: dr changeset commit, which lists the overlaps and asks at a terminal; with no terminal it refuses a real overlap unless --force is passed, and lands with no overlap."
+    attributes:
+      priority: critical
+      status: delivered
+      documentation: "MCP: changeset_commit, which asks the person to confirm through an MCP elicitation dialog, or takes a confirmation token from Claude Code (see Commit confirmation token). It is refused when no person can answer, and a refusal says why: declined, no confirmation came back, or the dialog could not be shown; drift does not refuse it. Viewer: Apply. CLI: dr changeset commit. A landing clears the active-changeset marker; if the marker cannot be cleared the landing stands and the result warns that the marker is ignored, since a committed changeset is never the active one (#1218)."
+    source_reference: &a2
+      provenance: manual
+      locations:
+        - file: cli/src/core/staging-area.ts
+    metadata: &a3
+      created_at: 2026-11-09T21:54:57.863Z
+      updated_at: 2026-11-09T21:54:57.863Z
+      version: 1
+  after:
+    id: fdde0a71-d00b-4c56-ae39-db5f2139741e
+    path: product.feature.changeset-commit
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Changeset commit
+    description: "MCP: changeset_commit, an ordinary write tool that lands when the user asks in the conversation: no dialog, no token. It takes changesets: [...] and lands them in order, stopping at the first refusal, with one summary of each changeset's counts and any overlaps between them. It is refused in changeset-only mode (DrBot), for verification and upgrade records, and on a validation error. Drift does not refuse it: the result gives the true count of staged changes the base overlaps and what landing did about each kind. The result names the files to commit (model files and each changeset's folder) and the branch; project_status warns when a landed changeset's folder is untracked in git. Viewer: Apply. CLI: dr changeset commit."
+    attributes:
+      priority: critical
+      status: delivered
+      documentation: "MCP: changeset_commit lands when the user asks; git and the pull request are the gate (#1419). Several changesets land in one call (#1256). The result names the paths to commit (#1367). A landing clears the active-changeset marker; if the marker cannot be cleared the landing stands and the result warns (#1218)."
+    source_reference: *a2
+    metadata: *a3
+  timestamp: 2026-11-27T17:02:02.240Z
+  sequenceNumber: 1
+- type: update
+  elementId: product.feature.commit-confirmation-token
+  layerName: product
+  before:
+    id: 024c8984-3141-4664-848d-87f229d7a22a
+    path: product.feature.commit-confirmation-token
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Commit confirmation token
+    description: "MCP: changeset_commit_preview checks a changeset for landing without writing anything and returns the landing summary (intent, counts, layers, drift with the true count of overlaps and what landing does about each kind, validation) with a token bound to the changeset's confirmed state, and says when changes were staged into it moments ago. A changeset already landed is reported as a result (when it landed, the files it wrote, whether they are committed to git), not an error. Claude Code shows the summary, and the person approves the changeset_commit call carrying the token in Claude Code's permission prompt, which anthropic/requiresUserInteraction forces. changeset_commit accepts the token only from Claude Code (v2.1.199 or later) and refuses it once used, expired (one hour: long enough for an answer relayed through another session, too short for yesterday's preview to land today), or when the changeset or base model changed since the preview. An expired token is reported as expired, not as a decline. The token does not bind force, which is ignored. Other clients still confirm in the elicitation dialog."
+    attributes:
+      priority: high
+      status: developing
+      size: s
+      documentation: "Token: an HMAC, keyed per server process, over the changeset id, a one-hour expiry and the confirmedState fingerprint (staged changes and base model); good once. The preview tool is not flagged, so landing takes one approval. Permission modes (checked 2026-11-17 against the Claude Code docs): the prompt is forced in acceptEdits, auto and bypassPermissions (so --dangerously-skip-permissions too), allow rules and PreToolUse hooks don't skip it, and dontAsk, --permission-prompt-tool and runs without a prompt callback deny the call. The server can't see the mode and doesn't need to. changeset_commit_preview's validation also refuses a type or relationship the changeset adds that the model's declared spec lacks (#1411), and its summary names the model files the landing would lay out anew from an earlier dr's layout, with project_upgrade relayout: true as the way to do that first in a commit of its own (#1439)."
+    source_reference: &a4
+      provenance: manual
+      locations:
+        - file: cli/src/mcp/tools/changeset-commit.ts
+          symbol: changesetCommitPreviewHandler
+    metadata: &a5
+      created_at: 2026-11-17T20:42:52.469Z
+      updated_at: 2026-11-17T20:42:52.469Z
+      version: 1
+  after:
+    id: 024c8984-3141-4664-848d-87f229d7a22a
+    path: product.feature.commit-confirmation-token
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Commit preview
+    description: "MCP: changeset_commit_preview is a read-only dry run: it checks a changeset for landing without writing anything and returns the landing summary (intent, counts, layers, drift with the true count of overlaps and what landing does about each kind, validation, the branch and the files the landing would put in the commit). It returns no token: changeset_commit needs none (#1419). A changeset already landed is reported as a result (when it landed, the files it wrote, whether they are committed to git), not an error."
+    attributes:
+      priority: high
+      status: developing
+      size: s
+      documentation: "The confirmation token (an HMAC over the changeset id, an expiry and the confirmed state) and the requiresUserInteraction flag were removed on 2026-11-26 (#1419): the token's hour ran while the person looked at the prompt. changeset_commit_preview's validation also refuses a type or relationship the changeset adds that the model's declared spec lacks (#1411), and its summary names the model files the landing would lay out anew from an earlier dr's layout (#1439)."
+    source_reference: *a4
+    metadata: *a5
+  timestamp: 2026-11-27T17:02:02.245Z
+  sequenceNumber: 2

@@ -66,8 +66,8 @@ export const DR_MCP_READ_TOOLS: readonly string[] = Object.freeze([
  * DR_CHANGESET_ONLY set, so any of these that would write the base model (no active changeset)
  * is refused there (mcp/changeset-only.ts). changeset_update and changeset_unstage revise the
  * plan. Left out on purpose:
- * - changeset_commit: landing needs a person to confirm it, and the server refuses it in
- *   changeset-only mode anyway. Apply is not an MCP tool. changeset_commit_preview only serves it.
+ * - changeset_commit: landing is for the user to ask for in their own session, and the server
+ *   refuses it in changeset-only mode anyway. Apply is not an MCP tool. changeset_commit_preview only serves it.
  * - changeset_discard: it deletes the staged changes, and abandoning a changeset is the user's call.
  * - project_init and project_upgrade: they create or migrate the model outside any changeset.
  * - review_open: DrBot already lives in the viewer it would open.

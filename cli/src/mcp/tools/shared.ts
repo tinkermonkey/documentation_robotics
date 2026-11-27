@@ -44,7 +44,7 @@ export const rootPathSchema = z
 
 /**
  * What the registry hands a handler besides its arguments: the session's low-level server, so a
- * tool can ask the client something (changeset_commit's confirmation elicitation), and the
+ * tool can ask the client something (elicitation), and the
  * tools/call request it answers, so that request travels with it. Absent when a handler is called
  * directly.
  */
@@ -58,7 +58,7 @@ export interface McpToolDefinition<Shape extends ZodRawShape = ZodRawShape> {
   name: string;
   description: string;
   inputSchema: Shape;
-  /** Listed with the tool in tools/list (e.g. "anthropic/requiresUserInteraction"). */
+  /** Listed with the tool in tools/list (e.g. a client hint such as "anthropic/requiresUserInteraction"; no tool sets one now). */
   _meta?: Record<string, unknown>;
   // Method-shorthand (not an arrow-typed property) so tool definitions with
   // differently-shaped Args can share the heterogeneous MODEL_TOOLS array in

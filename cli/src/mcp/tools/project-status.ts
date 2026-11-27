@@ -291,7 +291,7 @@ export function suggestNextStep(s: Sections, ctx: { root: string; rootPath?: str
   const picked = whileIndexing(pickNextStep(s, ctx.root, ctx.task), s);
   const info = ctx.task === "plan" || ctx.task === "review" ? driftAsInformation(s) : undefined;
   const informed = info ? { ...picked, info } : picked;
-  const step = withLegacyMarkerNote(withServerNote(withIndexNote(informed, s, ctx.task), s), s);
+  const step = withUntrackedNote(withLegacyMarkerNote(withServerNote(withIndexNote(informed, s, ctx.task), s), s), s);
   if (!ctx.rootPath) return step;
   // A call that named its project passes it on, so the next call serves the same one.
   const withRoot = (args?: Record<string, unknown>) => ({ ...args, rootPath: ctx.rootPath });
@@ -361,6 +361,13 @@ function withLegacyMarkerNote(step: NextStep, s: Sections): NextStep {
   const legacy = s.changesets?.status === "ok" ? s.changesets.legacyMarker : undefined;
   if (!legacy || (!legacy.tracked && !legacy.inUse)) return step;
   return { ...step, summary: `${step.summary} Also: ${legacy.note}` };
+}
+
+/** Landed changesets whose folder git doesn't track (#1367), whatever the step: they belong in the PR. */
+function withUntrackedNote(step: NextStep, s: Sections): NextStep {
+  const untracked = s.changesets?.status === "ok" ? s.changesets.untracked : undefined;
+  if (!untracked) return step;
+  return { ...step, summary: `${step.summary} Also: ${untracked.note}` };
 }
 
 /** The restart advice for the process answering (central, or in-process). */

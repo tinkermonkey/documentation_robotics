@@ -1,0 +1,15 @@
+id: changeset-1795798904598-xidmeamwt
+name: cli010-c1-landing
+description: "changeset_commit becomes an ordinary write tool (#1419, #1256, #1367): no dialog, no confirmToken. Lands when the user asks in the conversation; git and the pull request are the gate. Takes changesets: [...] and lands them in order; the result names the files to commit; project_status warns about an untracked changeset folder."
+created: 2026-11-27T17:01:44.644Z
+modified: 2026-11-27T17:02:02.251Z
+status: staged
+baseSnapshot: v2:sha256:db1ad3fcfa4654d521ec8d78a2b4dd901cf52a13dcadf4c6e6a874a360dad97b
+origin:
+  kind: plan
+purpose: plan
+stats:
+  additions: 0
+  modifications: 3
+  deletions: 0
+lastSequence: 2

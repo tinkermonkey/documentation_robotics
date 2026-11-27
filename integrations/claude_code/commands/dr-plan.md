@@ -68,13 +68,12 @@ In short:
    staged work, no tool needed). Never land the verification record. To reconcile code drift, run
    `codebase_extract` with no plan active and `since` set to the commit `project_status` says the
    model was last reconciled with: any other `since` makes a verification record.
-8. **Land**: the human commits the plan in the PR, not the as-built changeset. When they ask you to land it, call
-   `changeset_commit`; they confirm it in a dialog, and it commits only then. From Claude Code, call
-   `changeset_commit_preview` first, show them its summary, and pass its `confirmToken` to
-   `changeset_commit`; they approve that call in the permission prompt. If it is refused, they
-   land it in the viewer (`review_open`, then Apply), or you call it again from an interactive
-   session; never point them to the `dr` CLI. Never commit unasked, and never apply
-   or discard the plan yourself.
+8. **Land**: the PR carries the plan, not the as-built changeset, and a person approves it there.
+   When the user asks you to land it, call `changeset_commit` (no dialog, no token: git and the PR
+   are the gate; `changesets: [...]` lands several in order). Then commit its `filesToCommit`, the
+   changeset folder among them, with the code. `changeset_commit_preview` is the read-only dry run.
+   A changeset-only (DrBot) session can't land: the user presses Apply in the viewer (`review_open`);
+   never point them to the `dr` CLI. Never land unasked, and never apply or discard the plan yourself.
 
 If the `dr` MCP tools are not available, say so and point the user to
 `integrations/claude_code/docs/MCP_SERVER.md`.

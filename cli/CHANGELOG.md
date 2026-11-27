@@ -90,6 +90,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **`changeset_commit` is an ordinary write tool: no dialog, no `confirmToken` (#1419, #1256, #1367).**
+  It lands when the user asks in the conversation; git and the pull request are the gate. The
+  confirmation dialog, the token (its HMAC, expiry and single use) and the
+  `anthropic/requiresUserInteraction` flag are gone: the token's hour ran while the person was still
+  reading the prompt that was meant to confirm it. `changesets: [...]` lands several in order and
+  stops at the first refusal, with one summary of each changeset's counts and overlaps. The result
+  names the files to commit (`filesToCommit`: the model files, `manifest.yaml` and each changeset's
+  folder) and the branch it landed on; `project_status` warns (`changesets.untracked`) when a
+  committed or recorded changeset's folder is untracked in git. `changeset_commit_preview` stays as a
+  read-only dry run with no token. Changeset-only (DrBot) sessions still can't land (the viewer's
+  Apply is their route), verification and upgrade records are still refused, and a validation error
+  still refuses the landing. Reverses the 2026-11-09 "always elicit" ruling.
 - **The branch sits beside the checkout key in every result (#1422):** `main` is the farm's key for a
   project's primary folder, whatever branch that folder is on, so results now carry `branch` beside
   `checkout` (null when detached), read at call time, and under `_meta["dr/checkout"]`. A landing names
