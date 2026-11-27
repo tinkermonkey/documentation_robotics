@@ -3,7 +3,7 @@ schema: documentation-robotics-v1
 cli_version: 0.9.0
 spec_version: 0.16.0
 created: 2026-02-20T15:28:17.945Z
-updated: 2026-11-26T16:28:00.139Z
+updated: 2026-11-27T01:23:03.791Z
 project:
   name: dr-codebase
   description: ""
@@ -52,7 +52,7 @@ layers:
     elements:
       applicationcomponent: 110
       applicationevent: 2
-      applicationfunction: 1693
+      applicationfunction: 1696
       applicationinterface: 4
       applicationservice: 116
       dataobject: 13
@@ -236,6 +236,9 @@ changeset_history:
     action: committed
   - name: split-central-server-interfaces
     committed_at: 2026-11-26T16:21:04.058Z
+    action: committed
+  - name: cli010-t4-commonjs
+    committed_at: 2026-11-27T01:23:03.765Z
     action: committed
 reconciled:
   changeset: extract-723c609..5b32f88
