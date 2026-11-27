@@ -603,6 +603,46 @@ describe("codebase_extract intent and plan coverage", () => {
     const staged = ok(await handler({ changeset: "plan-the-planner-as-built", decide: [{ card, as: "application.applicationfunction", reason: "the planned function" }], rootPath }));
     expect(staged.planCoverage).toMatchObject({ total: 3, staged: 1, candidates: 1, none: 1 });
   }, SLOW);
+
+  it("plan: compares with the named plan and leaves the active changeset alone (#1352)", async () => {
+    const h = harness();
+    h.changes.value = { base: "abc123", changed: new Set(["src/app/plan.ts"]), deleted: new Map(), hunks: new Map([["src/app/plan.ts", "all"]]) };
+    const plan = ok(await changesetCreateHandler({ name: "plan-the-planner", description: "Add the planner.", rootPath }));
+    ok(await modelAddHandler({ elements: [{ layer: "application", type: "applicationfunction", name: "buildPlan" }], rootPath }));
+    const other = ok(await changesetCreateHandler({ name: "other-work", description: "Something else.", rootPath }));
+    clearModelCache();
+    const handler = createCodebaseExtractHandler(h.deps);
+    const manager = () => new StagingAreaManager(rootPath);
+    expect(await manager().getActiveId()).toBe(other.id);
+
+    const run = ok(await handler({ since: "main", plan: "plan-the-planner", changeset: "planner-as-built", intent: "The planner as built.", rootPath }));
+    expect(run.planCoverage).toMatchObject({ plan: "plan-the-planner", total: 1 });
+    // The as-built changeset is a verification record naming that plan, and it is not active.
+    expect(run.changeset).toMatchObject({ name: "planner-as-built", created: true, active: false, purpose: "verification" });
+    expect(await manager().getActiveId()).toBe(other.id);
+    const saved = await manager().load(run.changeset.id);
+    expect(saved!.verifies).toBe(plan.id);
+    expect(run.next[0]).toContain("without becoming active");
+    expect(run.next.join(" ")).toContain(`changeset: "${plan.id}" and against: {changeset: "${run.changeset.id}"}`);
+
+    // A plan that is not a changeset, or is not staged, is refused; so is plan with no since.
+    expect(fail(await handler({ since: "main", plan: "no-such-plan", rootPath })).error).toContain("not a changeset");
+    expect(fail(await handler({ plan: "plan-the-planner", rootPath })).error).toContain("no since");
+  }, SLOW);
+
+  it("plan coverage pairs by source file and symbol, as changeset_verify does (#1323)", async () => {
+    const h = harness();
+    h.changes.value = { base: "abc123", changed: new Set(["src/app/plan.ts"]), deleted: new Map(), hunks: new Map([["src/app/plan.ts", "all"]]) };
+    ok(await changesetCreateHandler({ name: "plan-the-planner", description: "Add the planner.", rootPath }));
+    // Named differently from the symbol, but carrying its source reference.
+    ok(await modelAddHandler({ elements: [{ layer: "application", type: "applicationfunction", name: "Assemble the plan", sourceFile: "src/app/plan.ts", sourceSymbol: "buildPlan" }], rootPath }));
+    clearModelCache();
+    const handler = createCodebaseExtractHandler(h.deps);
+    const run = ok(await handler({ since: "main", changeset: "planner-as-built", rootPath }));
+    const card = run.planCoverage.items.items[0].candidates.find((c: any) => c.symbol === "buildPlan").cardId;
+    const staged = ok(await handler({ changeset: "planner-as-built", decide: [{ card, as: "application.applicationfunction", reason: "the planned function" }], rootPath }));
+    expect(staged.planCoverage).toMatchObject({ total: 1, staged: 1, candidates: 0, none: 0 });
+  }, SLOW);
 });
 
 describe("codebase_extract relationships: a file's other symbols count as its element (#1162, #1181)", () => {

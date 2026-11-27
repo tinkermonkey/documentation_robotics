@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`codebase_extract` takes `plan`, stages evidenced deletes and pairs plan coverage like verify (#1352, #1375, #1323):**
+  - `plan: "<id or name>"` names the staged plan a `since` run is compared with, as `changeset_verify`
+    takes `changeset`, so the agent no longer activates the plan and switches back. The active changeset
+    is left alone and the as-built changeset is not made active. `since` still decides the purpose (the
+    reconciled commit makes a reconcile, any other `since` a verification record that names the plan);
+    `purpose` overrides.
+  - Candidate deletes with unambiguous evidence in a `since` run (`file-deleted`, `symbol-missing`) are
+    staged as deletes into the as-built changeset, with the relationships that name them, marked
+    `origin: tier0, rule: candidate-delete:<evidence>` and listed in `staged.deleted`, so
+    `changeset_verify` sees a planned deletion as done. Weaker evidence (`reference-never-matched`,
+    `file-renamed`, `file-missing`), a candidate other elements still reference, and a bootstrap run's
+    candidates stay `candidateDeletes` hints for the agent to check.
+  - `planCoverage` pairs planned and as-built elements with `matchPlannedElements`, the matcher
+    `changeset_verify` uses (id, name, then source file and symbol), so the two no longer disagree; a
+    probable pairing says why.
 - **Tier 0 on plain CommonJS and Electron code (#1320):** `codebase_extract` decided none of 338
   symbols on a CommonJS and Electron codebase. Tier-0 rules can now go by a symbol's `visibility`
   (read from the declaration and the file's exports, as project rules do), and a rule
