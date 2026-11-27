@@ -1,6 +1,6 @@
 /**
  * Evidence that something may still be writing into a changeset, for the person about to land it
- * (#1437): the landing summary in changeset_commit_preview and changeset_commit's dialog, the
+ * (#1437): the landing summary in changeset_commit_preview and changeset_commit's result, the
  * `dr changeset commit` prompt, and the viewer's changeset read (shown before Apply).
  *
  * Two kinds of evidence, never a guess from how recently the changeset changed (every preview just

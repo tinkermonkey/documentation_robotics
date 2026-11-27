@@ -25,11 +25,10 @@ describe("collectUntrackedLandings", () => {
     const out = await collectUntrackedLandings(
       ctx(
         [
-          "?? documentation-robotics/changesets/cs-landed/changes.yaml",
-          "?? documentation-robotics/changesets/cs-landed/metadata.yaml",
-          "?? documentation-robotics/changesets/cs-record/metadata.yaml",
-          "?? documentation-robotics/changesets/cs-staged/metadata.yaml",
-          " M documentation-robotics/changesets/cs-tracked/metadata.yaml",
+          "documentation-robotics/changesets/cs-landed/changes.yaml",
+          "documentation-robotics/changesets/cs-landed/metadata.yaml",
+          "documentation-robotics/changesets/cs-record/metadata.yaml",
+          "documentation-robotics/changesets/cs-staged/metadata.yaml",
         ].join("\n")
       ),
       changesets

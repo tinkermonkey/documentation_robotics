@@ -27,7 +27,6 @@ import { getCliBundledSpecVersion } from "../../src/utils/spec-version.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { ElicitRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import { McpToolRegistry } from "../../src/mcp/tool-registry.js";
 import { startTestFarmServer } from "../helpers/test-farm-server.js";
 import { runDr } from "../helpers/cli-runner.js";
@@ -413,15 +412,14 @@ describe("code drift is reconciled only by an as-built landing (#1094)", () => {
 });
 
 describe("a bootstrap codebase_extract staged is stamped on every landing path", () => {
-  /** changeset_commit, through a client that shows the confirmation dialog and accepts it. */
+  /** changeset_commit, through an MCP client. */
   async function landWithMcp(name: string): Promise<any> {
     clearModelCache();
     const server = new McpServer({ name: "dr-test", version: "0.0.0" });
     new McpToolRegistry().registerAll(server);
     const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
     await server.connect(serverTransport);
-    const client = new Client({ name: "test-client", version: "0.0.0" }, { capabilities: { elicitation: {} } });
-    client.setRequestHandler(ElicitRequestSchema, async () => ({ action: "accept", content: { confirm: true } }));
+    const client = new Client({ name: "test-client", version: "0.0.0" }, { capabilities: {} });
     await client.connect(clientTransport);
     try {
       return await ok(await client.callTool({ name: "changeset_commit", arguments: { changeset: name, rootPath } }));

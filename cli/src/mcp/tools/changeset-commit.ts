@@ -32,6 +32,7 @@
  * changeset_commit_preview is the read-only dry run: the same checks and summary, nothing written.
  */
 
+import path from "node:path";
 import { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { Model } from "../../core/model.js";
@@ -499,13 +500,18 @@ async function landOne(name: string, rootArg: string | undefined, forceIgnored: 
   const target = prepared.landing;
   const { rootPath, changeset } = target;
   const warnings = await landingWarnings(target);
-  const { byOperation, layers } = summarizeChangeset(changeset);
 
   // Hold the project's write lock from the fresh read through the landing: no other tool's write
   // lands between them, and none saves a model it read before the landing over it.
-  const { result, model } = await withProjectWriteLock(rootPath, async () => {
+  const locked = await withProjectWriteLock(rootPath, async () => {
     const model = await Model.load(rootPath, { lazyLoad: false });
     const manager = new StagingAreaManager(model.rootPath, model);
+    // What lands is what is on disk now: a write staged since the first read lands with it, so the
+    // counts and files below come from this read, and a changeset landed meanwhile (the viewer's
+    // Apply) is an answer, not a failure (#1441).
+    const current = await manager.load(changeset.id);
+    if (!current) throw refusal(`Changeset '${changeset.name}' is gone.`, ['Use "changeset_list" to find a staged changeset']);
+    if (current.status === "committed") return { already: await alreadyLandedResult(model, current) };
     // In the central process, the checkout's open viewers see the commit's progress (issue 1361).
     const progress = createCommitProgressReporter(model.rootPath, changeset.id);
     let landed;
@@ -519,13 +525,23 @@ async function landOne(name: string, rootArg: string | undefined, forceIgnored: 
       throw commitError(error, changeset.name);
     }
     progress.phase("reloading");
+    // The changeset is landed from here on: a failure now is a warning, never "not landed".
+    let reloadError: string | undefined;
     try {
       await reloadModel(rootArg);
+    } catch (error) {
+      reloadError = getErrorMessage(error);
     } finally {
       progress.finish();
     }
-    return { result: landed, model };
+    return { result: landed, model, current, reloadError };
   });
+  if ("already" in locked) return locked.already as unknown as LandedChangeset;
+  const { result, model, current, reloadError } = locked;
+  const { byOperation, layers } = summarizeChangeset(current);
+  if (reloadError) {
+    warnings.push(`The changeset landed, but the server's cached model could not be reloaded (${reloadError}); model_reload re-reads it.`);
+  }
   if (result.deactivationError) {
     warnings.push(
       `The changeset was committed, but its active-changeset marker could not be cleared (${result.deactivationError}). ` +
@@ -546,7 +562,7 @@ async function landOne(name: string, rootArg: string | undefined, forceIgnored: 
     name: changeset.name,
     status: "committed",
     intent: changeset.description?.trim() || undefined,
-    changes: changeset.changes.length,
+    changes: current.changes.length,
     byOperation,
     layers,
     committed: result.committed,
@@ -572,7 +588,7 @@ async function landOne(name: string, rootArg: string | undefined, forceIgnored: 
         }
       : {}),
     ...(warnings.length > 0 ? { warnings } : {}),
-    filesToCommit: await filesToCommit(rootPath, changeset),
+    filesToCommit: await filesToCommit(rootPath, current).catch(() => [path.join("documentation-robotics")]),
     // Only an as-built landing reconciles the model with the code (code drift in project_status).
     ...(result.reconciled
       ? {
@@ -629,12 +645,15 @@ export async function changesetCommitHandler(
       throw refusal("Name the changeset to land: changeset, or changesets for several.", ['Use "changeset_list" to find a staged changeset']);
     }
     const forceIgnored = args.force !== undefined;
+    let forceWarned = false;
 
     const landed: LandedChangeset[] = [];
     let stopped: { changeset: string; error: string; suggestions: string[] } | undefined;
     for (const name of names) {
       try {
-        landed.push(await landOne(name, args.rootPath, forceIgnored && landed.length === 0));
+        const one = await landOne(name, args.rootPath, forceIgnored && !forceWarned);
+        if (one.status === "committed") forceWarned = true;
+        landed.push(one);
       } catch (error) {
         // The first refusal is the call's error; a later one leaves the earlier landings reported.
         if (landed.length === 0) throw error;
@@ -659,7 +678,7 @@ export async function changesetCommitHandler(
     }
     const notAttempted = names.slice(landed.length + (stopped ? 1 : 0));
     return jsonResult({
-      status: stopped ? "stopped" : "committed",
+      status: stopped ? "stopped" : landed.some((one) => one.status === "committed") ? "committed" : "nothing-landed",
       ...base,
       summary: [
         ...landed.map(landedLine),

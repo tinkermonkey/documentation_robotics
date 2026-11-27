@@ -522,12 +522,13 @@ export async function collectUntrackedLandings(
     changesets.filter((c) => c.status === "committed" || c.status === "recorded").map((c) => c.id)
   );
   if (landed.size === 0) return null;
-  const status = await ctx.git(["status", "--porcelain", "--untracked-files=all", "--", CHANGESETS_DIR], ctx.projectRoot);
+  // ls-files prints paths relative to the project root, wherever the project sits in the repository
+  // (git status prints them from the repository's root).
+  const status = await ctx.git(["ls-files", "--others", "--exclude-standard", "--", CHANGESETS_DIR], ctx.projectRoot);
   if (!status.ok) return null;
   const folders = new Set<string>();
   for (const line of status.stdout.split("\n")) {
-    if (!line.startsWith("?? ")) continue;
-    const rest = line.slice(3).trim().replace(/^"|"$/g, "");
+    const rest = line.trim().replace(/^"|"$/g, "");
     const id = rest.startsWith(`${CHANGESETS_DIR}/`) ? rest.slice(CHANGESETS_DIR.length + 1).split("/")[0] : undefined;
     if (id && landed.has(id)) folders.add(`${CHANGESETS_DIR}/${id}`);
   }

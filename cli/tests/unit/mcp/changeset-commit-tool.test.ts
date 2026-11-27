@@ -17,6 +17,7 @@ import { CHANGESET_ONLY_ENV } from "../../../src/core/changeset-only-guard.js";
 import { McpToolRegistry } from "../../../src/mcp/tool-registry.js";
 import { clearModelCache } from "../../../src/mcp/tools/shared.js";
 import { modelAddHandler } from "../../../src/mcp/tools/model-add.js";
+import { modelDeleteHandler } from "../../../src/mcp/tools/model-delete.js";
 import { modelUpdateHandler } from "../../../src/mcp/tools/model-update.js";
 import { relationshipAddHandler } from "../../../src/mcp/tools/relationship-tools.js";
 import {
@@ -280,20 +281,17 @@ describe("changeset_commit", () => {
   });
 
   it("a validation error refuses the landing and writes nothing", async () => {
-    // A relationship to an element that exists nowhere fails validation.
-    await relationshipAddHandler({
-      source: "application.applicationservice.order-export",
-      predicate: "realizes",
-      target: "motivation.goal.no-such-goal",
-      rootPath,
-    }).catch(() => undefined);
+    // The goal the plan's service realizes is deleted from the base: the landing would leave a dangling link.
+    await changesetDeactivateHandler({ rootPath });
+    await modelDeleteHandler({ id: GOAL, force: true, rootPath } as any);
+    clearModelCache();
     const before = await baseModelText();
     const c = await connect();
     const result = await c.callTool({ name: "changeset_commit", arguments: { changeset: "export-orders", rootPath } });
-    if (result.isError) {
-      expect(await changesetStatus()).toBe("staged");
-      expect(await baseModelText()).toBe(before);
-    }
+    expect(result.isError).toBe(true);
+    expect(text(result)).toContain("was not committed");
+    expect(await changesetStatus()).toBe("staged");
+    expect(await baseModelText()).toBe(before);
   });
 
   describe("several changesets at once (#1256)", () => {
@@ -335,6 +333,22 @@ describe("changeset_commit", () => {
       expect(await changesetStatus()).toBe("committed");
       const second = parse(await changesetShowHandler({ changesetId: "second-plan", rootPath }));
       expect(second.status).toBe("staged");
+    });
+
+    it("stops when the second fails validation: the first stays landed, the second stays staged", async () => {
+      await planSecond();
+      // export-orders' service realizes a goal that is then deleted from the base.
+      await changesetDeactivateHandler({ rootPath });
+      await modelDeleteHandler({ id: GOAL, force: true, rootPath } as any);
+      clearModelCache();
+      const c = await connect();
+      const result = parse(
+        await c.callTool({ name: "changeset_commit", arguments: { changesets: ["second-plan", "export-orders"], rootPath } })
+      );
+      expect(result.status).toBe("stopped");
+      expect(result.landed.map((l: any) => l.name)).toEqual(["second-plan"]);
+      expect(result.stoppedAt.changeset).toBe("export-orders");
+      expect(await changesetStatus()).toBe("staged");
     });
 
     it("refuses outright when the first one is refused", async () => {
@@ -749,7 +763,7 @@ describe("changeset_commit of an as-built changeset while a plan is staged", () 
     } as any);
   }
 
-  it("warns in the dialog that the plan should land instead, and still commits on accept", async () => {
+  it("warns in the summary that the plan should land instead, and still commits", async () => {
     await stageAsBuilt();
     const c = await connect();
     const result = await commit(c, { changeset: "export-orders-as-built" });

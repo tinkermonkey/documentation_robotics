@@ -44,6 +44,8 @@ async function filesOf(rootPath: string, changeset: Changeset): Promise<string[]
       files.add(path.join(modelDir, "relationships.yaml"));
       continue;
     }
+    // An element delete can purge the relationships that name it, which rewrites relationships.yaml.
+    if (change.type === "delete") files.add(path.join(modelDir, "relationships.yaml"));
     // Named as Model.saveLayer names a type's file: application_function.yaml for applicationfunction.
     const type = change.elementId.split(".")[1];
     const layerDir = layerDirs.find((dir) => dir.replace(/^\d+_/, "") === change.layerName);
