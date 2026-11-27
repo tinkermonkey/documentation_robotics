@@ -15,6 +15,7 @@
  */
 import path from "node:path";
 import type { ChangesetGraph, GraphElement } from "../core/changeset-graph.js";
+import { normalizeName } from "../core/changeset-matching.js";
 import type { SourceReference } from "../types/source-reference.js";
 import { MAX_ID_SLUG, deriveElementId, elementUnderEarlierId, toKebabCase } from "../utils/id-generator.js";
 import { callEdgeVerdict } from "./call-evidence.js";
@@ -36,7 +37,7 @@ import {
 } from "./cards/extract.js";
 import { INFRA_LABELS } from "./cards/build.js";
 import { IPC_HANDLER_LABEL } from "./cards/ipc.js";
-import { TEST_CASE_LABEL, TEST_SUITE_LABEL } from "./cards/test-cases.js";
+import { TEST_CASE_LABEL, TEST_SUITE_LABEL, TITLE_SEPARATOR } from "./cards/test-cases.js";
 import { TEST_PATH } from "./cards/routes.js";
 import type { ClusterEvidence } from "./cards/clusters.js";
 import type { Tier1Hint } from "./classifier/types.js";
@@ -262,12 +263,22 @@ export interface ElementPlan {
    * Where every extracted symbol went, one bucket each, so the buckets sum to the symbols read:
    * `recorded` (a decision someone recorded), `modelled` (an element names it), `outsideLayers`,
    * `ruleNone` / `ruleStaged` (a project rule), `tier0Rejected` / `tier0Staged` (Tier 0 or the node
-   * mapping), `open` (a card). Decision-record cards are counted in `open` as well.
+   * mapping), `open` (a card), `untouched` (a test case the range didn't change, left alone, #1364).
+   * Decision-record cards are counted in `open` as well.
    */
   tally: Record<TallyBucket, number>;
 }
 
-export type TallyBucket = "recorded" | "modelled" | "outsideLayers" | "ruleNone" | "ruleStaged" | "tier0Rejected" | "tier0Staged" | "open";
+export type TallyBucket =
+  | "recorded"
+  | "modelled"
+  | "outsideLayers"
+  | "ruleNone"
+  | "ruleStaged"
+  | "tier0Rejected"
+  | "tier0Staged"
+  | "open"
+  | "untouched";
 
 /** What one project rule decided in a plan. */
 export interface RuleDecided {
@@ -688,6 +699,31 @@ export function symbolChangedInRange(
   return bySeed ? seeds!.seeds!.has(s.qualifiedName) : changedInRange(ranges, card.start_line, card.end_line);
 }
 
+/** Shortest name or symbol (letters and digits only) that can stand for a test's title: shorter ones match anything. */
+const NEAR_TITLE_MIN = 8;
+
+/**
+ * The planned test sketches a test is likely to be the build of (#1255): live `testing.testcasesketch`
+ * elements no symbol is matched to, whose name, or a symbol they name in the test's file, is a prefix
+ * or a suffix of the test's `describe > test` title or of the test part alone (or the other way
+ * round: a long planned name that starts or ends as the title does). Planned before the tests
+ * existed, they carry short names ("model-view-control") and no exact title; staging the test
+ * under its full title would duplicate them.
+ */
+export function nearTestSketches(live: GraphElement[], claimed: ReadonlyMap<string, unknown>, file: string, title: string): GraphElement[] {
+  const full = normalizeName(title);
+  const own = normalizeName(title.split(TITLE_SEPARATOR).pop() ?? title);
+  const near = (key: string) =>
+    key.length >= NEAR_TITLE_MIN && [full, own].some((t) => t.length >= NEAR_TITLE_MIN && (t.startsWith(key) || t.endsWith(key) || key.startsWith(t) || key.endsWith(t)));
+  return live.filter((e) => {
+    if (e.layer !== "testing" || e.type !== "testcasesketch" || claimed.has(e.id)) return false;
+    const sameFile = codeLocations(e).filter((l) => l.file === file && l.symbol);
+    // A sketch that names another file's test is that test's.
+    if (codeLocations(e).some((l) => l.symbol && l.file !== file)) return false;
+    return [e.name, ...sameFile.map((l) => l.symbol!)].some((k) => near(normalizeName(k)));
+  });
+}
+
 function cardOf(
   s: ExtractedSymbol,
   kind: UndecidedKind,
@@ -747,9 +783,13 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
     elementOf: new Map(),
     descriptions: {},
     byRule: new Map(),
-    tally: { recorded: 0, modelled: 0, outsideLayers: 0, ruleNone: 0, ruleStaged: 0, tier0Rejected: 0, tier0Staged: 0, open: 0 },
+    tally: { recorded: 0, modelled: 0, outsideLayers: 0, ruleNone: 0, ruleStaged: 0, tier0Rejected: 0, tier0Staged: 0, open: 0, untouched: 0 },
   };
   const tally = (b: TallyBucket) => plan.tally[b]++;
+  // With a range whose changed lines are known, a test case the range didn't change is left alone:
+  // its file changed, but it didn't (#1364). Without the lines every test case of a changed file is the range's.
+  const rangeLines = options.changes?.hunks && !options.changes.hunksError ? options.changes : null;
+  const untouchedTest = (s: ExtractedSymbol) => !!rangeLines && s.card.label === TEST_CASE_LABEL && !symbolChangedInRange(s, rangeLines.hunks, rangeLines);
   const ruleDecided = (rule: string): RuleDecided => {
     const name = projectRuleName(rule);
     return plan.byRule.get(name) ?? plan.byRule.set(name, { none: [], staged: [] }).get(name)!;
@@ -947,6 +987,10 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
         tally("outsideLayers");
         continue;
       }
+      if (untouchedTest(s)) {
+        plan.unchanged++;
+        continue;
+      }
       const fields = changedFields(match, s, symbol, spellings, decided.layer, decided.type, options.extractedDescriptions ?? {}, siblingsOf(env, s));
       if (typeof fields.description === "string") plan.descriptions[match.id] = fields.description;
       const earlier = plan.updates.find((u) => u.id === match.id);
@@ -1016,6 +1060,28 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
       plan.outsideLayers++;
         tally("outsideLayers");
       continue;
+    }
+    // A test case of a changed file that the range didn't change: not this range's to stage.
+    if (untouchedTest(s)) {
+      tally("untouched");
+      continue;
+    }
+    // A planned sketch the test is likely the build of: reported, not duplicated (#1255).
+    if (card.label === TEST_CASE_LABEL && file) {
+      const near = nearTestSketches(index.live, claimed, file, symbol);
+      if (near.length) {
+        plan.undecided.push(
+          cardFor(
+            s,
+            "ambiguous",
+            `Its title matches ${near.map((e) => e.id).join(", ")}, a test sketch no test is matched to: its source reference or its name is this test's title or a part of it. ` +
+              `If it is that sketch, point it here (model_update ${near[0].id} with sourceFile ${file} and sourceSymbol "${symbol}"); if it is a separate test, stage it under its own symbol.`,
+            { candidates: [`${tier0.layer}.${tier0.type}`], rule: tier0.rule }
+          )
+        );
+        tally("open");
+        continue;
+      }
     }
     // An infrastructure symbol another symbol of the same name already added: one more location.
     const mergeAs = mergeKey(s);

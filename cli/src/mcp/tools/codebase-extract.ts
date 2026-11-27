@@ -1946,6 +1946,21 @@ function changesetRejectables(changeset: Changeset | null, graph: ChangesetGraph
 }
 
 /**
+ * The other live elements of the graph that name a symbol (`file#symbol`), besides the one a reject
+ * names by id: rejecting an element by its id unstages that element only, and the symbol stays an
+ * element's when another still names it (#1255: a planned sketch pointed at the test the duplicate
+ * was staged for).
+ */
+function otherOwnersOfSymbol(graph: ChangesetGraph | null, key: string, exceptId: string): string[] {
+  const owners: string[] = [];
+  for (const e of graph?.elements.values() ?? []) {
+    if (e.id === exceptId || e.status === "deleted") continue;
+    if ((e.sourceReference?.locations ?? []).some((l) => l.symbol && decisionKey(normFile(l.file), l.symbol) === key)) owners.push(e.id);
+  }
+  return owners;
+}
+
+/**
  * What a `reject` names, one symbol per entry, and the entries it can't place ({@link RejectProblem}).
  * An entry may be a cardId (of the last run, or an earlier run's card the agent has modelled
  * since), an element id the extraction staged, or a symbol (bare, file#symbol or qualified name)
@@ -1956,14 +1971,14 @@ function cardsToReject(
   fromChangeset: Rejectable[],
   changesetName: string,
   refs: Array<{ card: string; reason: string; index: number }>
-): { found: Array<{ file: string | null; symbol: string; label?: string; reason: string; index: number }>; problems: RejectProblem[] } {
+): { found: Array<{ file: string | null; symbol: string; label?: string; reason: string; index: number; elementId?: string }>; problems: RejectProblem[] } {
   const known: Rejectable[] = [
     ...(stored?.cards ?? []).map((c) => ({ file: c.file, symbol: c.symbol, label: c.label, cardId: c.cardId, qualifiedName: c.qualifiedName })),
     ...(stored?.earlierCards ?? []).map((c) => ({ file: c.file, symbol: c.symbol, label: c.label, cardId: c.cardId, qualifiedName: c.qualifiedName })),
     ...(stored?.staged ?? []).map((s) => ({ file: s.file, symbol: s.symbol, label: s.label, elementId: s.id })),
     ...fromChangeset,
   ];
-  const found: Array<{ file: string | null; symbol: string; label?: string; reason: string; index: number }> = [];
+  const found: Array<{ file: string | null; symbol: string; label?: string; reason: string; index: number; elementId?: string }> = [];
   const problems: RejectProblem[] = [];
   // The same symbol can be known several ways (a card, then the element staged for it).
   const distinctSymbols = (matches: Rejectable[]): Rejectable[] => {
@@ -1983,7 +1998,7 @@ function cardsToReject(
     // An element id names the element: every symbol it names (one per source location).
     const ofElement = known.filter((k) => k.elementId === ref.card);
     if (ofElement.length) {
-      for (const d of distinctSymbols(ofElement)) found.push({ file: d.file, symbol: d.symbol, label: d.label, reason: ref.reason, index: ref.index });
+      for (const d of distinctSymbols(ofElement)) found.push({ file: d.file, symbol: d.symbol, label: d.label, reason: ref.reason, index: ref.index, elementId: ref.card });
       continue;
     }
     const byCard = known.filter((k) => k.cardId === ref.card);
@@ -2739,6 +2754,8 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         // recording. Only a changeset this extraction stages into (it has cards, or adopted the
         // waiting ones) is touched, and in it only extracted elements.
         const toUnstage = new Map<string, string>();
+        /** A reject item's element-id symbols that another element names too: reject item index → those elements (#1255). */
+        const symbolKeptFor = new Map<number, string[]>();
         const inBase: string[] = [];
         const keptElements: Array<{ id: string; alsoNames: string[] }> = [];
         const relationshipsToUnstage: Array<RelationshipRef & { key: string }> = [];
@@ -2927,6 +2944,14 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
           const rejectedKeys = new Map<string, string>();
           for (const card of rejected) {
             const key = decisionKey(card.file, card.symbol);
+            // An element named by its id is unstaged alone when another element names its symbol too:
+            // the symbol is that element's, not a non-element (#1255).
+            const owners = card.elementId ? otherOwnersOfSymbol(graph, key, card.elementId) : [];
+            if (card.elementId && owners.length) {
+              symbolKeptFor.set(card.index, owners);
+              toUnstage.set(card.elementId, card.symbol);
+              continue;
+            }
             rejectedKeys.set(key, card.symbol);
             if (keepAt(card.index)) {
               const why = unkeepable(card);
@@ -3051,6 +3076,15 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
           if (problem) return { index, status: problem.status, item: problem.item, reason: problem.message };
           const kept = keptRejects.get(index);
           const local = notKept.get(index);
+          const owners = symbolKeptFor.get(index);
+          // An element rejected by its id whose symbol another element names: unstaged alone, nothing recorded (#1255).
+          if (owners) {
+            return {
+              index,
+              status: preview ? "would-unstage" : "unstaged",
+              notes: [`${item.card} is unstaged and its symbol is not recorded as a non-element: ${owners.join(", ")} name${owners.length === 1 ? "s" : ""} it too.`],
+            };
+          }
           return {
             index,
             status: kept ? (preview ? "would-keep" : "kept") : preview ? "would-record" : "recorded",
@@ -4163,6 +4197,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
           ...(tier1NotElement ? { hiddenByTier1: tier1NotElement } : {}),
           open: shown.length,
           ...(untouchedCards ? { untouched: untouchedCards } : {}),
+          ...(t.untouched ? { untouchedTests: t.untouched } : {}),
         };
         const overrodeTotals = [...ruleOverrode.values()].reduce((o, x) => ({ decided: o.decided + x.decided, rejected: o.rejected + x.rejected }), { decided: 0, rejected: 0 });
         const budgetSection = {
@@ -4177,13 +4212,15 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
               budgetParts.decidedByTier0.staged +
               (budgetParts.hiddenByTier1 ?? 0) +
               budgetParts.open +
-              (budgetParts.untouched ?? 0),
+              (budgetParts.untouched ?? 0) +
+              (budgetParts.untouchedTests ?? 0),
             ...budgetParts,
             ...(overrodeTotals.decided || overrodeTotals.rejected ? { rulesOverrodeTier0: overrodeTotals } : {}),
             note:
               "Every symbol this run read, once: recorded (a decision recorded earlier), modelled (an element names it), outsideLayers, decided by the project's rules or by Tier 0 " +
               "(staged counts symbols, so infrastructure merged into one element counts each), " +
               (untouchedCards ? "untouched (in changed files, not changed by the range), " : "") +
+              (t.untouched ? "untouchedTests (test cases of changed files that the range's lines did not change: left alone), " : "") +
               "and open: the cards left for you (needs-attributes cards included). The parts sum to symbols. rulesOverrodeTier0 counts what a none rule took from Tier 0's decisions (per rule in rules.decided).",
           },
         };

@@ -556,6 +556,55 @@ describe("test cases through extraction and the plan", () => {
     expect(extractedElementId("testing", "testcasesketch", "renders the panel")).toBe("testing.testcasesketch.renders-the-panel");
   });
 
+  it("stages only the test cases a since range changed, leaving the untouched ones in a touched file alone (#1364)", async () => {
+    const { graph } = fixtureGraph();
+    const extraction = await collectExtraction(graph, CONFIG, "cbm", { sourceRoot: fixtureRoot() });
+    // Lines 25-28 hold "loads every layer": the range changed only those.
+    const changes = { base: "abc", changed: new Set([TEST_FILE]), deleted: new Map(), hunks: new Map([[TEST_FILE, [[26, 26]] as Array<[number, number]>]]) } as any;
+    const plan = planElements(extraction, EMPTY_MODEL, { fileExists: () => true, changes });
+    expect(plan.adds.filter((a) => a.layer === "testing").map((a) => a.name)).toEqual(["ModelLoader > loads every layer"]);
+    expect(plan.tally.untouched).toBe(8);
+    // A file the range added is all new: every case is staged.
+    const added = { ...changes, hunks: new Map([[TEST_FILE, "all"]]) };
+    expect(planElements(extraction, EMPTY_MODEL, { fileExists: () => true, changes: added }).adds.filter((a) => a.layer === "testing")).toHaveLength(9);
+    // Without the changed lines, every case of a changed file is the range's.
+    const noLines = { ...changes, hunks: undefined };
+    expect(planElements(extraction, EMPTY_MODEL, { fileExists: () => true, changes: noLines }).adds.filter((a) => a.layer === "testing")).toHaveLength(9);
+  });
+
+  it("reports a planned sketch a test is likely the build of instead of staging a duplicate (#1255)", async () => {
+    const { graph } = fixtureGraph();
+    const extraction = await collectExtraction(graph, CONFIG, "cbm", { sourceRoot: fixtureRoot() });
+    const sketch = (id: string, name: string, locations: Array<{ file: string; symbol?: string }>) => ({
+      id,
+      layer: "testing",
+      type: "testcasesketch",
+      name,
+      status: "active",
+      attributes: {},
+      sourceReference: { provenance: "manual", locations },
+    });
+    const existing = {
+      elements: new Map([
+        // Short planned names: a suffix of the full title, and a prefix of another.
+        ["testing.testcasesketch.reuses-the-cache", sketch("testing.testcasesketch.reuses-the-cache", "reuses the cache", [{ file: TEST_FILE }])],
+        ["testing.testcasesketch.renders-the-panel-planned", sketch("testing.testcasesketch.renders-the-panel-planned", "renders the panel when it loads", [{ file: TEST_FILE, symbol: "renders the panel when it loads" }])],
+        // Too short to say anything, and another file's.
+        ["testing.testcasesketch.loads", sketch("testing.testcasesketch.loads", "loads", [])],
+        ["testing.testcasesketch.other", sketch("testing.testcasesketch.other", "maps a to 1", [{ file: "src/other.test.ts", symbol: "maps a to 1" }])],
+      ]),
+      getRelationship: () => undefined,
+    } as any;
+    const plan = planElements(extraction, existing, { fileExists: () => true });
+    expect(plan.adds.find((a) => a.name === "ModelLoader > when the cache is warm > reuses the cache")).toBeUndefined();
+    const card = plan.undecided.find((c) => c.symbol === "ModelLoader > when the cache is warm > reuses the cache")!;
+    expect(card).toMatchObject({ kind: "ambiguous", candidates: ["testing.testcasesketch"] });
+    expect(card.reason).toContain("testing.testcasesketch.reuses-the-cache");
+    expect(card.reason).not.toContain("testing.testcasesketch.other");
+    // A test with no near sketch is staged as before.
+    expect(plan.adds.find((a) => a.name === "ModelLoader > loads every layer")).toBeDefined();
+  });
+
   it("keeps the line rule for a test case card under detect_changes seeds, which never name DR's own cards", () => {
     const testCase = (label: string, qn: string, lines: [number, number]) =>
       ({

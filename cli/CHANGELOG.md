@@ -80,6 +80,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`codebase_extract` with `since` stages only the tests the range changed; planned test sketches are
+  not duplicated (#1364, #1255):** a test case of a touched file that the range's lines did not
+  change is left alone (counted as `untouchedTests` in the run's budget), so `changeset_verify` no longer reports every
+  test of the file as an unplanned change. A test whose title is suffixed or prefixed by a planned
+  `testcasesketch`'s name (or the symbol it names in the file) becomes an `ambiguous` card naming that
+  sketch instead of a duplicate add. `changeset_verify` pairs a planned test sketch that names only a
+  test file with the per-test sketches built in it, as a group. Rejecting a staged element by its
+  id unstages that element only when another element names its symbol, and records nothing.
 - **`codebase_extract` no longer stages relationships from name collisions (#1326):** a field write
   or usage the index resolved by name (`WRITES`, `USAGE`, or a `unique_name` / `suffix_match` call)
   onto a member of a class (`Xform.pts`) is staged only when the caller's file imports the class or
