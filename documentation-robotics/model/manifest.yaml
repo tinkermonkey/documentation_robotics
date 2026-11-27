@@ -239,6 +239,7 @@ changeset_history:
     action: committed
   - name: s3a-verify-matching
     committed_at: 2026-11-27T01:23:01.332Z
+    action: committed
   - name: cli010-t5-collisions
     committed_at: 2026-11-27T01:23:09.457Z
     action: committed
