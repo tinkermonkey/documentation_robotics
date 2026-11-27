@@ -84,6 +84,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `external` or `headless` (`type`, `kind` or `role` attribute) and connections that two or more elements
   of the type have accepted as absent. The path shown for a traced element prefers realizes, serves,
   satisfies, supports and composes chains to a route through a shared neighbour.
+
+- **`changeset_verify` says what it can't see instead of calling it missing (#1371, #1374, #1351, #1319):**
+  against an extraction, these planned elements are unverifiable with a reason, not missing or
+  "deletions not done", and stay out of the verdict: an add whose source file declares its symbol but
+  the range didn't change it ("exists, unchanged in the range", checked against the file at the start of the range); a delete of an element with no source
+  reference; a data-store collection that is not a table (a file); and an element sourced to a language
+  the code index doesn't read (shell scripts), whose files `extraction.unindexedFiles` and a note list,
+  with the instruction that the agent extracts, models and verifies them by reading the code.
+  The evidence is the file's text, never the code graph.
 - `codebase_extract` reads routes a server routes by hand: method and path comparisons inside an
   `http.createServer` handler, and route tables or anchored regexes (`matchRoute` over a ROUTES
   table) where the path is readable. A hand-routed file it could only read in part is listed under

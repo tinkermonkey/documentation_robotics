@@ -235,7 +235,7 @@ describe("changeset_verify against an extracted as-built changeset (D1)", () => 
 
     // How much of the as-built side came from extraction.
     expect(report.extraction.asBuilt).toEqual({
-      elements: { total: 3, byProvenance: { extracted: 3 }, fromExtraction: 3, agentAdded: 0 },
+      elements: { total: 3, byProvenance: { extracted: 3 }, fromExtraction: 3, fromCards: 3, agentAdded: 0 },
       relationships: { total: 1, betweenExtracted: 1, other: 0 },
       record: "found",
     });

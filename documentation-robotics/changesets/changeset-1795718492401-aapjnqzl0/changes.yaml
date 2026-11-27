@@ -1,0 +1,80 @@
+- type: add
+  elementId: application.applicationfunction.classify-unseen-elements
+  layerName: application
+  after:
+    id: 3a058be9-fb44-4e10-8c19-7b81e4dd2774
+    path: application.applicationfunction.classify-unseen-elements
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: classifyUnseenElements
+    description: "Classifies planned elements verify couldn't pair with a built one: code exists but unchanged in the range, delete with no source reference, file-backed data-store collection, file in a language the index doesn't read. Each becomes unverifiable with a reason, never missing."
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/core/unverifiable-classification.ts
+          symbol: classifyUnseenElements
+    metadata:
+      created_at: 2026-11-26T18:41:36.439Z
+      updated_at: 2026-11-26T18:41:36.439Z
+      version: 1
+  timestamp: 2026-11-26T18:41:36.450Z
+  sequenceNumber: 0
+- type: add
+  elementId: data-model.objectschema.unseen-classification
+  layerName: data-model
+  after:
+    id: 97868be7-4958-43fe-8ce6-4cba48d7e07a
+    path: data-model.objectschema.unseen-classification
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: UnseenClassification
+    description: The reason a planned element is unverifiable (kind and text), plus the files the index skipped by language.
+    attributes:
+      type: object
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/core/unverifiable-classification.ts
+          symbol: UnseenClassification
+    metadata:
+      created_at: 2026-11-26T18:41:39.583Z
+      updated_at: 2026-11-26T18:41:39.583Z
+      version: 1
+  timestamp: 2026-11-26T18:41:39.589Z
+  sequenceNumber: 1
+- type: relationship-add
+  elementId: application.applicationfunction.classify-unseen-elements::accesses::data-model.objectschema.unseen-classification
+  layerName: application
+  after:
+    source: application.applicationfunction.classify-unseen-elements
+    target: data-model.objectschema.unseen-classification
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-26T18:41:39.589Z
+  sequenceNumber: 2
+- type: relationship-add
+  elementId: application.applicationfunction.verify-changeset-in-model::depends-on::application.applicationfunction.classify-unseen-elements
+  layerName: application
+  after:
+    source: application.applicationfunction.verify-changeset-in-model
+    target: application.applicationfunction.classify-unseen-elements
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-26T18:45:25.850Z
+  sequenceNumber: 5
+- type: relationship-add
+  elementId: application.applicationfunction.classify-unseen-elements::depends-on::application.applicationfunction.code-changes-since
+  layerName: application
+  after:
+    source: application.applicationfunction.classify-unseen-elements
+    target: application.applicationfunction.code-changes-since
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-26T18:45:25.850Z
+  sequenceNumber: 6

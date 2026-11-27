@@ -18967,3 +18967,22 @@ data-model.objectschema.weak-call-pair:
     created_at: 2026-11-26T18:49:51.719Z
     updated_at: 2026-11-26T18:49:51.719Z
     version: 1
+data-model.objectschema.unseen-classification:
+  id: 97868be7-4958-43fe-8ce6-4cba48d7e07a
+  path: data-model.objectschema.unseen-classification
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: UnseenClassification
+  description: The reason a planned element is unverifiable (kind and text), plus the files the index skipped by language.
+  attributes:
+    type: object
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/core/unverifiable-classification.ts
+        symbol: UnseenClassification
+  metadata:
+    created_at: 2026-11-26T18:41:39.583Z
+    updated_at: 2026-11-26T18:41:39.583Z
+    version: 1

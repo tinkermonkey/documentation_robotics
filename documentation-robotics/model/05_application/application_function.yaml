@@ -28770,3 +28770,20 @@ application.applicationfunction.match-planned-elements:
     created_at: 2026-11-26T18:41:38.539Z
     updated_at: 2026-11-26T18:41:38.539Z
     version: 1
+application.applicationfunction.classify-unseen-elements:
+  id: 3a058be9-fb44-4e10-8c19-7b81e4dd2774
+  path: application.applicationfunction.classify-unseen-elements
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: classifyUnseenElements
+  description: "Classifies planned elements verify couldn't pair with a built one: code exists but unchanged in the range, delete with no source reference, file-backed data-store collection, file in a language the index doesn't read. Each becomes unverifiable with a reason, never missing."
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/core/unverifiable-classification.ts
+        symbol: classifyUnseenElements
+  metadata:
+    created_at: 2026-11-26T18:41:36.439Z
+    updated_at: 2026-11-26T18:41:36.439Z
+    version: 1
