@@ -460,11 +460,14 @@ export const changesetBriefTool: McpToolDefinition<typeof briefInputSchema> = {
   description:
     "Render a changeset as the spec for its change. By default a compact summary: counts by layer and operation; " +
     "which layers the change reaches and which it does not; gaps, one line each (unconnected additions, missing " +
-    "required relationships, connections its peers have); accepted gaps (connections an element decided against with " +
+    "required relationships, connections its peers have except for external elements and ones the type's own accepted gaps cover, " +
+    "and accepted gaps the plan contradicts, each with its gap_reopen call); accepted gaps (connections an element decided against with " +
     "gap_accept, with the reason: not open, and contradicted when the plan wires one anyway); intent, which covers the " +
     "added and updated elements outside motivation, business and product (those layers are what the others trace to, " +
     "so a plan made only of them has nothing to trace and says so): counts of traced, untraced and unanchored (changes " +
-    "that reach no goal, requirement or feature, or only an added one that itself traces to nothing) with the " +
+    "that reach no goal, requirement or feature, or only an added one that itself traces to nothing; an added " +
+    "requirement, feature or capability that realizes, satisfies or supports a goal or outcome, added or not, is " +
+    "anchored there) with the " +
     "untraced ids, where a part traces through the whole that composes it, an element through what it realizes (hubs " +
     "included), and an element whose type the catalog gives " +
     "no relationship to those layers is counted apart (noCatalogRoute), not as untraced. The trace walks maxHops " +

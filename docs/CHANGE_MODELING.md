@@ -961,8 +961,11 @@ The full brief:
     relate to one of the added element's neighbours the same way (another layout function that
     also realizes the layout service). A connection at least half the peers have (and at least
     two), that the added element lacks, and that the catalog still allows, is reported with up to
-    three examples. On a copy of heimdall, planning a new layout function this way reports that its sibling
+    three examples. Elements marked `external` or `headless` (`type`, `kind` or `role`) are skipped, as
+    is a connection that two or more elements of the type have already accepted as absent. On a copy of heimdall, planning a new layout function this way reports that its sibling
     functions each have an API operation realizing them and a test sketch testing them.
+  - `contradicted-accepted`: an accepted gap the plan wires anyway. It is a gap to resolve, with the
+    `gap_reopen` call that takes the decision back (or delete the relationship).
   - A peer-pattern gap the element has accepted (its `accepted_gaps`) is not listed here: the
     accepted gap is, under `acceptedGaps`, with `answersPeerPattern`.
 - **Accepted gaps.** Each added or updated element's accepted gaps, with the reason, who decided,
@@ -977,8 +980,12 @@ The full brief:
   `hubThreshold`), and `intent.walk` names the values used and lists in `blockedByHub` the elements
   that do not trace but would, within the same hops, if hubs were walked through: the hub rule
   changes the answer, so the answer says where. An intent element the changeset adds counts only when
-  it traces to an existing one (`anchoredBy`); otherwise the elements that reach it are untraced and
-  listed in `intent.unanchored`.
+  it traces to an existing one (`anchoredBy`) or is a requirement, feature or capability that realizes,
+  satisfies or supports a goal or outcome, added or not (a bootstrap writes its goals in the same
+  changeset; an added goal or outcome ends the trace); otherwise the elements that reach it are
+  untraced and listed in `intent.unanchored`. Where several routes reach intent, the path shown
+  prefers realizes, serves, satisfies, supports and composes chains to one through any other
+  relationship.
   - A part traces through its whole, and an element through what it realizes. An element the walk
     leaves untraced is traced when an element that composes or aggregates it, or that it realizes,
     traces, at any depth and whether or not that element is a hub: a sub-view of a view that
