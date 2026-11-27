@@ -28703,6 +28703,56 @@ application.applicationfunction.definition-for:
     created_at: 2026-11-26T14:43:40.522Z
     updated_at: 2026-11-26T14:43:40.522Z
     version: 1
+application.applicationfunction.read-ipc-handlers:
+  id: 366b5abc-9160-4cf9-837d-a67aa04564b4
+  path: application.applicationfunction.read-ipc-handlers
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: readIpcHandlers
+  description: Read ipcMain.handle and ipcMain.on registrations with a literal channel from a file's text; says when a channel is not a literal.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/cards/ipc.ts
+        symbol: readIpcHandlers
+  metadata:
+    created_at: 2026-11-26T18:47:12.749Z
+    updated_at: 2026-11-26T18:47:12.749Z
+    version: 1
+application.applicationfunction.collect-ipc-handlers:
+  id: abac7758-ac02-4460-93e5-797f0c898ac8
+  path: application.applicationfunction.collect-ipc-handlers
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: collectIpcHandlers
+  description: The IPC registrations of a project's JS/TS files (tests and vendored code left out) and the files with an unreadable channel.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/cards/ipc.ts
+        symbol: collectIpcHandlers
+  metadata:
+    created_at: 2026-11-26T18:47:12.750Z
+    updated_at: 2026-11-26T18:47:12.750Z
+    version: 1
+application.applicationfunction.hand-staged-note:
+  id: f0960815-63e3-469a-8869-e14a13bde456
+  path: application.applicationfunction.hand-staged-note
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: handStagedNote
+  description: The note that replaces the thin as-built warning when the as-built side was staged by hand from extraction's own cards.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/changeset-verify.ts
+        symbol: handStagedNote
+  metadata:
+    created_at: 2026-11-26T18:47:12.750Z
+    updated_at: 2026-11-26T18:47:12.750Z
 application.applicationfunction.match-planned-elements:
   id: 7c52651b-1080-40c0-95e3-822b3ac963d6
   path: application.applicationfunction.match-planned-elements

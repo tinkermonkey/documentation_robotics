@@ -336,6 +336,11 @@ export interface AsBuiltShare {
      * deletes.
      */
     fromExtraction: number;
+    /**
+     * Of `fromExtraction`, those the agent staged by hand from one of extraction's cards (not staged
+     * by a Tier-0 rule or Tier 1): the as-built side is as wide as the cards extraction offered.
+     */
+    fromCards?: number;
     /** The rest: added, changed or deleted by the agent, whatever provenance they declare (see `agentAdded`). */
     agentAdded: number;
   };
@@ -2029,8 +2034,10 @@ export async function verifyChangesetInModel(
   }
   if ("changeset" in options.against) {
     // Said with the as-built share's warning below (an as-built changeset always has a share).
-    const thin = thinAsBuiltWarning(report, built);
+    const thin = thinAsBuiltWarning(report, built, extraction.asBuilt);
     if (thin) warning = warning ? `${warning} ${thin}` : thin;
+    const handStaged = extraction.asBuilt ? handStagedNote(report, built, extraction.asBuilt) : undefined;
+    if (handStaged) report.notes.push(handStaged);
   }
   const share = extraction.asBuilt;
   if (share) {
@@ -2354,6 +2361,7 @@ export function asBuiltShare(
 
   const byProvenance: Record<string, number> = {};
   const extracted = new Set<string>();
+  let fromCards = 0;
   const agentAdded: NonNullable<AsBuiltShare["agentAdded"]> = [];
   const edited: NonNullable<AsBuiltShare["editedAfterExtraction"]> = [];
   for (const e of changed) {
@@ -2370,6 +2378,8 @@ export function asBuiltShare(
       continue;
     }
     extracted.add(e.id);
+    const by = stagedById.get(e.id)?.origin?.by;
+    if (e.change === "added" && by !== "tier0" && by !== "tier1") fromCards++;
     const edits = editsAfterExtraction(e, stagedById.get(e.id), updatedById.get(e.id));
     if (edits.length > 0) edited.push({ id: e.id, edits });
   }
@@ -2379,7 +2389,7 @@ export function asBuiltShare(
   const addedIds = new Set(changed.filter((e) => e.change === "added").map((e) => e.id));
   const copied = agentAdded.filter((a) => plannedAdds.has(a.id) && addedIds.has(a.id)).map((a) => a.id);
   return {
-    elements: { total: changed.length, byProvenance, fromExtraction: extracted.size, agentAdded: agentAdded.length },
+    elements: { total: changed.length, byProvenance, fromExtraction: extracted.size, ...(fromCards > 0 ? { fromCards } : {}), agentAdded: agentAdded.length },
     relationships: { total: relationships.length, betweenExtracted, other: relationships.length - betweenExtracted },
     record: record ? (record.source === "pending" ? "pending" : "found") : "not-found",
     ...(agentAdded.length > 0 ? { agentAdded } : {}),
@@ -2494,7 +2504,10 @@ function normalizeFile(file: string | undefined): string | null {
  * three) have an end with no as-built element, so they were never compared with the code. Each
  * names the ends verify found nothing for, so the as-built side, not the build, is the weak part.
  */
-export function thinAsBuiltWarning(report: VerifyReport, built: BuiltSide): string | undefined {
+export function thinAsBuiltWarning(report: VerifyReport, built: BuiltSide, share?: AsBuiltShare): string | undefined {
+  // Staged by hand from extraction's own cards: the as-built side is as wide as the cards, which is
+  // said in a note (handStagedNote), not warned about as thin.
+  if (share && handStagedFromCards(share)) return undefined;
   const found = new Set([...report.elements.matched, ...report.elements.divergent].map((m) => m.planned));
   const builtIds = new Set(built.elements.map((e) => e.id));
   const missing = report.relationships.missing;
@@ -2509,6 +2522,32 @@ export function thinAsBuiltWarning(report: VerifyReport, built: BuiltSide): stri
     "standing for the file. One file can back several elements in different layers (an application component and a " +
     "UX sub-view): staging one doesn't cover the other. Then run codebase_extract again for their relationships and " +
     "verify again."
+  );
+}
+
+/** Most of the as-built elements were staged by the agent from extraction's own cards. */
+function handStagedFromCards(share: AsBuiltShare): boolean {
+  const { total, fromCards } = share.elements;
+  return total > 0 && (fromCards ?? 0) * 2 >= total;
+}
+
+/**
+ * The note that replaces the thin warning when the as-built side was staged by hand from
+ * extraction's own cards: the ends it has no element for are code extraction offered no card for,
+ * so they are for the agent to check in the code. It says nothing of the build being thin.
+ */
+export function handStagedNote(report: VerifyReport, built: BuiltSide, share: AsBuiltShare): string | undefined {
+  if (!handStagedFromCards(share)) return undefined;
+  const found = new Set([...report.elements.matched, ...report.elements.divergent].map((m) => m.planned));
+  const builtIds = new Set(built.elements.map((e) => e.id));
+  const unanchored = report.relationships.missing.filter(({ planned }) =>
+    [planned.source, planned.target].some((id) => !found.has(id) && !builtIds.has(id))
+  ).length;
+  if (unanchored === 0) return undefined;
+  return (
+    `The as-built changeset was staged by hand from extraction's own cards (${share.elements.fromCards} of ${share.elements.total} elements), ` +
+    `so it is as wide as the cards extraction offered, not a measure of the build. ${unanchored} missing planned relationship(s) have an end ` +
+    "with no as-built element: extraction offered no card for it, or the card was not staged, so verify could not compare it with the code. Check each in the code."
   );
 }
 

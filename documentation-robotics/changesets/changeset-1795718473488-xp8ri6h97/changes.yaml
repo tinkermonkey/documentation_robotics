@@ -1,0 +1,66 @@
+- type: add
+  elementId: application.applicationfunction.read-ipc-handlers
+  layerName: application
+  after:
+    id: 366b5abc-9160-4cf9-837d-a67aa04564b4
+    path: application.applicationfunction.read-ipc-handlers
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: readIpcHandlers
+    description: Read ipcMain.handle and ipcMain.on registrations with a literal channel from a file's text; says when a channel is not a literal.
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/analyzers/cards/ipc.ts
+          symbol: readIpcHandlers
+    metadata:
+      created_at: 2026-11-26T18:47:12.749Z
+      updated_at: 2026-11-26T18:47:12.749Z
+      version: 1
+  timestamp: 2026-11-26T18:47:12.798Z
+  sequenceNumber: 0
+- type: add
+  elementId: application.applicationfunction.collect-ipc-handlers
+  layerName: application
+  after:
+    id: abac7758-ac02-4460-93e5-797f0c898ac8
+    path: application.applicationfunction.collect-ipc-handlers
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: collectIpcHandlers
+    description: The IPC registrations of a project's JS/TS files (tests and vendored code left out) and the files with an unreadable channel.
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/analyzers/cards/ipc.ts
+          symbol: collectIpcHandlers
+    metadata:
+      created_at: 2026-11-26T18:47:12.750Z
+      updated_at: 2026-11-26T18:47:12.750Z
+      version: 1
+  timestamp: 2026-11-26T18:47:12.798Z
+  sequenceNumber: 1
+- type: add
+  elementId: application.applicationfunction.hand-staged-note
+  layerName: application
+  after:
+    id: f0960815-63e3-469a-8869-e14a13bde456
+    path: application.applicationfunction.hand-staged-note
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: handStagedNote
+    description: The note that replaces the thin as-built warning when the as-built side was staged by hand from extraction's own cards.
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/changeset-verify.ts
+          symbol: handStagedNote
+    metadata:
+      created_at: 2026-11-26T18:47:12.750Z
+      updated_at: 2026-11-26T18:47:12.750Z
+      version: 1
+  timestamp: 2026-11-26T18:47:12.798Z
+  sequenceNumber: 2
