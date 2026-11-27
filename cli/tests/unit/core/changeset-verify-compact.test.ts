@@ -122,7 +122,7 @@ describe("compactVerifyReport", () => {
     expect((compact as any).elements).toBeUndefined();
     expect((compact as any).relationships).toBeUndefined();
 
-    expect(compact.missing[0]).toBe("api.operation.operation-7 (add): not found in the build by id, name or source file");
+    expect(compact.missing[0]).toContain("api.operation.operation-7 (add): not found in the build by id, name or source file");
     expect(compact.missing.some((line) => line.startsWith("api.operation.operation-7 --realizes--> "))).toBe(true);
     expect(compact.divergent).toEqual(['api.operation.operation-6: attributes.method planned "GET", built "POST"']);
     expect(compact.probable).toHaveLength(1);

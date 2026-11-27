@@ -291,6 +291,29 @@ export async function adoptConfirmedReferences(
   return { confirmed, skipped };
 }
 
+/**
+ * Why a confirmed id names none of the listed references: what verify found for that planned element,
+ * and what to do. changeset_adopt_source_references takes a match only when verify lists it in
+ * sourceReferences.missing: a match whose as-built element names a file and symbol the plan lacks.
+ */
+export function explainUnknownId(id: string, elements: VerifyReport["elements"] | undefined): string {
+  if (!elements) return "verify lists no source reference to copy for it";
+  const matched = [...elements.matched, ...elements.divergent].find((m) => m.planned === id);
+  if (matched) {
+    return matched.match === "exact"
+      ? `its match to ${matched.built} is exact and the plan already names every source location it has: nothing to copy`
+      : `its match to ${matched.built} is probable, but that element names no source file and symbol the plan lacks: nothing to copy. If it is the element, set sourceFile and sourceSymbol on the plan with model_update`;
+  }
+  const unverifiable = elements.unverifiable.find((u) => u.planned === id);
+  if (unverifiable?.op === "update") {
+    return "it is matched, but only fields extraction doesn't write were compared: nothing to copy";
+  }
+  if (elements.missing.some((m) => m.planned === id) || unverifiable) {
+    return "it has no as-built match to copy from: pass the file and symbol you confirmed in the code in references ({id, sourceFile, sourceSymbol})";
+  }
+  return "it is not a planned element verify compared (check the id as changeset_verify lists it)";
+}
+
 /** What adopting the references a verify report lists did: changeset_adopt_source_references' result. */
 export interface VerifiedAdoptionReport {
   plannedChangeset: { id?: string; name: string };
@@ -301,6 +324,8 @@ export interface VerifiedAdoptionReport {
   missing?: SourceReferenceGap[];
   /** Confirmed ids that name no listed reference: nothing to confirm for them. */
   unknownIds?: string[];
+  /** Why each of unknownIds is not taken, and what to do instead (#1253). */
+  unknownIdReasons?: Array<{ id: string; reason: string }>;
   /** The references the caller confirmed in the code, staged onto planned elements with no as-built match. */
   confirmed?: ConfirmedAdoptionResult["confirmed"];
   next: string;
@@ -310,8 +335,8 @@ export interface VerifiedAdoptionInputs {
   planned: Changeset;
   /** The as-built changeset verify compared against, when it compared against one (not the base). */
   asBuilt?: Changeset;
-  /** The verify report of planned against what was built. */
-  report: Pick<VerifyReport, "sourceReferences">;
+  /** The verify report of planned against what was built (its elements let an id that is not taken say why). */
+  report: Pick<VerifyReport, "sourceReferences"> & Partial<Pick<VerifyReport, "elements">>;
   /** Planned element ids whose probable matches the caller confirmed. */
   confirmed?: readonly string[];
   /** References the caller confirmed in the code, for planned elements extraction can't see. */
@@ -375,7 +400,9 @@ export async function adoptVerifiedSourceReferences(
     ...(own.confirmed.length > 0 ? { confirmed: own.confirmed } : {}),
     ...(allSkipped.length > 0 ? { skipped: allSkipped } : {}),
     ...(left.length > 0 ? { missing: left } : {}),
-    ...(unknownIds && unknownIds.length > 0 ? { unknownIds } : {}),
+    ...(unknownIds && unknownIds.length > 0
+      ? { unknownIds, unknownIdReasons: unknownIds.map((id) => ({ id, reason: explainUnknownId(id, report.elements) })) }
+      : {}),
     next: `${copiedText}${confirmedText}`,
   };
 }

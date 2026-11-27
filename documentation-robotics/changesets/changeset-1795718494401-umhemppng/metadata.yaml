@@ -1,0 +1,54 @@
+id: changeset-1795718494401-umhemppng
+name: s3a-verify-matching
+description: |-
+  Verify pairs planned and built elements through one reusable matcher (`matchPlannedElements`, new `cli/src/core/changeset-matching.ts`): source file + symbol is an exact match, file alone and type/description similarity are probable. A hand-adopted source reference whose symbol is in the build counts as found (unverifiable, never missing). Missing elements and links say when a missing source reference is the cause and give the fix; adopt explains ids it does not take.
+
+  **In scope:** `matchPlannedElements`, `changeset-verify.ts` use of it, `build-evidence.ts` symbol check, `source-reference-adoption.ts` unknown-id reasons.
+
+  **Done when:** #1318, #1348, #1429, #1253 behave as their issues expect, with tests.
+created: 2026-11-26T18:41:34.445Z
+modified: 2026-11-27T01:23:01.710Z
+status: committed
+baseSnapshot: v2:sha256:440d553c6129cdbb5bfa188b1e6a5020a929c3bd525183dfeea350a86b02670b
+origin:
+  kind: plan
+purpose: plan
+stats:
+  additions: 2
+  modifications: 0
+  deletions: 0
+lastSequence: 4
+unstaged:
+  - sequence: 0
+    removedAt: 2
+    change:
+      type: add
+      elementId: application.applicationfunction.match-planned-elements
+      layerName: application
+      after:
+        id: 7c52651b-1080-40c0-95e3-822b3ac963d6
+        path: application.applicationfunction.match-planned-elements
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: matchPlannedElements
+        description: "Pairs each planned element with the built element it became: exact id, then source file + symbol (exact), then name, then shared file and type/description similarity (probable). One function so changeset_verify and codebase_extract's planCoverage match alike."
+        metadata:
+          created_at: 2026-11-26T18:41:38.539Z
+          updated_at: 2026-11-26T18:41:38.539Z
+          version: 1
+      timestamp: 2026-11-26T18:41:38.547Z
+    rewritten: true
+  - sequence: 1
+    removedAt: 3
+    change:
+      type: relationship-add
+      elementId: application.applicationfunction.match-planned-elements::realizes::application.applicationservice.changeset-verify-handler
+      layerName: application
+      after:
+        source: application.applicationfunction.match-planned-elements
+        target: application.applicationservice.changeset-verify-handler
+        predicate: realizes
+        layer: application
+        category: structural
+      timestamp: 2026-11-26T18:41:43.656Z
