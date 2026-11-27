@@ -65,6 +65,18 @@ describe("a member of a class the caller's file never refers to (Python, cabinet
     expect(r.weakCalls).toBe(0);
   });
 
+  it("stages the link when the caller's file imports the class's module (the IMPORTS edge ends at the module, as in TypeScript)", () => {
+    const imports: ExtractedEdge = { type: "IMPORTS", from: end("p.sheets.normalize.py", "sheets/normalize.py"), to: end("p.sheets.assembly", "sheets/assembly.py") };
+    expect(triples(plan([imports, writes()], elementOf, elements))).toContain(`${PANEL} accesses ${XFORM}`);
+    const other: ExtractedEdge = { type: "IMPORTS", from: end("p.sheets.normalize.py", "sheets/normalize.py"), to: end("p.sheets.util", "sheets/util.py") };
+    expect(plan([other, writes()], elementOf, elements).relationships).toEqual([]);
+  });
+
+  it("stages the link when a USAGE edge names the class itself", () => {
+    const usage: ExtractedEdge = { type: "USAGE", from: end("p.sheets.normalize.panel", "sheets/normalize.py"), to: end("p.sheets.assembly.Xform", "sheets/assembly.py") };
+    expect(triples(plan([usage, writes()], elementOf, elements))).toContain(`${PANEL} accesses ${XFORM}`);
+  });
+
   it("stages the link when the caller is in the class's own file", () => {
     const r = plan([writes("sheets/assembly.py")], elementOf, elements);
     expect(triples(r)).toContain(`${PANEL} accesses ${XFORM}`);

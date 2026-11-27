@@ -1612,7 +1612,13 @@ export function planRelationships(
   const nameResolved = (e: ExtractedEdge) => (e.evidence ? !SCOPE_RESOLVED.test(e.evidence.strategy ?? "") : !gate?.edges.includes(e.type));
   const weak = (e: ExtractedEdge) => !!gate && !!e.evidence && gate.edges.includes(e.type) && !callEdgeVerdict(e.evidence, gate).keep;
   const referencedIn = new Map<string, Set<string>>();
+  // The files each file imports (IMPORTS joins two files: in TypeScript its end is the module, not
+  // the class), so a file that imports the class's file is in scope of the class.
+  const importsFiles = new Map<string, Set<string>>();
   for (const e of extraction.edges) {
+    if (e.type === "IMPORTS" && e.from.file && e.to.file) {
+      (importsFiles.get(e.from.file) ?? importsFiles.set(e.from.file, new Set()).get(e.from.file)!).add(e.to.file);
+    }
     if (!REFERENCE_EDGES.has(e.type) || !e.from.file || weak(e)) continue;
     let refs = referencedIn.get(e.from.file);
     if (!refs) referencedIn.set(e.from.file, (refs = new Set()));
@@ -1706,7 +1712,7 @@ export function planRelationships(
       rb.rolledUp &&
       edge.from.file !== edge.to.file &&
       (ea.layer === "testing" || nameResolved(edge)) &&
-      !(edge.from.file && refersToClass(referencedIn.get(edge.from.file), rb.rolledUp));
+      !(edge.from.file && (refersToClass(referencedIn.get(edge.from.file), rb.rolledUp) || (edge.to.file && importsFiles.get(edge.from.file)?.has(edge.to.file))));
     const rel = relationshipFor(m, `${ea.layer}.${ea.type}`, `${eb.layer}.${eb.type}`, hasTriple, edge.evidence?.strategy ? { strategy: edge.evidence.strategy } : undefined);
     if (!rel) return;
     const [sourceId, destinationId] = rel.inverted ? [b, a] : [a, b];
