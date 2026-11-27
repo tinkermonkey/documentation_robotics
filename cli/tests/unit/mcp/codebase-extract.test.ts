@@ -3541,6 +3541,9 @@ describe("codebase_extract call-edge evidence and OTEL exporters (#1086)", () =>
     const { result, rels } = await runWith({ strategy: "suffix_match", confidence: 0.28, candidates: 3, callee: "showOwner", importance: 4 });
     expect(rels).not.toContain(TESTS_HANDLER);
     expect(result.unchanged.weakCalls).toBe(1);
+    // Listed as a hint for the agent to check, with the count the list is of.
+    expect(result.unchanged.weakCallPairs.items).toEqual([expect.objectContaining({ predicate: "tests", edge: "CALLS", reason: "name-matched" })]);
+    expect(result.unchanged.weakCallsNote).toContain("hints, not drift");
   });
 
   it("keeps a low-confidence call its file imports from the callee's file, or from an index above it", async () => {
@@ -3792,6 +3795,28 @@ describe("codebase_extract: the purpose of a since run by rule (#1370)", () => {
     const created = ok(await changesetCreateHandler({ name: `extract-${HEAD.slice(0, 7)}+worktree`, rootPath }));
     // The rule alone would say reconcile; the run was asked for a verification record.
     expect(created.purpose).toBe("verification");
+  }, SLOW);
+
+  it("makes an empty reconcile for an intent or a named changeset, though nothing stages (#1331)", async () => {
+    await indexed();
+    const h = harness();
+    await reconciledAt(h, RECONCILED, { "release-base": RECONCILED });
+    h.changes.value = { base: HEAD, changed: new Set([SERVICE_FILE]), deleted: new Map(), hunks: allLines(SERVICE_FILE) };
+    const handler = createCodebaseExtractHandler(h.deps);
+    // The first run's card is rejected, so the next run has nothing to stage or decide.
+    const first = ok(await handler({ since: "release-base", rootPath }));
+    expect(first.changeset).toBeNull();
+    const card = JSON.parse(await readFile(PENDING(), "utf-8")).cards[0];
+    ok(await handler({ reject: [{ card: card.cardId, reason: "wiring" }], rootPath }));
+
+    const empty = ok(await handler({ since: "release-base", intent: "Reconcile after the release", rootPath }));
+    expect(empty.changeset).toMatchObject({ created: true, active: true, purpose: "reconcile" });
+    expect(empty.message).toContain("landing it as it is records that the model matches the code");
+    expect(await changesetOf(empty.changeset.id)).toMatchObject({ purpose: "reconcile" });
+
+    // A verification record of nothing is not made: there is nothing to record.
+    const verification = ok(await handler({ since: "release-base", purpose: "verification", intent: "x", changeset: "none-to-record", rootPath }));
+    expect(verification.changeset).toBeNull();
   }, SLOW);
 
   it("refuses a purpose with no since", async () => {

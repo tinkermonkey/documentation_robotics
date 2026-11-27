@@ -35,6 +35,7 @@ import {
   type ExtractionGraph,
 } from "./cards/extract.js";
 import { INFRA_LABELS } from "./cards/build.js";
+import { IPC_HANDLER_LABEL } from "./cards/ipc.js";
 import { TEST_CASE_LABEL, TEST_SUITE_LABEL } from "./cards/test-cases.js";
 import { TEST_PATH } from "./cards/routes.js";
 import type { ClusterEvidence } from "./cards/clusters.js";
@@ -668,12 +669,12 @@ function sortCards(cards: UndecidedCard[]): UndecidedCard[] {
 }
 
 /** Card labels the analyzer's changed symbols never cover: a route, and the cards DR makes itself. */
-const LINE_RULE_LABELS: ReadonlySet<string> = new Set(["Route", TEST_CASE_LABEL, TEST_SUITE_LABEL]);
+const LINE_RULE_LABELS: ReadonlySet<string> = new Set(["Route", IPC_HANDLER_LABEL, TEST_CASE_LABEL, TEST_SUITE_LABEL]);
 
 /**
  * Whether a `since` range changed a symbol: by the analyzer's changed symbols when it gave them,
  * else by the changed lines. The analyzer seeds only its own nodes: never a route, nor a card DR
- * makes itself (a TestCase or TestSuite from cards/test-cases.ts, whose qualified name is no CBM
+ * makes itself (an IpcHandler from cards/ipc.ts, a TestCase or TestSuite from cards/test-cases.ts, whose qualified name is no CBM
  * node's), so those keep the line rule.
  */
 export function symbolChangedInRange(
@@ -1459,7 +1460,24 @@ export interface RelationshipPlan {
    * includePresent).
    */
   weakCalls: number;
+  /** Those weak pairs (all of them, so `weakCalls` is their count): hints for the agent to check, not staged. */
+  weakCallPairs: WeakCallPair[];
 }
+
+/**
+ * Why a call-graph link is a hint and not staged: `name-matched` is a call the index resolved by
+ * name with low confidence and nothing corroborating it; `member-of-unreferenced-class` is a
+ * name-resolved edge onto a member of a class the caller's file never imports, calls or names (a
+ * local `P()` or a dict key `"pts"` read as `Xform.pts`).
+ */
+export type WeakCallReason = "name-matched" | "member-of-unreferenced-class";
+
+export interface WeakCallPair extends PlannedRelationship {
+  reason: WeakCallReason;
+}
+
+/** Resolution strategies that went through types, imports or the module's own scope, not a name. */
+const SCOPE_RESOLVED = /^(lsp|import_map|same_module)/;
 
 /**
  * The edge a `tests` link has when no call gave it: the test file is named after a source file
@@ -1589,9 +1607,18 @@ export function planRelationships(
   // `name`: a test's call is a call to a class only when the test's file refers to that class.
   // A call edge CBM resolved by name alone, with nothing to corroborate it, links nothing.
   const gate = extraction.config.callGate ?? null;
+  // Resolved by name only: evidence with no type, import or scope strategy, or an edge the index
+  // records no evidence for at all (WRITES, USAGE). A call with none (an older index) is kept as before.
+  const nameResolved = (e: ExtractedEdge) => (e.evidence ? !SCOPE_RESOLVED.test(e.evidence.strategy ?? "") : !gate?.edges.includes(e.type));
   const weak = (e: ExtractedEdge) => !!gate && !!e.evidence && gate.edges.includes(e.type) && !callEdgeVerdict(e.evidence, gate).keep;
   const referencedIn = new Map<string, Set<string>>();
+  // The files each file imports (IMPORTS joins two files: in TypeScript its end is the module, not
+  // the class), so a file that imports the class's file is in scope of the class.
+  const importsFiles = new Map<string, Set<string>>();
   for (const e of extraction.edges) {
+    if (e.type === "IMPORTS" && e.from.file && e.to.file) {
+      (importsFiles.get(e.from.file) ?? importsFiles.set(e.from.file, new Set()).get(e.from.file)!).add(e.to.file);
+    }
     if (!REFERENCE_EDGES.has(e.type) || !e.from.file || weak(e)) continue;
     let refs = referencedIn.get(e.from.file);
     if (!refs) referencedIn.set(e.from.file, (refs = new Set()));
@@ -1635,7 +1662,7 @@ export function planRelationships(
   /** Layers whose elements cite code they are about rather than implement: a test of that code tests its implementation. */
   const CROSS_CUTTING: ReadonlySet<string> = new Set(["security", "technology", "apm"]);
 
-  type Found = { sourceId: string; destinationId: string; relationship: EdgeRelationship; edge: string };
+  type Found = { sourceId: string; destinationId: string; relationship: EdgeRelationship; edge: string; reason?: WeakCallReason };
   const found: Found[] = [];
   const weakPairs = new Map<string, Found>();
   // What a symbol calls, for the test calls that reach a symbol no element stands for (#1443).
@@ -1673,19 +1700,29 @@ export function planRelationships(
         eb = implementation;
       }
     }
-    // A test's call to a member of a class it never refers to is the index matching a name, not
-    // the test exercising that class.
-    if (!inferred && ea.layer === "testing" && rb.rolledUp && !(edge.from.file && refersToClass(referencedIn.get(edge.from.file), rb.rolledUp))) {
-      return;
-    }
+    // A call, read or write of a member (a field or method) of a class the caller's file never
+    // refers to, that the index resolved by name only, is the index matching a name, not the
+    // caller using that class (a local `P()` or a dict key `"pts"` landing on `Xform.pts`). An edge
+    // the analyzer resolved through types or imports (`lsp_*`, `import_map`, `same_module`) is
+    // believed; so is one inside the class's own file. A test's call is held to it whatever the
+    // strategy (the index matches `view().name(..)` to an entity's `name`). The rest is listed for
+    // the agent to check.
+    const unreferencedMember =
+      !inferred &&
+      rb.rolledUp &&
+      edge.from.file !== edge.to.file &&
+      (ea.layer === "testing" || nameResolved(edge)) &&
+      !(edge.from.file && (refersToClass(referencedIn.get(edge.from.file), rb.rolledUp) || (edge.to.file && importsFiles.get(edge.from.file)?.has(edge.to.file))));
     const rel = relationshipFor(m, `${ea.layer}.${ea.type}`, `${eb.layer}.${eb.type}`, hasTriple, edge.evidence?.strategy ? { strategy: edge.evidence.strategy } : undefined);
     if (!rel) return;
     const [sourceId, destinationId] = rel.inverted ? [b, a] : [a, b];
     // A test that reached its subject only through code no element stands for: marked as inferred.
     const label = inferred || (ea.layer === "testing" && rb.viaFile && rel.predicate === "tests") ? INFERRED_TEST_CALL_EDGE : edge.type;
-    if (isWeak) {
+    if (isWeak || unreferencedMember) {
       const key = `${sourceId}|${rel.id}|${destinationId}`;
-      if (!weakPairs.has(key)) weakPairs.set(key, { sourceId, destinationId, relationship: rel, edge: edge.type });
+      if (!weakPairs.has(key)) {
+        weakPairs.set(key, { sourceId, destinationId, relationship: rel, edge: edge.type, reason: isWeak ? "name-matched" : "member-of-unreferenced-class" });
+      }
       return;
     }
     found.push({ sourceId, destinationId, relationship: rel, edge: label });
@@ -1845,6 +1882,7 @@ export function planRelationships(
   // asked for. One the model already has is not left out either: it counts as already present,
   // and with includePresent it is reported as present, so verify doesn't call it drift.
   let weakCalls = 0;
+  const weakCallPairs: WeakCallPair[] = [];
   for (const [key, w] of weakPairs) {
     if (keptKeys.has(key) || !inLayers(w)) continue;
     const existingRel = existing.getRelationship(w.sourceId, w.relationship.predicate, w.destinationId);
@@ -1854,7 +1892,9 @@ export function planRelationships(
       continue;
     }
     weakCalls++;
+    weakCallPairs.push({ ...shape(w), reason: w.reason ?? "name-matched" });
   }
+  weakCallPairs.sort((x, y) => x.source.localeCompare(y.source) || x.predicate.localeCompare(y.predicate) || x.target.localeCompare(y.target));
 
   for (const r of kept) {
     if (!inLayers(r)) continue;
@@ -1869,7 +1909,7 @@ export function planRelationships(
     relationships.push(planned);
   }
   relationships.sort((x, y) => x.source.localeCompare(y.source) || x.predicate.localeCompare(y.predicate) || x.target.localeCompare(y.target));
-  return { relationships, alreadyPresent, weakCalls, unwiredTests, sharedTestHelpers, inferredTests, ...(options.includePresent ? { present } : {}) };
+  return { relationships, alreadyPresent, weakCalls, weakCallPairs, unwiredTests, sharedTestHelpers, inferredTests, ...(options.includePresent ? { present } : {}) };
 }
 
 // ---------------------------------------------------------------------------

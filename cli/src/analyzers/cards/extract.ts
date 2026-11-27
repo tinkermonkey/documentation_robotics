@@ -35,13 +35,14 @@ import { CbmToolError, cellNumber } from "../cbm-responses.js";
 import { buildDocIndex, collectDecisionRecords, docsFor, readMentions, type DecisionRecord, type DocEvidence, type DocIndex } from "./docs.js";
 import { buildEdgeIndex } from "./edge-index.js";
 import { buildFactsIndex, factsFor } from "./facts.js";
+import { IPC_HANDLER_LABEL, IPC_HANDLER_RULE, collectIpcHandlers } from "./ipc.js";
 import { collectHandRoutes, definitionFor, readRouteDefinitions, type RouteDefinition } from "./hand-routes.js";
 import { TEST_PATH, namedRoutePath, normRoutePath, routesCalledIn } from "./routes.js";
 import { TEST_CASE_LABEL, collectJsTestCases, type TestCaseStats } from "./test-cases.js";
 import { isDeclaredVariable, declarationShapesOf } from "./shapes.js";
 import { tier0ForCard } from "./tier0.js";
 import type { CardFacts, CardGraph, GraphNode, SymbolCard } from "./types.js";
-import { cardFacts, type TriageFacts } from "./visibility.js";
+import { cardFacts, tier0Visibility, type TriageFacts } from "./visibility.js";
 
 /** Files whose symbols one query lists. */
 const CHECK_FILES_PER_QUERY = 200;
@@ -262,6 +263,12 @@ export interface ExtractionGraph {
   handRoutesPartial?: string[];
   /** Why the project's files couldn't be listed to look for hand-routed routes, when they couldn't. */
   handRoutesError?: string;
+  /**
+   * Files with an `ipcMain.handle` or `ipcMain.on` whose channel is not a string literal (a
+   * constant, a template): the registrations read from them are in `symbols`; there may be more,
+   * for the agent to read from the file.
+   */
+  ipcPartial?: string[];
   summary: { cards: number; decided: number; rejected: number; narrowed: number; undecided: number; no_source: number };
   /**
    * JavaScript and TypeScript test files whose suites and cases were read from their text
@@ -398,6 +405,17 @@ async function attachClusters(
   };
 }
 
+/** A file's text, read from under the root only; null when it is outside it or unreadable. */
+function readUnder(root: string, file: string): string | null {
+  const abs = path.resolve(root, file);
+  if (!abs.startsWith(root + path.sep)) return null;
+  try {
+    return readFileSync(abs, "utf-8");
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Read a project for extraction. Cards and Tier 0 are those of `dr analyzer classify
  * --tier0-only`; a label the node mapping decides outright (Route) is decided when no rule matches.
@@ -505,18 +523,31 @@ export async function collectExtraction(
   const symbols: ExtractedSymbol[] = [];
   const summary = { cards: 0, decided: 0, rejected: 0, narrowed: 0, undecided: 0, no_source: 0 };
   let done = 0;
+  // Cards first, then their visibility (a rule can go by who can reach a symbol), then Tier 0.
+  const built: Array<{ node: GraphNode; card: SymbolCard; facts: CardFacts }> = [];
   for (const node of nodes) {
     if (done % 50 === 0) checkDeadline("building cards");
     const card = await builder.build(node);
     options.onProgress?.(++done, nodes.length);
     if (!isDeclaredVariable(card)) continue;
     if (options.files && !(card.file_path && options.files.has(card.file_path))) continue;
-    const facts = factsFor(factsIndex, node.qualified_name, card.file_path);
+    built.push({ node, card, facts: factsFor(factsIndex, node.qualified_name, card.file_path) });
+  }
+  const earlySourceRoot = options.sourceRoot ? path.resolve(options.sourceRoot) : null;
+  const sourceTexts = new Map<string, string | null>();
+  const sourceText = earlySourceRoot
+    ? (file: string): string | null => {
+        if (!sourceTexts.has(file)) sourceTexts.set(file, readUnder(earlySourceRoot, file));
+        return sourceTexts.get(file) ?? null;
+      }
+    : undefined;
+  const visibilityOf = cardFacts(built.map((b) => b.card), sourceText);
+  for (const { node, card, facts } of built) {
     const route = card.label === "Route" ? parseRouteName(card.name) : null;
     // A route with no file of its own and no HANDLES edge: a URL that test or client code calls,
     // whoever the callers are.
     const unhandled = !!route && !handled(node);
-    let tier0 = unhandled ? null : tier0ForCard(card, facts, config.rules);
+    let tier0 = unhandled ? null : tier0ForCard(card, facts, config.rules, tier0Visibility(card, visibilityOf.get(card)?.visibility, sourceText));
     const byLabel = config.labelDecisions[card.label];
     if (!tier0 && byLabel && !unhandled) {
       tier0 = { kind: "decide", layer: byLabel.layer, type: byLabel.type, rule: `node-mapping:${card.label}`, confidence: "high" };
@@ -541,6 +572,7 @@ export async function collectExtraction(
 
   // What the routes' definitions say, and the routes a server routes by hand (the graph has none).
   const handPartial: string[] = [];
+  const ipcPartial: string[] = [];
   let handRoutesError: string | undefined;
   if (options.sourceRoot) {
     const root = path.resolve(options.sourceRoot);
@@ -640,24 +672,60 @@ export async function collectExtraction(
           : {}),
       });
     }
+    // Electron IPC registrations: cards of their own (no graph node), decided by their rule.
+    const wantIpc = !options.labels?.length || options.labels.includes(IPC_HANDLER_LABEL);
+    const ipc = wantIpc ? collectIpcHandlers(options.files ? files.filter((f) => options.files!.has(f)) : files, textOf) : { handlers: [], partialFiles: [] };
+    ipcPartial.push(...ipc.partialFiles);
+    for (const h of ipc.handlers) {
+      const qn = `__ipc__${h.channel}`;
+      const text = (textOf(h.file) ?? "").split("\n");
+      const card: SymbolCard = {
+        id: cardId(graph.project, `${qn}@${h.file}`),
+        label: IPC_HANDLER_LABEL,
+        name: h.channel,
+        qualified_name: qn,
+        file_path: h.file,
+        start_line: h.line,
+        end_line: h.line,
+        signature: null,
+        docstring: null,
+        is_exported: null,
+        is_entry_point: null,
+        complexity: null,
+        parent_class: null,
+        base_classes: [],
+        return_type: null,
+        callers: [],
+        callees: [],
+        callers_total: 0,
+        callees_total: 0,
+        imports: [],
+        env_vars: [],
+        routes_handled: [],
+        http_calls: [],
+        inherits: [],
+        implements: [],
+        route_method: null,
+        source: text.slice(Math.max(0, h.line - 1), h.line + 11).join("\n") || null,
+        source_lines_total: null,
+        source_truncated: false,
+      };
+      summary.cards++;
+      summary.decided++;
+      symbols.push({
+        qualifiedName: qn,
+        card,
+        facts: factsFor(factsIndex, qn, h.file),
+        tier0: { kind: "decide", layer: "application", type: "applicationservice", rule: IPC_HANDLER_RULE, confidence: "high" },
+      });
+    }
   }
 
   // Visibility and nesting, read from the declarations (a file's text only when a JS/TS
   // declaration has no export on its own line).
-  const sourceRoot = options.sourceRoot ? path.resolve(options.sourceRoot) : null;
   const triage = cardFacts(
     symbols.map((s) => s.card),
-    sourceRoot
-      ? (file) => {
-          const abs = path.resolve(sourceRoot, file);
-          if (!abs.startsWith(sourceRoot + path.sep)) return null;
-          try {
-            return readFileSync(abs, "utf-8");
-          } catch {
-            return null;
-          }
-        }
-      : undefined
+    sourceText
   );
   for (const s of symbols) {
     const facts = triage.get(s.card);
@@ -841,6 +909,7 @@ export async function collectExtraction(
     summary,
     ...(handPartial.length ? { handRoutesPartial: handPartial } : {}),
     ...(handRoutesError ? { handRoutesError } : {}),
+    ...(ipcPartial.length ? { ipcPartial } : {}),
     ...(testCases ? { testFiles: testCases.filesRead } : {}),
     ...(testCases?.stats.files ? { testCases: testCases.stats } : {}),
     ...(clusters ? { clusters } : {}),

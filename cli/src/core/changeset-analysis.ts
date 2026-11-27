@@ -26,7 +26,7 @@ import { originLabel } from "./changeset.js";
 import type { ChangesetDrift } from "./changeset-base-index.js";
 import { changesetRevisionToken } from "./changeset-graph.js";
 import type { ChangesetGraph, GraphElement, GraphRelationship, Neighbor } from "./changeset-graph.js";
-import { acceptedGapView, findAcceptedGap, toShortDirection, type AcceptedGapView } from "./accepted-gaps.js";
+import { acceptedGapKey, acceptedGapView, findAcceptedGap, gapTripleKey, toShortDirection, type AcceptedGapView } from "./accepted-gaps.js";
 
 import { INTENT_LAYERS } from "./layers.js";
 
@@ -276,10 +276,14 @@ export interface BriefGap {
    * - `missing-required`: the catalog marks a relationship from the element's type required.
    * - `peer-pattern`: most existing elements of the same type, wired to the same neighbours,
    *   have a connection this one lacks. The model's own convention, not a spec rule.
+   * - `contradicted-accepted`: an accepted gap (decided against) that the plan wires anyway; the
+   *   decision is stale or the relationship is wrong. `reopen` is the call that reopens it.
    */
-  kind: "unconnected" | "missing-required" | "peer-pattern";
+  kind: "unconnected" | "missing-required" | "peer-pattern" | "contradicted-accepted";
   element: string;
   detail: string;
+  /** For `contradicted-accepted`: the gap_reopen call that takes the stale decision back. */
+  reopen?: { tool: "gap_reopen"; element: string; direction: "outgoing" | "incoming"; predicate: string; otherType: string };
   /** For `peer-pattern`: up to three existing connections of this shape. */
   examples?: string[];
   /**
@@ -601,6 +605,7 @@ export function buildBrief({
   const gaps: BriefGap[] = [];
   // Peer-pattern gaps an accepted gap answers, by `element|direction|predicate|otherType`.
   const answeredPeerPatterns = new Map<string, string>();
+  const acceptedByType = acceptedGapCountsByType(graph);
   for (const element of changed.filter((e) => e.status === "added")) {
     const live = graph.neighbors(element.id);
     if (live.length === 0) {
@@ -625,7 +630,7 @@ export function buildBrief({
         });
       }
     }
-    gaps.push(...peerPatternGaps(graph, element, answeredPeerPatterns));
+    gaps.push(...peerPatternGaps(graph, element, answeredPeerPatterns, acceptedByType));
   }
 
   // Accepted gaps on the changed elements: decided against, with the reason. A peer-pattern gap one
@@ -642,6 +647,25 @@ export function buildBrief({
         return !!other && other.status !== "deleted" && specNodeId(other) === gap.other_spec_node_id;
       });
       const answered = answeredPeerPatterns.get(`${element.id}|${direction}|${gap.predicate}|${gap.other_spec_node_id}`);
+      if (wired) {
+        // A decision the plan contradicts is something to resolve, so it is a gap, not only a note.
+        const view = acceptedGapView(gap);
+        const triple = `${gap.direction === "outgoing" ? `--${gap.predicate}--> ${gap.other_spec_node_id}` : `${gap.other_spec_node_id} --${gap.predicate}--> it`}`;
+        gaps.push({
+          kind: "contradicted-accepted",
+          element: element.id,
+          detail:
+            `Accepted as absent (${triple}: ${view.reason}) but the plan wires ${wired.relationship.source} --${wired.relationship.predicate}--> ${wired.relationship.target}. ` +
+            `Reopen the decision (gap_reopen element: ${element.id}, direction: ${gap.direction}, predicate: ${gap.predicate}, otherType: ${gap.other_spec_node_id}) or delete the relationship.`,
+          reopen: {
+            tool: "gap_reopen",
+            element: element.id,
+            direction: gap.direction,
+            predicate: gap.predicate,
+            otherType: gap.other_spec_node_id,
+          },
+        });
+      }
       acceptedGaps.push({
         element: element.id,
         ...acceptedGapView(gap),
@@ -854,6 +878,20 @@ function diffFields(
 }
 
 /** Predicates from a whole to its part: a part exists for its whole, so it traces when the whole does. */
+/** Predicates whose chains say what an element is for; the path shown as intent prefers them to shared hubs. */
+const CHAIN_PREDICATES = new Set(["realizes", "serves", "satisfies", "supports", "composes", "aggregates"]);
+
+/** Predicates by which a requirement, feature or capability reaches a goal or outcome. */
+const ANCHORING_PREDICATES = new Set(["realizes", "satisfies", "supports"]);
+
+/** What an intent trace ends at. */
+const END_OF_INTENT = new Set(["goal", "outcome"]);
+
+/** Added intent elements that count as anchored once they reach an end of intent. */
+const ANCHOR_TYPES = new Set(["requirement", "feature", "businesscapability", "softwarecapability"]);
+
+const typeName = (element: GraphElement): string => specNodeId(element).split(".").pop() ?? "";
+
 const WHOLE_PREDICATES = new Set(["composes", "aggregates"]);
 
 /**
@@ -955,7 +993,14 @@ class IntentWalk {
     if (element.status !== "added") return { traced: { tracesTo: element.id, distance: path.length - 1, path } };
     const anchor = this.anchorOf(element.id);
     return anchor
-      ? { traced: { tracesTo: element.id, distance: path.length - 1, path, anchoredBy: anchor } }
+      ? {
+          traced: {
+            tracesTo: element.id,
+            distance: path.length - 1,
+            path,
+            ...(anchor.id !== element.id ? { anchoredBy: anchor } : {}),
+          },
+        }
       : { unanchored: { id: element.id, path } };
   }
 
@@ -1001,7 +1046,7 @@ class IntentWalk {
         tracesTo: hit.id,
         distance: hit.path.length - 1,
         path: hit.path,
-        ...(anchor ? { anchoredBy: anchor } : {}),
+        ...(anchor && anchor.id !== hit.id ? { anchoredBy: anchor } : {}),
       },
     };
   }
@@ -1010,6 +1055,27 @@ class IntentWalk {
   private anchorOf(id: string): { id: string; path: string[] } | null {
     if (this.anchors.has(id)) return this.anchors.get(id)!;
     this.anchors.set(id, null); // a cycle back to it finds nothing
+    // A goal or outcome is what intent traces to: the end of the trace, added or not (a bootstrap adds them).
+    const self = this.graph.getElement(id);
+    if (self && END_OF_INTENT.has(typeName(self))) {
+      const own = { id, path: [id] };
+      this.anchors.set(id, own);
+      return own;
+    }
+    // An added requirement, feature or capability that realizes, satisfies or supports a goal or outcome
+    // is anchored there, whether or not that goal exists yet.
+    const end = this.graph
+      .neighbors(id)
+      .find((n) => {
+        if (n.direction !== "out" || !ANCHORING_PREDICATES.has(n.relationship.predicate)) return false;
+        const other = this.graph.getElement(n.other);
+        return !!other && other.status !== "deleted" && END_OF_INTENT.has(typeName(other));
+      });
+    if (end && self && ANCHOR_TYPES.has(typeName(self))) {
+      const found = { id: end.other, path: [id, end.other] };
+      this.anchors.set(id, found);
+      return found;
+    }
     const hit = this.walk(id, (element) => element.status !== "added");
     this.anchors.set(id, hit);
     return hit;
@@ -1023,6 +1089,17 @@ class IntentWalk {
     start: string,
     accept: (element: GraphElement, path: string[]) => boolean,
     skipOwnParts = false
+  ): { id: string; path: string[] } | null {
+    // Prefer a route made of realizes / serves / composes chains: it says what the element is for. Only
+    // when none reaches intent does a route through any relationship (a shared hub, an access) count.
+    return this.walkOver(start, accept, skipOwnParts, true) ?? this.walkOver(start, accept, skipOwnParts, false);
+  }
+
+  private walkOver(
+    start: string,
+    accept: (element: GraphElement, path: string[]) => boolean,
+    skipOwnParts: boolean,
+    chainsOnly: boolean
   ): { id: string; path: string[] } | null {
     const parent = new Map<string, string>();
     const visited = new Set([start]);
@@ -1038,6 +1115,7 @@ class IntentWalk {
         if (id !== start && this.graph.neighbors(id).length > this.hubThreshold) continue;
         for (const n of this.graph.neighbors(id)) {
           if (visited.has(n.other)) continue;
+          if (chainsOnly && !CHAIN_PREDICATES.has(n.relationship.predicate)) continue;
           if (skipOwnParts && id === start && hangsFrom(n)) continue;
           visited.add(n.other);
           const element = this.graph.getElement(n.other);
@@ -1055,6 +1133,28 @@ class IntentWalk {
   }
 }
 
+/** Whether an element is marked as outside the system or without a screen: peers' connections do not apply to it. */
+function isExternalOrHeadless(element: GraphElement): boolean {
+  const attrs = element.attributes ?? {};
+  const marked = (v: unknown) => typeof v === "string" && /^(external|headless)$/i.test(v);
+  return marked(attrs.type) || marked(attrs.kind) || marked(attrs.role);
+}
+
+/** For each spec node type, how many of its elements accepted each triple as absent (`gapTripleKey`). */
+function acceptedGapCountsByType(graph: ChangesetGraph): Map<string, Map<string, number>> {
+  const byType = new Map<string, Map<string, number>>();
+  for (const element of graph.elements.values()) {
+    if (element.status === "deleted" || !element.acceptedGaps?.length) continue;
+    const counts = byType.get(specNodeId(element)) ?? new Map<string, number>();
+    for (const gap of element.acceptedGaps) {
+      const key = acceptedGapKey(gap);
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+    byType.set(specNodeId(element), counts);
+  }
+  return byType;
+}
+
 /** A peer pattern counts when at least this many peers, and at least half of them, have it. */
 const PEER_MIN = 2;
 const PEER_SHARE = 0.5;
@@ -1065,10 +1165,18 @@ const PEER_SHARE = 0.5;
  * layout function that also realizes the layout service). Only shapes the catalog still allows are
  * reported, so a convention the spec has since retired is not suggested.
  */
-function peerPatternGaps(graph: ChangesetGraph, element: GraphElement, answered?: Map<string, string>): BriefGap[] {
+function peerPatternGaps(
+  graph: ChangesetGraph,
+  element: GraphElement,
+  answered?: Map<string, string>,
+  acceptedByType?: Map<string, Map<string, number>>
+): BriefGap[] {
   const own = graph.neighbors(element.id);
   if (own.length === 0) return [];
+  // An external system or a part with no screen by design lacks what its peers have for a reason.
+  if (isExternalOrHeadless(element)) return [];
   const type = specNodeId(element);
+  const acceptedHere = acceptedByType?.get(type);
 
   const peers = new Set<string>();
   for (const mine of own) {
@@ -1104,6 +1212,11 @@ function peerPatternGaps(graph: ChangesetGraph, element: GraphElement, answered?
   const threshold = Math.max(PEER_MIN, Math.ceil(peers.size * PEER_SHARE));
   return [...shapes.entries()]
     .filter(([, entry]) => entry.peers.size >= threshold)
+    .filter(([shape]) => {
+      // Learned: elements of this type have already accepted this connection as absent, more than once.
+      const [direction, predicate, otherType] = shape.split("|");
+      return (acceptedHere?.get(gapTripleKey(direction as "out" | "in", predicate, otherType)) ?? 0) < PEER_MIN;
+    })
     .filter(([shape]) => {
       const [direction, predicate, otherType] = shape.split("|");
       return direction === "out"

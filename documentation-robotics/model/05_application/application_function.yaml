@@ -3592,7 +3592,7 @@ application.applicationfunction.plan-relationships:
   type: applicationfunction
   layer_id: application
   name: planRelationships
-  description: The relationships the edge mapping gives the mapped CBM edges between two elements, at least one of them a symbol in scope
+  description: "The relationships the edge mapping gives the mapped CBM edges between two elements, at least one of them a symbol in scope. An edge onto a member (field or method) of a class the caller's file never refers to, resolved by name only (WRITES, USAGE, unique_name or suffix_match calls), is a name collision: it is listed in weakCallPairs for the agent to check, not staged."
   source_reference:
     provenance: extracted
     locations:
@@ -28703,37 +28703,172 @@ application.applicationfunction.definition-for:
     created_at: 2026-11-26T14:43:40.522Z
     updated_at: 2026-11-26T14:43:40.522Z
     version: 1
-application.applicationfunction.declaration-shapes-of:
-  id: e177e064-95ee-4bc6-b723-9eef52591338
-  path: application.applicationfunction.declaration-shapes-of
+application.applicationfunction.read-ipc-handlers:
+  id: 366b5abc-9160-4cf9-837d-a67aa04564b4
+  path: application.applicationfunction.read-ipc-handlers
   spec_node_id: application.applicationfunction
   type: applicationfunction
   layer_id: application
-  name: declarationShapesOf
-  description: Reads a JS/TS declaration's shapes (exported, react-hook, react-component) from its text, for Tier-0 rules' shape condition.
+  name: readIpcHandlers
+  description: Read ipcMain.handle and ipcMain.on registrations with a literal channel from a file's text; says when a channel is not a literal.
   source_reference:
     provenance: extracted
     locations:
-      - file: cli/src/analyzers/cards/shapes.ts
-        symbol: declarationShapesOf
+      - file: cli/src/analyzers/cards/ipc.ts
+        symbol: readIpcHandlers
   metadata:
-    created_at: 2026-11-26T15:19:05.425Z
-    updated_at: 2026-11-26T15:19:05.425Z
+    created_at: 2026-11-26T18:47:12.749Z
+    updated_at: 2026-11-26T18:47:12.749Z
     version: 1
-application.applicationfunction.is-declared-variable:
-  id: cd2a1dde-4601-4ab7-86e1-c5e03fbd585d
-  path: application.applicationfunction.is-declared-variable
+application.applicationfunction.collect-ipc-handlers:
+  id: abac7758-ac02-4460-93e5-797f0c898ac8
+  path: application.applicationfunction.collect-ipc-handlers
   spec_node_id: application.applicationfunction
   type: applicationfunction
   layer_id: application
-  name: isDeclaredVariable
-  description: "Whether a Variable card is worth a card: an exported, non-primitive JS/TS const."
+  name: collectIpcHandlers
+  description: The IPC registrations of a project's JS/TS files (tests and vendored code left out) and the files with an unreadable channel.
   source_reference:
     provenance: extracted
     locations:
-      - file: cli/src/analyzers/cards/shapes.ts
-        symbol: isDeclaredVariable
+      - file: cli/src/analyzers/cards/ipc.ts
+        symbol: collectIpcHandlers
   metadata:
-    created_at: 2026-11-26T15:19:05.426Z
-    updated_at: 2026-11-26T15:19:05.426Z
+    created_at: 2026-11-26T18:47:12.750Z
+    updated_at: 2026-11-26T18:47:12.750Z
+    version: 1
+application.applicationfunction.hand-staged-note:
+  id: f0960815-63e3-469a-8869-e14a13bde456
+  path: application.applicationfunction.hand-staged-note
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: handStagedNote
+  description: The note that replaces the thin as-built warning when the as-built side was staged by hand from extraction's own cards.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/changeset-verify.ts
+        symbol: handStagedNote
+  metadata:
+    created_at: 2026-11-26T18:47:12.750Z
+    updated_at: 2026-11-26T18:47:12.750Z
+application.applicationfunction.match-planned-elements:
+  id: 7c52651b-1080-40c0-95e3-822b3ac963d6
+  path: application.applicationfunction.match-planned-elements
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: matchPlannedElements
+  description: "Pairs each planned element with the built element it became: exact id, then source file + symbol (exact), then name, then shared file and type/description similarity (probable). One function so changeset_verify and codebase_extract's planCoverage match alike."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/changeset-matching.ts
+        symbol: matchPlannedElements
+  metadata:
+    created_at: 2026-11-26T18:41:38.539Z
+    updated_at: 2026-11-26T18:41:38.539Z
+    version: 1
+application.applicationfunction.classify-unseen-elements:
+  id: 3a058be9-fb44-4e10-8c19-7b81e4dd2774
+  path: application.applicationfunction.classify-unseen-elements
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: classifyUnseenElements
+  description: "Classifies planned elements verify couldn't pair with a built one: code exists but unchanged in the range, delete with no source reference, file-backed data-store collection, file in a language the index doesn't read. Each becomes unverifiable with a reason, never missing."
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/core/unverifiable-classification.ts
+        symbol: classifyUnseenElements
+  metadata:
+    created_at: 2026-11-26T18:41:36.439Z
+    updated_at: 2026-11-26T18:41:36.439Z
+    version: 1
+application.applicationfunction.check-uncommitted:
+  id: 9f4f696d-5a69-4f4c-8a3c-170b216db054
+  path: application.applicationfunction.check-uncommitted
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: checkUncommitted
+  description: "Where the files an extraction read with uncommitted changes stand now, and whether HEAD holds that code: still uncommitted, committed as read, changed, other code arrived, or the commit orphaned (#1330)."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/reconciliation.ts
+        symbol: checkUncommitted
+  metadata:
+    created_at: 2026-11-27T01:28:15.866Z
+    updated_at: 2026-11-27T01:28:15.866Z
+    version: 1
+application.applicationfunction.lands-empty:
+  id: 5ea42a09-8104-44ef-911a-1028f3f6fc7f
+  path: application.applicationfunction.lands-empty
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: landsEmpty
+  description: "Whether a changeset may land with no staged changes: a reconcile or bootstrap whose run was over every layer and left nothing undecided (#1331)."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/reconciliation.ts
+        symbol: landsEmpty
+  metadata:
+    created_at: 2026-11-27T01:28:15.866Z
+    updated_at: 2026-11-27T01:28:15.866Z
+    version: 1
+application.applicationfunction.reconciliation-hash-files:
+  id: 46a37d28-5b19-411f-bf09-22d43ba6835b
+  path: application.applicationfunction.reconciliation-hash-files
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: reconciliation hashFiles
+  description: Content hashes of files under the code root, recorded on an extraction that read uncommitted code.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/reconciliation.ts
+        symbol: hashFiles
+  metadata:
+    created_at: 2026-11-27T01:28:15.866Z
+    updated_at: 2026-11-27T01:28:15.866Z
+    version: 1
+application.applicationfunction.uncommitted-read-note:
+  id: 84fa21f5-61b2-461b-a8a1-9b5081c5035b
+  path: application.applicationfunction.uncommitted-read-note
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: uncommittedReadNote
+  description: The note codebase_index gives when its index read source files no commit holds yet.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/codebase-shared.ts
+        symbol: uncommittedReadNote
+  metadata:
+    created_at: 2026-11-27T01:28:15.866Z
+    updated_at: 2026-11-27T01:28:15.866Z
+    version: 1
+application.applicationfunction.empty-landing-hold:
+  id: 078cfc71-726a-4170-bf10-c7549b11de4d
+  path: application.applicationfunction.empty-landing-hold
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: emptyLandingHold
+  description: "Why an empty reconcile must not land as the model matching the code: its extraction was layer-limited or left cards and candidate deletes."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/reconciliation.ts
+        symbol: emptyLandingHold
+  metadata:
+    created_at: 2026-11-27T01:28:15.866Z
+    updated_at: 2026-11-27T01:28:15.866Z
     version: 1

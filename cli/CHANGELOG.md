@@ -9,6 +9,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Tier 0 on plain CommonJS and Electron code (#1320):** `codebase_extract` decided none of 338
+  symbols on a CommonJS and Electron codebase. Tier-0 rules can now go by a symbol's `visibility`
+  (read from the declaration and the file's exports, as project rules do), and a rule
+  (`tier0_js_unexported_function`) rejects a function a `.js`, `.cjs`, `.mjs` or `.jsx` module does not
+  export; exported functions stay for the agent to place. `module.exports.name = ...` and
+  `exports.alias = name` now count as exports. An `ipcMain.handle('ns:action', ...)` or
+  `ipcMain.on(...)` registration with a literal channel becomes an `IpcHandler` card named after the
+  channel and decided as `application.applicationservice`; a file with a channel held in a constant is
+  listed in `ipcPartial` for the agent to read. A module file is not made an element (a file is a
+  source link, not an element).
+- **`changeset_verify` no longer calls an as-built side staged from extraction's own cards "thin":**
+  when most as-built elements were staged by hand from cards, a note says the as-built side is as wide
+  as the cards and the unanchored relationships are for the agent to check in the code.
+- **`changeset_verify` pairs planned and built elements through one matcher (#1318, #1348, #1429, #1253):**
+  `matchPlannedElements` (`src/core/changeset-matching.ts`) pairs by id, then by source file **and symbol** as an
+  exact match (the plan's name against the built symbol's name is a note, not a divergence), then by name, then by
+  shared file (several in one file: the one whose description and name read most alike), then, when the plan names
+  no file, by a like description: the last three are probable. A planned element whose source reference names a
+  symbol the build's changed file declares (read from its text), but that extraction stages no element of its type for (a plain dict an object
+  schema describes), is unverifiable (`declaredSymbol`: file and line), never missing, and its links with it; the verdict is never a clean `match` while one is open. A symbol several planned elements name is offered as probable. A
+  missing element or link says when a missing source reference may be why, and to set `sourceFile` with
+  `model_update`. `changeset_adopt_source_references` explains each id in `unknownIds` (`unknownIdReasons`) and its
+  description says which matches it takes.
+- **An empty reconcile lands (#1331):** a reconcile or bootstrap changeset with nothing staged lands as the
+  record that the model matches the code it read. `changeset_commit_preview` says "0 changes: records that
+  the model matches the code it read, and moves the drift baseline from X to Y", and the landing (MCP, and
+  `dr changeset commit`) stamps the manifest. `codebase_extract` with `intent` or a named `changeset` creates a
+  reconcile or bootstrap changeset even when it stages nothing; a verification record of nothing is still not
+  made. `project_status`'s drift step no longer sends agents to `changeset_create` under the extraction's name.
+- **Extraction from uncommitted code is recorded and warned about (#1330):** `codebase_index` lists the source
+  files with uncommitted changes the index read (`index.uncommittedInIndex`, with a note; `state` stays `fresh`,
+  since re-indexing would not change it). `codebase_extract` records those files, with content hashes, on the
+  extraction record; the landing preview and result warn "Commit the code first, then land" while they are
+  uncommitted, and a landing after they are committed as read stamps the commit that holds them.
+
 - **`recorded` changeset status (#1171):** landing a plan moves the verification records that name it
   (`verifies`) to `recorded`, with no new tool. A recorded record is kept (committed to git with the
   plan) and no longer shows as staged work: `changeset_list` lists staged changesets by default and
@@ -45,6 +80,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`codebase_extract` no longer stages relationships from name collisions (#1326):** a field write
+  or usage the index resolved by name (`WRITES`, `USAGE`, or a `unique_name` / `suffix_match` call)
+  onto a member of a class (`Xform.pts`) is staged only when the caller's file imports the class or
+  its file, calls or names it, or sits in the class's own file; a call resolved through types or imports
+  (`lsp_*`, `import_map`, `same_module`) is still believed. The rest is listed under
+  `unchanged.weakCallPairs` (reason `name-matched` or `member-of-unreferenced-class`, paged with
+  `list: "weakCalls"`) as hints to check against the code; `unchanged.weakCalls` is their count. A
+  call from a component to an application service keeps its direction, service `serves` caller.
+- **`changeset_brief` intent and gaps (#1329, #1391, #1392):** an added requirement, feature or capability
+  that realizes, satisfies or supports a goal or outcome, added or not, now anchors the intent trace, and
+  an added goal or outcome ends it, so a bootstrap that writes its motivation, business and product layers
+  in the same changeset reports traced elements. An accepted gap the plan wires anyway is listed under
+  `gaps` as `contradicted-accepted`, with the `gap_reopen` call. Peer-pattern gaps skip elements marked
+  `external` or `headless` (`type`, `kind` or `role` attribute) and connections that two or more elements
+  of the type have accepted as absent. The path shown for a traced element prefers realizes, serves,
+  satisfies, supports and composes chains to a route through a shared neighbour.
+
+- **`changeset_verify` says what it can't see instead of calling it missing (#1371, #1374, #1351, #1319):**
+  against an extraction, these planned elements are unverifiable with a reason, not missing or
+  "deletions not done", and stay out of the verdict: an add whose source file declares its symbol but
+  the range didn't change it ("exists, unchanged in the range", checked against the file at the start of the range); a delete of an element with no source
+  reference; a data-store collection that is not a table (a file); and an element sourced to a language
+  the code index doesn't read (shell scripts), whose files `extraction.unindexedFiles` and a note list,
+  with the instruction that the agent extracts, models and verifies them by reading the code.
+  The evidence is the file's text, never the code graph.
 - `codebase_extract` reads routes a server routes by hand: method and path comparisons inside an
   `http.createServer` handler, and route tables or anchored regexes (`matchRoute` over a ROUTES
   table) where the path is readable. A hand-routed file it could only read in part is listed under

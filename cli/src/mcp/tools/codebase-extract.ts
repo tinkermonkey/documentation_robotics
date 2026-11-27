@@ -107,11 +107,13 @@ import { Element } from "../../core/element.js";
 import type { Model } from "../../core/model.js";
 import { setStagedSourceReference, stagedSourceReference } from "../../core/staged-source-reference.js";
 import { StagingAreaManager } from "../../core/staging-area.js";
+import { hashFiles, UNREAD_EDIT } from "../../core/reconciliation.js";
 import {
   decideExtractionPurpose,
   EXTRACTION_PURPOSE_ARGS,
   extractionPurpose,
   purposeOf,
+  RECONCILING_PURPOSES,
   readPurpose,
   resolveCommit,
   type ChangesetPurpose,
@@ -276,6 +278,7 @@ const RUN_LISTS = [
   "sharedHelpers",
   "planCoverage",
   "unwiredTests",
+  "weakCalls",
   "notElements",
   "declaredSpecNotStaged",
   "contradictedGaps",
@@ -497,6 +500,8 @@ interface StoredCards {
   /** The purpose the run declared, and for a verification record the plan it verifies (core/changeset-purpose.ts). */
   purpose?: ChangesetPurpose;
   verifies?: string;
+  /** Source files with uncommitted changes when the run read the code (#1330): what it modelled may exist in no commit. */
+  uncommitted?: Record<string, string | null>;
   createdAt: string;
   cards: UndecidedCard[];
   /** The elements extraction staged into this changeset, by the symbol they came from. */
@@ -4217,6 +4222,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         keepList("rules", ruleReports);
         keepList("sharedHelpers", helpers.helpers);
         keepList("unwiredTests", planned.unwiredTests);
+        keepList("weakCalls", planned.weakCallPairs);
         keepList("tier1NotElementCards", tier1NotElementCards);
         keepList("contradictedGaps", contradictedGaps);
         keepList("declaredSpecNotStaged", notInDeclaredSpec);
@@ -4398,7 +4404,12 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         let active = !!changeset && activeId === changeset.id;
         // With intent the caller has a confirmed purpose for the changeset: it is created for the
         // cards too, so their elements are staged into one of the right purpose, with no changeset_create detour.
-        if (changeset ? hasWork : stages || (!!args.intent && hasWork)) {
+        // A reconcile or bootstrap the caller asked for (intent, or a changeset named) is made even when it
+        // stages nothing (#1331): landing it as it is records that the model matches the code it read.
+        // A verification record of a plan that staged nothing is not: there is nothing to record.
+        const declaredPurpose = purposeDecision?.declaration.purpose ?? (since ? "reconcile" : "bootstrap");
+        const emptyReconcile = !changeset && !hasWork && !layers && (!!args.intent || !!args.changeset) && RECONCILING_PURPOSES.includes(declaredPurpose as ChangesetPurpose);
+        if (changeset ? hasWork : stages || (!!args.intent && hasWork) || emptyReconcile) {
           if (!changeset) {
             // Its purpose: a verification record of the plan active before (verify mode), a
             // reconcile (since, no plan) or a bootstrap (the whole code).
@@ -4509,6 +4520,15 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         };
         keepList("planCoverage", coverage);
         const pendingPath = path.join(extractDir(projectRoot), PENDING_FILE);
+        // The files with uncommitted changes the run read: those the index saw and those it didn't.
+        // Files the index read are hashed; files edited after the index was taken were not read, so they are marked
+        // never to settle: committing them must not move the reconciled commit past code the model lacks.
+        const readFiles = (indexJudgement.uncommittedRead ?? []).filter((f) => !indexJudgement.editedSince.includes(f)).sort();
+        const uncommittedHashes = {
+          ...(readFiles.length ? await hashFiles(codebaseRoot, readFiles) : {}),
+          ...Object.fromEntries(indexJudgement.editedSince.map((f) => [f, UNREAD_EDIT])),
+        };
+        const uncommittedRecord: Pick<StoredCards, "uncommitted"> = Object.keys(uncommittedHashes).length ? { uncommitted: uncommittedHashes } : {};
         if (changeset) {
           const staged = [...stillStaged];
           for (const a of adds) {
@@ -4532,6 +4552,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
             baseModified,
             previousActive: recordedPrevious,
             ...recordedPurpose(purposeDecision),
+            ...uncommittedRecord,
             createdAt: now,
             cards: undecided,
             staged,
@@ -4556,6 +4577,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
             baseModified,
             previousActive,
             ...recordedPurpose(purposeDecision),
+            ...uncommittedRecord,
             createdAt: now,
             cards: undecided,
             staged: [],
@@ -4633,7 +4655,10 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
             ? contradiction
               ? `Nothing staged, but the code disagrees with the model: ${contradiction} No as-built changeset was created; ${previousActive ? `'${previousActive.name}' is still active.` : `the plan is '${recordedPrevious!.name}'.`}`
               : `Nothing to stage: nothing in the range is observable to extraction or differs from the model. No as-built changeset was created; ${previousActive ? `'${previousActive.name}' is still active.` : `the plan is '${recordedPrevious!.name}'.`}`
-            : changeset
+            : changeset && created
+              ? `Nothing to stage: the model already says what this code says${contradiction ? `, except that ${contradiction}` : ""}. '${changeset.name}' was created and made active, empty, as asked: ` +
+                `landing it as it is records that the model matches the code at ${head.slice(0, 7)} (changeset_commit_preview says so) and moves the drift baseline there.`
+              : changeset
               ? contradiction
                 ? `Nothing more staged in '${changeset.name}', but the code disagrees with it: ${contradiction}`
                 : `Nothing more to stage: '${changeset.name}' already says what this code says.`
@@ -4733,8 +4758,18 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
               elements: plan.unchanged,
               modelled: plan.modelled,
               relationships: alreadyPresent,
-              // Calls the index matched by name only, with nothing to corroborate them: not staged.
-              ...(weakCalls ? { weakCalls } : {}),
+              // Links the index matched by name only, with nothing to corroborate them: not staged,
+              // listed for the agent to check against the code.
+              ...(weakCalls
+                ? {
+                    weakCalls,
+                    weakCallPairs: capped(planned.weakCallPairs, Math.min(fit.listLimit ?? 20, 20), "weakCalls"),
+                    weakCallsNote:
+                      "Call-graph links left out because the index matched them by name: reason name-matched is a low-confidence call nothing corroborates; " +
+                      "member-of-unreferenced-class is a read, write or call of a class member (Xform.pts) from a file that never imports, calls or names the class. " +
+                      "They are hints, not drift: read the code, and wire a real one with relationship_add.",
+                  }
+                : {}),
               rejected: plan.rejected,
               ...(plan.outsideLayers ? { outsideLayers: plan.outsideLayers } : {}),
               // Stage mode: cards in Tier 1's not-element band, hidden rather than carded.

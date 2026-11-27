@@ -12,6 +12,9 @@ import type { Tier0Outcome, Tier0Rule } from "../tier0-rules.js";
 import { isDeclaredVariable } from "./shapes.js";
 import { CARD_FIELDS, CARD_LABELS, CARD_VERSION, CardBuilder, FILE_LABELS, VENDOR_EXCLUDE, cardId, isCandidate, withStoredNames } from "./build.js";
 import { buildEdgeIndex } from "./edge-index.js";
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { cardFacts, tier0Visibility } from "./visibility.js";
 import { buildFactsIndex, factsFor } from "./facts.js";
 import { TEST_CASE_LABEL, TEST_SUITE_LABEL, collectJsTestCases } from "./test-cases.js";
 import { tier0ForCard } from "./tier0.js";
@@ -165,12 +168,24 @@ export async function classifyTier0(
   }
   const total = Math.min(limit, selected.length + tests.length);
 
+  // Cards first, so visibility and nesting are read over all of them (as extraction does).
+  const built: Array<{ card: SymbolCard; facts: CardFacts }> = [];
   for (const node of selected) {
-    if (results.length >= limit) break;
+    if (built.length >= limit) break;
     const card = await builder.build(node);
     if (!isDeclaredVariable(card)) continue;
-    const facts = factsFor(factsIndex, node.qualified_name, card.file_path);
-    record(card, facts, tier0ForCard(card, facts, rules));
+    built.push({ card, facts: factsFor(factsIndex, node.qualified_name, card.file_path) });
+  }
+  const texts = new Map<string, string | null>();
+  const textOf = options.sourceRoot
+    ? (file: string): string | null => {
+        if (!texts.has(file)) texts.set(file, readUnderRoot(options.sourceRoot!, file));
+        return texts.get(file) ?? null;
+      }
+    : undefined;
+  const triage = cardFacts(built.map((b) => b.card), textOf);
+  for (const { card, facts } of built) {
+    record(card, facts, tier0ForCard(card, facts, rules, tier0Visibility(card, triage.get(card)?.visibility, textOf)));
   }
 
   for (const s of tests) {
@@ -179,4 +194,15 @@ export async function classifyTier0(
   }
 
   return { analyzer, project: graph.project, mode: "tier0", card_version: CARD_VERSION, rules: rules.length, summary, results };
+}
+
+function readUnderRoot(root: string, file: string): string | null {
+  const base = path.resolve(root);
+  const abs = path.resolve(base, file);
+  if (!abs.startsWith(base + path.sep)) return null;
+  try {
+    return readFileSync(abs, "utf-8");
+  } catch {
+    return null;
+  }
 }

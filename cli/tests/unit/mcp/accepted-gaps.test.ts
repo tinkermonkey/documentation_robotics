@@ -549,6 +549,72 @@ describe("changeset_brief", () => {
     const contradicted = parse(await changesetBriefHandler({ sections: ["acceptedGaps"], rootPath }));
     expect(contradicted.acceptedGaps[0].contradictedBy).toEqual({ source: OPERATION, predicate: "realizes", target: FUNCTION });
   }, 120_000);
+
+  it("lists a contradicted accepted gap under gaps, with the gap_reopen call (#1391)", async () => {
+    await planExport();
+    await accept();
+    await add({ layer: "api", type: "operation", name: "export-orders", attributes: { operationId: "x", summary: "x", tags: "orders" } });
+    await relate(OPERATION, "realizes", FUNCTION);
+
+    const full = parse(await changesetBriefHandler({ sections: ["gaps"], detail: "full", rootPath }));
+    const gap = full.gaps.find((g: any) => g.kind === "contradicted-accepted");
+    expect(gap).toMatchObject({
+      element: FUNCTION,
+      reopen: { tool: "gap_reopen", element: FUNCTION, direction: "incoming", predicate: "realizes", otherType: "api.operation" },
+    });
+    expect(gap.detail).toContain("gap_reopen");
+
+    // The compact brief always shows it under gaps, however many other gaps there are.
+    const compact = parse(await changesetBriefHandler({ rootPath }));
+    expect(compact.gaps.some((line: string) => line.includes("contradicted-accepted") && line.includes("gap_reopen"))).toBe(true);
+
+    // Reopening resolves it.
+    await gapReopenHandler({ element: FUNCTION, ...NO_OPERATION, rootPath });
+    const after = parse(await changesetBriefHandler({ sections: ["gaps"], detail: "full", rootPath }));
+    expect(after.gaps.some((g: any) => g.kind === "contradicted-accepted")).toBe(false);
+  }, 120_000);
+
+  it("peer patterns skip an external element and learn from accepted gaps of the same type (#1392)", async () => {
+    for (const name of ["import-orders", "list-orders", "sync-orders"]) {
+      await add({ layer: "application", type: "applicationfunction", name });
+      await add({ layer: "api", type: "operation", name, attributes: { operationId: name, summary: name, tags: "orders" } });
+      await relate(`application.applicationfunction.${name}`, "realizes", SERVICE);
+      await relate(`api.operation.${name}`, "realizes", `application.applicationfunction.${name}`);
+    }
+    // Three components realize the service, each provides an interface: their convention.
+    for (const name of ["web", "worker", "cron"]) {
+      await add({ layer: "application", type: "applicationcomponent", name, attributes: { type: "internal" } });
+      await add({ layer: "application", type: "applicationinterface", name: `${name}-api`, attributes: { protocol: "REST" } });
+      await relate(`application.applicationcomponent.${name}`, "realizes", SERVICE);
+      await relate(`application.applicationcomponent.${name}`, "provides", `application.applicationinterface.${name}-api`);
+    }
+    await changesetCreateHandler({ name: "peers", rootPath });
+    const peerGaps = async (id: string) =>
+      parse(await changesetBriefHandler({ sections: ["gaps"], detail: "full", rootPath })).gaps.filter(
+        (g: any) => g.kind === "peer-pattern" && g.element === id
+      );
+
+    // An internal component lacking the interface is flagged; an external one is not.
+    const internal = "application.applicationcomponent.billing";
+    const external = "application.applicationcomponent.payment-gateway";
+    await add({ layer: "application", type: "applicationcomponent", name: "billing", attributes: { type: "internal" } });
+    await add({ layer: "application", type: "applicationcomponent", name: "payment-gateway", attributes: { type: "external" } });
+    await relate(internal, "realizes", SERVICE);
+    await relate(external, "realizes", SERVICE);
+    expect(await peerGaps(internal)).toHaveLength(1);
+    expect(await peerGaps(external)).toHaveLength(0);
+
+    // Two functions of the type already accepted the gap: a third one learns from them.
+    for (const name of ["upload-frames", "purge-frames"]) {
+      await add({ layer: "application", type: "applicationfunction", name });
+      await relate(`application.applicationfunction.${name}`, "realizes", SERVICE);
+      expect((await peerGaps(`application.applicationfunction.${name}`)).length).toBe(1);
+      await gapAcceptHandler({ element: `application.applicationfunction.${name}`, ...NO_OPERATION, reason: "no API", rootPath });
+    }
+    await add({ layer: "application", type: "applicationfunction", name: "reap-frames" });
+    await relate("application.applicationfunction.reap-frames", "realizes", SERVICE);
+    expect(await peerGaps("application.applicationfunction.reap-frames")).toHaveLength(0);
+  }, 120_000);
 });
 
 describe("changeset_verify", () => {

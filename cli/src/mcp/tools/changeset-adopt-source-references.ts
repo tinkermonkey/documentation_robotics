@@ -158,7 +158,7 @@ export function adoptionResult(
           },
         }
       : {}),
-    ...(unknownIds.length > 0 ? { unknownIds } : {}),
+    ...(unknownIds.length > 0 ? { unknownIds, ...(report.unknownIdReasons ? { unknownIdReasons: report.unknownIdReasons } : {}) } : {}),
     next: report.next,
   };
 }
@@ -170,8 +170,8 @@ export const changesetAdoptSourceReferencesTool: McpToolDefinition<typeof inputS
     "as-built matches that name a source file and symbol the plan's element lacks. Takes the same changeset (the plan) and " +
     "against as changeset_verify, compares them again, and stages the copies into the plan in one write (an add " +
     "is rewritten in place, an update gets one more update). Do it before the plan lands, so the landed model ties " +
-    "those elements to the code. Only exact matches are copied; pass a probable match's planned id in ids once " +
-    "you have confirmed it in the code. Matches against elements extraction didn't stage (builtByAgent) are never " +
+    "those elements to the code. It takes the matches changeset_verify lists in sourceReferences.missing: every exact one, and a probable one only when its planned id is in ids (once you have confirmed it in the code); an id that names none of them comes back in unknownIds with unknownIdReasons saying why. " +
+    "Matches against elements extraction didn't stage (builtByAgent) are never " +
     "copied. skipped says why each one wasn't. For a planned element extraction can't see (it has no as-built match: a " +
     "feature, a requirement, a tool the code registers by a name string), pass the reference you confirmed in the code in " +
     "references ({id, sourceFile, sourceSymbol}); changeset_verify lists candidates under sourceReferences.unreferenced. " +

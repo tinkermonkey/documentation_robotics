@@ -350,6 +350,14 @@ read only the branch's changes, and is never landed. Landing a plan, or any othe
 `documentation-robotics/`, doesn't reconcile it: a plan says what was meant to be built, drawn
 before the code existed, and its landing checks nothing against the code.
 
+A reconcile or bootstrap with nothing staged still lands: it is the record that the model matches the
+code it read, and the preview says it moves the drift baseline from one commit to another.
+`codebase_extract` makes one when given an `intent` (or a `changeset` name) even though it stages
+nothing. It does not land empty when its run left cards undecided or candidate deletes unchecked, or
+was limited to some layers. When the extraction read source files with uncommitted changes, the
+preview and result say to commit the code first; landing after it is committed as it was read
+stamps the commit that holds it, provided nothing else changed since.
+
 - `StagingAreaManager.commit` (the CLI, `changeset_commit` and the viewer's Apply) decides it when a
   changeset lands, by its purpose: `bootstrap` and `reconcile` reconcile; any other doesn't
   (`cli/src/core/reconciliation.ts`). For a changeset made before purposes were declared, the
@@ -961,8 +969,11 @@ The full brief:
     relate to one of the added element's neighbours the same way (another layout function that
     also realizes the layout service). A connection at least half the peers have (and at least
     two), that the added element lacks, and that the catalog still allows, is reported with up to
-    three examples. On a copy of heimdall, planning a new layout function this way reports that its sibling
+    three examples. Elements marked `external` or `headless` (`type`, `kind` or `role`) are skipped, as
+    is a connection that two or more elements of the type have already accepted as absent. On a copy of heimdall, planning a new layout function this way reports that its sibling
     functions each have an API operation realizing them and a test sketch testing them.
+  - `contradicted-accepted`: an accepted gap the plan wires anyway. It is a gap to resolve, with the
+    `gap_reopen` call that takes the decision back (or delete the relationship).
   - A peer-pattern gap the element has accepted (its `accepted_gaps`) is not listed here: the
     accepted gap is, under `acceptedGaps`, with `answersPeerPattern`.
 - **Accepted gaps.** Each added or updated element's accepted gaps, with the reason, who decided,
@@ -977,8 +988,12 @@ The full brief:
   `hubThreshold`), and `intent.walk` names the values used and lists in `blockedByHub` the elements
   that do not trace but would, within the same hops, if hubs were walked through: the hub rule
   changes the answer, so the answer says where. An intent element the changeset adds counts only when
-  it traces to an existing one (`anchoredBy`); otherwise the elements that reach it are untraced and
-  listed in `intent.unanchored`.
+  it traces to an existing one (`anchoredBy`) or is a requirement, feature or capability that realizes,
+  satisfies or supports a goal or outcome, added or not (a bootstrap writes its goals in the same
+  changeset; an added goal or outcome ends the trace); otherwise the elements that reach it are
+  untraced and listed in `intent.unanchored`. Where several routes reach intent, the path shown
+  prefers realizes, serves, satisfies, supports and composes chains to one through any other
+  relationship.
   - A part traces through its whole, and an element through what it realizes. An element the walk
     leaves untraced is traced when an element that composes or aggregates it, or that it realizes,
     traces, at any depth and whether or not that element is a hub: a sub-view of a view that
@@ -1065,6 +1080,13 @@ writes itself proves little: a copy of the plan matches by definition.
   sections, each item in full, paged the same way (default 50 items per list) and narrowed by
   `layers` or `ids`; `detail: "full"` returns the whole report. `dr changeset verify --json` prints
   the whole report.
+- **Unverifiable: what the tools can't judge.** Beyond what extraction can't produce (next item), four cases go on the unverifiable list with a
+  reason, never missing or "deletions not done": a planned add whose source file declares its symbol
+  but the range didn't change it ("exists, unchanged in the range"); a planned delete of an element
+  with no source reference; a data-store collection that is not a table (a file); and an element
+  sourced to files in a language the code index doesn't read (shell scripts). The files the index
+  skipped are in `extraction.unindexedFiles` and a note: the agent extracts, models and verifies
+  them by reading the code. The evidence is the file's text, not the code graph.
 - **Unverifiable.** When the as-built changeset came from extraction (`codebase_extract` has a record
   of it; its description, or elements that declare `sourceProvenance: "extracted"`, don't count), a
   planned change that the build lacks
