@@ -1,0 +1,15 @@
+id: changeset-1795742890305-z1vao1l15
+name: cli010-b1-empty-reconcile
+description: Let an empty reconcile or bootstrap changeset land as a pure "reconciled at <commit>" record (#1331); record uncommitted code an extraction read and warn to commit it first (#1330). Re-landed on main's model after a rebase.
+created: 2026-11-27T01:28:10.350Z
+modified: 2026-11-27T13:24:52.921Z
+status: committed
+baseSnapshot: v2:sha256:c3d3e65f7255eec247c71e35b3f2764eb4486c9bd858b1c0a9c8f641d22aaf68
+origin:
+  kind: plan
+purpose: plan
+stats:
+  additions: 5
+  modifications: 0
+  deletions: 0
+lastSequence: 4
