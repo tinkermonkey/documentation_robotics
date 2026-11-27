@@ -2,14 +2,115 @@ id: changeset-1795798904598-xidmeamwt
 name: cli010-c1-landing
 description: "changeset_commit becomes an ordinary write tool (#1419, #1256, #1367): no dialog, no confirmToken. Lands when the user asks in the conversation; git and the pull request are the gate. Takes changesets: [...] and lands them in order; the result names the files to commit; project_status warns about an untracked changeset folder."
 created: 2026-11-27T17:01:44.644Z
-modified: 2026-11-27T17:02:02.251Z
+modified: 2026-11-27T17:11:27.626Z
 status: staged
 baseSnapshot: v2:sha256:db1ad3fcfa4654d521ec8d78a2b4dd901cf52a13dcadf4c6e6a874a360dad97b
 origin:
   kind: plan
 purpose: plan
 stats:
-  additions: 0
+  additions: 10
   modifications: 3
-  deletions: 0
-lastSequence: 2
+  deletions: 188
+lastSequence: 205
+unstaged:
+  - sequence: 191
+    removedAt: 201
+    change:
+      type: add
+      elementId: application.applicationfunction.land-one
+      layerName: application
+      after:
+        id: 93d80851-e140-4b45-b5f7-6f8879034230
+        path: application.applicationfunction.land-one
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: land-one
+        description: "Lands one changeset for changeset_commit: prepares it, commits it under the project's write lock and returns its counts, drift, warnings and filesToCommit."
+        metadata:
+          created_at: 2026-11-27T17:11:09.891Z
+          updated_at: 2026-11-27T17:11:09.891Z
+          version: 1
+      timestamp: 2026-11-27T17:11:09.920Z
+    rewritten: true
+  - sequence: 192
+    removedAt: 202
+    change:
+      type: add
+      elementId: application.applicationfunction.requested-names
+      layerName: application
+      after:
+        id: a0e9571b-6cd4-47f2-8d5e-c93d9bd113dc
+        path: application.applicationfunction.requested-names
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: requested-names
+        description: The changeset names a changeset_commit call asks to land (changeset and changesets), in order, each once.
+        metadata:
+          created_at: 2026-11-27T17:11:09.892Z
+          updated_at: 2026-11-27T17:11:09.892Z
+          version: 1
+      timestamp: 2026-11-27T17:11:09.920Z
+    rewritten: true
+  - sequence: 193
+    removedAt: 203
+    change:
+      type: add
+      elementId: application.applicationfunction.landing-summary-text
+      layerName: application
+      after:
+        id: 13bb1285-4989-4c54-ba04-a4ad651dd06f
+        path: application.applicationfunction.landing-summary-text
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: landing-summary-text
+        description: "The landing summary changeset_commit_preview shows: intent, counts, layers, drift and validation."
+        metadata:
+          created_at: 2026-11-27T17:11:09.892Z
+          updated_at: 2026-11-27T17:11:09.892Z
+          version: 1
+      timestamp: 2026-11-27T17:11:09.920Z
+    rewritten: true
+  - sequence: 194
+    removedAt: 204
+    change:
+      type: add
+      elementId: application.applicationfunction.files-to-commit
+      layerName: application
+      after:
+        id: e121e276-7a66-4c79-8654-bee7d46b2a2f
+        path: application.applicationfunction.files-to-commit
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: files-to-commit
+        description: "The paths a landing puts in the commit: the model files written, manifest.yaml and the changeset's folder (#1367)."
+        metadata:
+          created_at: 2026-11-27T17:11:09.892Z
+          updated_at: 2026-11-27T17:11:09.892Z
+          version: 1
+      timestamp: 2026-11-27T17:11:09.920Z
+    rewritten: true
+  - sequence: 195
+    removedAt: 205
+    change:
+      type: add
+      elementId: application.applicationfunction.collect-untracked-landings
+      layerName: application
+      after:
+        id: 381ed751-4bc6-4a31-ac62-1eb4d42d9826
+        path: application.applicationfunction.collect-untracked-landings
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: collect-untracked-landings
+        description: "project_status: committed or recorded changesets whose folder git doesn't track (#1367)."
+        metadata:
+          created_at: 2026-11-27T17:11:09.892Z
+          updated_at: 2026-11-27T17:11:09.892Z
+          version: 1
+      timestamp: 2026-11-27T17:11:09.920Z
+    rewritten: true
