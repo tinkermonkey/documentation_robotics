@@ -1100,7 +1100,7 @@ describe("project_status", () => {
         expect(data.nextStep.tool).toBe("codebase_verify");
         expect(data.nextStep.then).toEqual({ tool: "codebase_extract", args: { since: modelSha, rootPath } });
         expect(data.nextStep.summary).toContain(`since the code the as-built landing "extract-bootstrap" read (${modelSha.slice(0, 7)})`);
-        expect(data.nextStep.summary).toContain(`codebase_extract with since: "${modelSha.slice(0, 7)}" and no plan active`);
+        expect(data.nextStep.summary).toContain(`codebase_extract with since: "${modelSha.slice(0, 7)}", an intent (what the user confirms it is for) and no plan active`);
         expect(data.nextStep.summary).not.toContain("in step");
       });
 
@@ -1333,7 +1333,7 @@ describe("project_status", () => {
         expect(data.codeDrift.note).toBeUndefined();
         expect(data.nextStep.summary).toContain('Landed plans don\'t reconcile it, verified or not: 1 landed since ("add-refunds") and the baseline did not move.');
         expect(data.nextStep.summary).toContain("land the reconcile changeset it makes when the user asks");
-        expect(data.nextStep.summary).toContain("any other name makes a plan, which does not clear this");
+        expect(data.nextStep.summary).toContain("Don't make it with changeset_create: that makes a plan, which does not clear this");
       });
     });
 

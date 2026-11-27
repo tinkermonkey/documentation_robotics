@@ -928,6 +928,23 @@ describe("index freshness (bug 11)", () => {
     expect(Object.keys(snapshot.files)).toContain("src/app.ts");
   });
 
+  it("lists the uncommitted files the index read, apart from edits it hasn't seen (#1330)", async () => {
+    const probe = { changedBetween: async () => [], editedSince: async () => ["src/new.ts"], dirtyFiles: async () => ["src/app.ts", "src/new.ts"] };
+    const unseen = await judgeIndex({ indexedCommit: HEAD, indexedAt: META.timestamp }, HEAD, probe);
+    expect(unseen.state).toBe("fresh-with-uncommitted-edits");
+
+    const read = await judgeIndex({ indexedCommit: HEAD, indexedAt: META.timestamp }, HEAD, { ...probe, editedSince: async () => [] });
+    // The state still says fresh (re-indexing wouldn't change it); the files the index read are named.
+    expect(read.state).toBe("fresh");
+    expect(read.uncommittedRead).toEqual(["src/app.ts", "src/new.ts"]);
+    const shown = describeIndex({ indexed: true, fresh: true, meta: META, currentGitHead: HEAD } as any, read);
+    expect(shown.uncommittedInIndex).toEqual(["src/app.ts", "src/new.ts"]);
+    expect(String(shown.uncommittedNote)).toContain("exists in no commit");
+
+    const clean = await judgeIndex({ indexedCommit: HEAD, indexedAt: META.timestamp }, HEAD, { ...probe, editedSince: async () => [], dirtyFiles: async () => [] });
+    expect(clean.uncommittedRead).toBeUndefined();
+  });
+
   it("is stale when another analyzer version built the index, at the same HEAD", async () => {
     const probe = { changedBetween: async () => [], editedSince: async () => [] };
     const judgement = await judgeIndex({ indexedCommit: HEAD, indexedAt: META.timestamp, analyzerVersion: "0.12.0" }, HEAD, probe, "0.12.1");

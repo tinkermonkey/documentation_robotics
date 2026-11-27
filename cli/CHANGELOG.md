@@ -32,6 +32,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   missing element or link says when a missing source reference may be why, and to set `sourceFile` with
   `model_update`. `changeset_adopt_source_references` explains each id in `unknownIds` (`unknownIdReasons`) and its
   description says which matches it takes.
+- **An empty reconcile lands (#1331):** a reconcile or bootstrap changeset with nothing staged lands as the
+  record that the model matches the code it read. `changeset_commit_preview` says "0 changes: records that
+  the model matches the code it read, and moves the drift baseline from X to Y", and the landing (MCP, and
+  `dr changeset commit`) stamps the manifest. `codebase_extract` with `intent` or a named `changeset` creates a
+  reconcile or bootstrap changeset even when it stages nothing; a verification record of nothing is still not
+  made. `project_status`'s drift step no longer sends agents to `changeset_create` under the extraction's name.
+- **Extraction from uncommitted code is recorded and warned about (#1330):** `codebase_index` lists the source
+  files with uncommitted changes the index read (`index.uncommittedInIndex`, with a note; `state` stays `fresh`,
+  since re-indexing would not change it). `codebase_extract` records those files, with content hashes, on the
+  extraction record; the landing preview and result warn "Commit the code first, then land" while they are
+  uncommitted, and a landing after they are committed as read stamps the commit that holds them.
+
 - **`recorded` changeset status (#1171):** landing a plan moves the verification records that name it
   (`verifies`) to `recorded`, with no new tool. A recorded record is kept (committed to git with the
   plan) and no longer shows as staged work: `changeset_list` lists staged changesets by default and

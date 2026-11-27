@@ -544,7 +544,7 @@ describe("project_status over MCP", () => {
     // The next step names the tool, and the catch-up reads from the extraction's commit.
     expect(status.nextStep.tool).toBe("codebase_index");
     expect(status.nextStep.then.tool).toBe("codebase_verify");
-    expect(status.nextStep.summary).toContain(`codebase_extract with since: "${extracted.slice(0, 7)}" and no plan active`);
+    expect(status.nextStep.summary).toContain(`codebase_extract with since: "${extracted.slice(0, 7)}", an intent (what the user confirms it is for) and no plan active`);
 
     // A list the status shortens is returned in full by the same tool, paged.
     const unreferenced = await call("project_status", { list: "unreferencedFiles", limit: 1 });
