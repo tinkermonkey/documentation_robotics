@@ -619,6 +619,8 @@ describe("changeset_verify fix wave 3 (FINDINGS-ROUND2.md)", () => {
     const id = await createAsBuilt("declared-as-built");
     // No card, no staged entry: extraction missed the symbol; the agent read it from the code.
     await writeExtractionRecord(id, { cards: CARDS });
+    await mkdir(join(rootPath, "src", "utils"), { recursive: true });
+    await writeFile(join(rootPath, GRAPH_DEGREE), "export function findOrphanNodes() {}\n");
     await add({ layer: "application", type: "applicationfunction", name: "findOrphanNodes", sourceFile: GRAPH_DEGREE, sourceSymbol: "findOrphanNodes", sourceProvenance: "extracted" });
 
     const report = await ok(await changesetVerifyHandler({ detail: "full", changeset: "graph-degree-plan", against: { changeset: "declared-as-built" }, rootPath }));
@@ -626,10 +628,14 @@ describe("changeset_verify fix wave 3 (FINDINGS-ROUND2.md)", () => {
     expect(share.agentAdded).toBeUndefined();
     expect(share.declaredExtracted).toEqual(["application.applicationfunction.find-orphan-nodes"]);
     expect(report.notes.join(" ")).toContain("staged by the agent with provenance extracted");
+    // A symbol the file doesn't hold (made up) stays the agent's.
+    await add({ layer: "application", type: "applicationfunction", name: "madeUp", sourceFile: GRAPH_DEGREE, sourceSymbol: "madeUp", sourceProvenance: "extracted" });
+    const made = await ok(await changesetVerifyHandler({ detail: "full", changeset: "graph-degree-plan", against: { changeset: "declared-as-built" }, rootPath }));
+    expect(made.extraction.asBuilt.agentAdded.map((a: any) => a.id)).toEqual(["application.applicationfunction.made-up"]);
     // Without a source symbol it stays the agent's.
     await add({ layer: "application", type: "applicationfunction", name: "noSymbol", sourceFile: GRAPH_DEGREE, sourceProvenance: "extracted" });
     const again = await ok(await changesetVerifyHandler({ detail: "full", changeset: "graph-degree-plan", against: { changeset: "declared-as-built" }, rootPath }));
-    expect(again.extraction.asBuilt.agentAdded.map((a: any) => a.id)).toEqual(["application.applicationfunction.no-symbol"]);
+    expect(again.extraction.asBuilt.agentAdded.map((a: any) => a.id)).toEqual(["application.applicationfunction.made-up", "application.applicationfunction.no-symbol"]);
   });
 
   it("bug 3: a staged id the plan also adds still has to be named after its symbol", async () => {

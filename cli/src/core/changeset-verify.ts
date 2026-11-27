@@ -58,6 +58,7 @@ import { checkPlanAcceptedGaps, type AcceptedGapsCheck } from "./accepted-gaps-v
 import { acceptedGapLine, LIST_LIMIT as BRIEF_LIST_LIMIT } from "./changeset-brief-compact.js";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
+import { readFileSync } from "node:fs";
 
 /**
  * Attribute fields whose expected progress is not a divergence: a plan says `status: planned`, the
@@ -1913,7 +1914,7 @@ export async function verifyChangesetInModel(
       const codeFiles = [...new Set((built.changedElements ?? []).flatMap((e) => sourceFiles(e)))];
       const rule = await extractionRule(model, options, codeFiles, "The as-built changeset came from codebase_extract");
       ({ extraction, observability } = rule);
-      const share = asBuiltShare(built, plan, { record, ...(observability ? { observe: (e) => observability!.element(e) } : {}) });
+      const share = asBuiltShare(built, plan, { record, symbolInFile: (file, symbol) => fileHoldsSymbol(model.codebaseRoot, file, symbol), ...(observability ? { observe: (e) => observability!.element(e) } : {}) });
       extraction.asBuilt = share;
       if (record.readAt) {
         notes.push(
@@ -2335,6 +2336,18 @@ async function extractionRule(
 /** The description codebase_extract gives the changesets it creates. */
 const EXTRACTION_MARKER = /Staged by codebase_extract/;
 
+/** Whether a source file under the codebase root exists and names the symbol (its last segment). */
+function fileHoldsSymbol(root: string, file: string, symbol: string): boolean {
+  try {
+    const abs = path.resolve(root, file);
+    if (path.relative(root, abs).startsWith("..")) return false;
+    const name = symbol.split(/[.#:/]/).filter(Boolean).pop() ?? symbol;
+    return readFileSync(abs, "utf8").includes(name);
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Where an as-built changeset's elements and relationships came from (see AsBuiltShare).
  *
@@ -2355,6 +2368,8 @@ export function asBuiltShare(
     record?: ExtractionRecord | null;
     /** What extraction can produce, for elements of open cards (file-aware). */
     observe?: (element: VerifyElement) => { observable: boolean; reason?: string };
+    /** Whether the file exists and names the symbol: what an agent's own "extracted" claim is checked against. */
+    symbolInFile?: (file: string, symbol: string) => boolean;
   } = {}
 ): AsBuiltShare {
   const record = context.record ?? null;
@@ -2373,6 +2388,7 @@ export function asBuiltShare(
   }
 
   const declaredExtracted: string[] = [];
+  const declaredSet = new Set<string>();
   const notFromExtraction = (e: BuiltElement): string | undefined => {
     if (!record) return "no codebase_extract record of this changeset confirms it";
     if (e.change === "deleted") return candidateDeletes.has(e.id) ? undefined : "a delete that is not one of extraction's candidate deletes";
@@ -2388,8 +2404,9 @@ export function asBuiltShare(
       // called hand-added (#1324): extraction missed it, the agent read it from the code. It is
       // listed (declaredExtracted) as work to confirm: the agent's word, not extraction's.
       // Not for one named after the plan's element: that is a copy of the plan.
-      if (e.change === "added" && e.sourceReference?.provenance === "extracted" && located.length > 0 && !looksPlanned) {
+      if (e.change === "added" && e.sourceReference?.provenance === "extracted" && located.length > 0 && !looksPlanned && located.every((l) => context.symbolInFile?.(l.file, l.symbol!))) {
         declaredExtracted.push(e.id);
+        declaredSet.add(e.id);
         return undefined;
       }
       const verdict = context.observe?.(e);
@@ -2444,7 +2461,7 @@ export function asBuiltShare(
     }
     extracted.add(e.id);
     const by = stagedById.get(e.id)?.origin?.by;
-    if (e.change === "added" && by !== "tier0" && by !== "tier1" && !declaredExtracted.includes(e.id)) fromCards++;
+    if (e.change === "added" && by !== "tier0" && by !== "tier1" && !declaredSet.has(e.id)) fromCards++;
     const edits = editsAfterExtraction(e, stagedById.get(e.id), updatedById.get(e.id));
     if (edits.length > 0) edited.push({ id: e.id, edits });
   }
