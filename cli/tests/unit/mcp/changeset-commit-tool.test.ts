@@ -1147,3 +1147,107 @@ describe("changeset_commit when the client declines the dialog at once", () => {
     expect(text(result)).not.toContain("could not be shown. The client");
   });
 });
+
+// #1331, #1330: a reconcile that stages nothing still lands, as the record that the model matches
+// the code it read; and one that read uncommitted code says to commit it first.
+describe("changeset_commit of an empty reconcile", () => {
+  const sh = (args: string[]) => {
+    const r = Bun.spawnSync(["git", "-c", "user.name=t", "-c", "user.email=t@t", ...args], { cwd: rootPath });
+    if (r.exitCode !== 0) throw new Error(r.stderr.toString());
+    return r.stdout.toString().trim();
+  };
+
+  async function stageEmptyReconcile(uncommitted?: Record<string, string | null>, extra: Record<string, unknown> = {}): Promise<string> {
+    const model = await Model.load(rootPath, { lazyLoad: false });
+    const manager = new StagingAreaManager(model.rootPath, model);
+    const record = await manager.create("reconcile-empty", "Reconcile at HEAD", { kind: "extract" }, { purpose: "reconcile" });
+    const dir = join(rootPath, ".dr", "analyzers", "extract");
+    await mkdir(dir, { recursive: true });
+    await writeFile(
+      join(dir, `${record.id}.json`),
+      JSON.stringify({ changesetId: record.id, changesetName: record.name, gitHead: sh(["rev-parse", "HEAD"]), since: null, ...(uncommitted ? { uncommitted } : {}), ...extra })
+    );
+    return record.id;
+  }
+
+  beforeEach(async () => {
+    sh(["init", "-q"]);
+    await writeFile(join(rootPath, ".gitignore"), ".dr/\n");
+    sh(["add", ".gitignore"]);
+    sh(["commit", "-q", "-m", "init"]);
+  });
+
+  it("previews and lands with no staged changes, moving the drift baseline", async () => {
+    await stageEmptyReconcile();
+    const c = await connect({ elicitation: false });
+    const preview = parse(await c.callTool({ name: "changeset_commit_preview", arguments: { changeset: "reconcile-empty", rootPath } }));
+    expect(preview.status).toBe("ready-to-commit");
+    expect(preview.summary).toContain("0 changes: records that the model matches the code it read");
+    expect(preview.summary).toContain("moves the drift baseline to ");
+    const d = await connect({ elicitation: true, answer: ACCEPT });
+    const landed = parse(await d.callTool({ name: "changeset_commit", arguments: { changeset: "reconcile-empty", rootPath } }));
+    expect(landed.status).toBe("committed");
+    expect(landed.reconciled.code_commit).toBe(sh(["rev-parse", "HEAD"]));
+    const model = await Model.load(rootPath, { lazyLoad: false });
+    expect(model.manifest.reconciled?.code_commit).toBe(sh(["rev-parse", "HEAD"]));
+  });
+
+  it("warns to commit the code first when the extraction read uncommitted files, and stamps the commit that holds them", async () => {
+    await mkdir(join(rootPath, "src"), { recursive: true });
+    await writeFile(join(rootPath, "src", "a.ts"), "export const a = 1;\n");
+    const { hashFiles } = await import("../../../src/core/reconciliation.js");
+    await stageEmptyReconcile(await hashFiles(rootPath, ["src/a.ts"]));
+
+    const first = await connect({ elicitation: true, answer: { action: "cancel" } });
+    const warned = parse(await first.callTool({ name: "changeset_commit_preview", arguments: { changeset: "reconcile-empty", rootPath } }));
+    expect(warned.summary).toContain("Commit the code first, then land");
+    expect(warned.summary).toContain("src/a.ts");
+
+    sh(["add", "src/a.ts"]);
+    sh(["commit", "-q", "-m", "code"]);
+    const settled = parse(await first.callTool({ name: "changeset_commit_preview", arguments: { changeset: "reconcile-empty", rootPath } }));
+    expect(settled.summary).not.toContain("Commit the code first");
+
+    const d = await connect({ elicitation: true, answer: ACCEPT });
+    const landed = parse(await d.callTool({ name: "changeset_commit", arguments: { changeset: "reconcile-empty", rootPath } }));
+    expect(landed.status).toBe("committed");
+    // The extraction read the commit before; the code is in this one.
+    expect(landed.reconciled.code_commit).toBe(sh(["rev-parse", "HEAD"]));
+  });
+
+  it("does not land empty when the run left cards, was limited to layers, or the code moved past what it read", async () => {
+    const c = await connect({ elicitation: false });
+    const preview = async () => parse(await c.callTool({ name: "changeset_commit_preview", arguments: { changeset: "reconcile-empty", rootPath } }));
+
+    await stageEmptyReconcile(undefined, { cards: [{ cardId: "x" }], candidateDeletes: ["a"] });
+    const held = await preview();
+    expect(held.status).toBe("nothing-to-commit");
+    expect(held.note).toContain("1 card(s) undecided and 1 candidate delete(s)");
+  });
+
+  it("limited to layers: nothing to commit, since it says nothing about the rest", async () => {
+    await stageEmptyReconcile(undefined, { layers: ["api"] });
+    const c = await connect({ elicitation: false });
+    const held = parse(await c.callTool({ name: "changeset_commit_preview", arguments: { changeset: "reconcile-empty", rootPath } }));
+    expect(held.status).toBe("nothing-to-commit");
+    expect(held.note).toContain("limited to api");
+  });
+
+  it("keeps the extraction's commit when other code arrived with the committed files, or a file was edited after the index", async () => {
+    await mkdir(join(rootPath, "src"), { recursive: true });
+    await writeFile(join(rootPath, "src", "a.ts"), "export const a = 1;\n");
+    const { hashFiles, UNREAD_EDIT } = await import("../../../src/core/reconciliation.js");
+    const readAt = sh(["rev-parse", "HEAD"]);
+    await stageEmptyReconcile({ ...(await hashFiles(rootPath, ["src/a.ts"])), "src/b.ts": UNREAD_EDIT });
+    await writeFile(join(rootPath, "src", "b.ts"), "export const b = 1;\n");
+    await writeFile(join(rootPath, "src", "c.ts"), "export const c = 1;\n");
+    sh(["add", "src"]);
+    sh(["commit", "-q", "-m", "code"]);
+    const d = await connect({ elicitation: true, answer: ACCEPT });
+    const landed = parse(await d.callTool({ name: "changeset_commit", arguments: { changeset: "reconcile-empty", rootPath } }));
+    expect(landed.status).toBe("committed");
+    // b.ts was edited after the index (never settles) and c.ts was never read: the stamp stays put.
+    expect(landed.reconciled.code_commit).toBe(readAt);
+    expect(landed.warnings.join(" ")).toContain("Commit the code first");
+  });
+});

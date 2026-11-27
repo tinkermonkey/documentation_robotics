@@ -28787,3 +28787,88 @@ application.applicationfunction.classify-unseen-elements:
     created_at: 2026-11-26T18:41:36.439Z
     updated_at: 2026-11-26T18:41:36.439Z
     version: 1
+application.applicationfunction.check-uncommitted:
+  id: 9f4f696d-5a69-4f4c-8a3c-170b216db054
+  path: application.applicationfunction.check-uncommitted
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: checkUncommitted
+  description: "Where the files an extraction read with uncommitted changes stand now, and whether HEAD holds that code: still uncommitted, committed as read, changed, other code arrived, or the commit orphaned (#1330)."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/reconciliation.ts
+        symbol: checkUncommitted
+  metadata:
+    created_at: 2026-11-27T01:28:15.866Z
+    updated_at: 2026-11-27T01:28:15.866Z
+    version: 1
+application.applicationfunction.lands-empty:
+  id: 5ea42a09-8104-44ef-911a-1028f3f6fc7f
+  path: application.applicationfunction.lands-empty
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: landsEmpty
+  description: "Whether a changeset may land with no staged changes: a reconcile or bootstrap whose run was over every layer and left nothing undecided (#1331)."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/reconciliation.ts
+        symbol: landsEmpty
+  metadata:
+    created_at: 2026-11-27T01:28:15.866Z
+    updated_at: 2026-11-27T01:28:15.866Z
+    version: 1
+application.applicationfunction.reconciliation-hash-files:
+  id: 46a37d28-5b19-411f-bf09-22d43ba6835b
+  path: application.applicationfunction.reconciliation-hash-files
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: reconciliation hashFiles
+  description: Content hashes of files under the code root, recorded on an extraction that read uncommitted code.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/reconciliation.ts
+        symbol: hashFiles
+  metadata:
+    created_at: 2026-11-27T01:28:15.866Z
+    updated_at: 2026-11-27T01:28:15.866Z
+    version: 1
+application.applicationfunction.uncommitted-read-note:
+  id: 84fa21f5-61b2-461b-a8a1-9b5081c5035b
+  path: application.applicationfunction.uncommitted-read-note
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: uncommittedReadNote
+  description: The note codebase_index gives when its index read source files no commit holds yet.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/codebase-shared.ts
+        symbol: uncommittedReadNote
+  metadata:
+    created_at: 2026-11-27T01:28:15.866Z
+    updated_at: 2026-11-27T01:28:15.866Z
+    version: 1
+application.applicationfunction.empty-landing-hold:
+  id: 078cfc71-726a-4170-bf10-c7549b11de4d
+  path: application.applicationfunction.empty-landing-hold
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: emptyLandingHold
+  description: "Why an empty reconcile must not land as the model matching the code: its extraction was layer-limited or left cards and candidate deletes."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/reconciliation.ts
+        symbol: emptyLandingHold
+  metadata:
+    created_at: 2026-11-27T01:28:15.866Z
+    updated_at: 2026-11-27T01:28:15.866Z
+    version: 1

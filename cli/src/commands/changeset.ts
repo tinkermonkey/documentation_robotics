@@ -5,6 +5,7 @@
 import ansis from "ansis";
 import { Model } from "../core/model.js";
 import { StagingAreaManager } from "../core/staging-area.js";
+import { landsEmpty } from "../core/reconciliation.js";
 import { overlapKinds, type OverlapKind } from "../core/changeset-base-index.js";
 import type { Changeset } from "../core/changeset.js";
 import { VerificationRecordLandingError, allowedActions, type RecordLandingError } from "../core/changeset-purpose.js";
@@ -1888,7 +1889,7 @@ export async function changesetCommitCommand(
           (span as any).setAttribute("changeset.changeCount", changeCount);
         }
 
-        if (changeCount === 0) {
+        if (changeCount === 0 && !(await landsEmpty(model.rootPath, changeset))) {
           handleSuccess("No staged changes to commit", {
             name: changeset.name,
             changesetId: activeChangesetId,
