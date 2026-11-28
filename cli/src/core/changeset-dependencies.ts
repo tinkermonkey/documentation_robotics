@@ -94,7 +94,9 @@ export async function resolveDependsOn(
   storage: StagedChangesetStorage,
   resolve: (nameOrId: string) => Promise<Changeset | null>,
   selfId: string | undefined,
-  requested: string[]
+  requested: string[],
+  /** A reason a changeset cannot be depended on beyond not being staged (a record that never lands). */
+  unusable?: (found: Changeset) => Promise<string | null>
 ): Promise<{ ids: string[]; problems: string[] }> {
   const ids: string[] = [];
   const problems: string[] = [];
@@ -110,6 +112,11 @@ export async function resolveDependsOn(
     }
     if (found.status !== "staged") {
       problems.push(`'${found.name}' is ${found.status}: only a staged changeset can be depended on${found.status === "committed" ? " (what it staged is already in the model)" : ""}`);
+      continue;
+    }
+    const why = unusable ? await unusable(found) : null;
+    if (why) {
+      problems.push(why);
       continue;
     }
     if (!ids.includes(found.id)) ids.push(found.id);

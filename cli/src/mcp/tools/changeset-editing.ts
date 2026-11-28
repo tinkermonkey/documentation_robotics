@@ -174,6 +174,15 @@ export async function changesetUpdateHandler(args: ChangesetUpdateArgs): Promise
     const manager = new StagingAreaManager(model.rootPath, model);
     const changeset = await resolveChangeset(manager, changesetArg(args));
 
+    // Checked before the rename is saved, so a refused dependsOn leaves nothing half-updated.
+    if (args.dependsOn !== undefined) {
+      const { resolveDependsOn } = await import("../../core/changeset-dependencies.js");
+      const { StagedChangesetStorage } = await import("../../core/staged-changeset-storage.js");
+      const { problems } = await resolveDependsOn(new StagedChangesetStorage(model.rootPath), (ref) => manager.load(ref), changeset.id, args.dependsOn, async (found) =>
+        (await manager.landingRefusal(found)) ? `'${found.name}' is a record that never lands, so nothing can depend on it` : null
+      );
+      if (problems.length > 0) throw new CLIError(`dependsOn refused: ${problems.join("; ")}`, ErrorCategory.USER, ['Use "changeset_list" to find the staged changesets to depend on']);
+    }
     const renamed = rename
       ? await asUserError(
           () => manager.update(changeset.id!, { name: args.name, description: intent }),

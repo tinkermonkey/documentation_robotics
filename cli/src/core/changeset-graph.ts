@@ -272,6 +272,8 @@ export class ChangesetGraph {
   /** Treats everything applied so far as landed: deletes are carried out, adds and updates become base. */
   private settleDependencies(): void {
     for (const [id, element] of [...this.elements]) {
+      // A dependency's redundant add is the dependency's, not this changeset's.
+      delete element.alreadyInBase;
       if (element.status === "deleted") {
         this.elements.delete(id);
         continue;
@@ -283,6 +285,7 @@ export class ChangesetGraph {
       }
     }
     for (const [key, rel] of [...this.relationshipsByKey]) {
+      delete rel.alreadyInBase;
       if (rel.status === "deleted") this.relationshipsByKey.delete(key);
       else rel.status = "unchanged";
     }

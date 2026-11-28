@@ -309,6 +309,15 @@ describe("dependsOn (#1292)", () => {
     expect(JSON.stringify(landing)).toMatch(/step-a|nothing-to-commit|no longer exists/);
   });
 
+  it("refuses a dependency on a record that never lands, and does not rename when dependsOn is refused", async () => {
+    await plan("step-b");
+    const manager = new StagingAreaManager(rootPath, await Model.load(rootPath, { lazyLoad: false }));
+    const record = await manager.create("rec", "a record", undefined, { purpose: "verification" } as any);
+    const refused = await changesetUpdateHandler({ changeset: "step-b", name: "renamed-b", dependsOn: [record.id], rootPath });
+    expect(isError(refused)).toBe(true);
+    expect((await manager.load("step-b"))!.name).toBe("step-b");
+  });
+
   it("treats a dependency's staged element as landed in the overlap comparison", async () => {
     await stageButtonInA();
     await plan("step-b");

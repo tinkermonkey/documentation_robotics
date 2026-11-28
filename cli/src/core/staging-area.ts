@@ -315,7 +315,11 @@ export class StagingAreaManager {
     if (changeset.status !== "staged") {
       throw new Error(`Changeset '${changeset.name}' is ${changeset.status}; only a staged changeset can depend on another`);
     }
-    const { ids, problems } = await resolveDependsOn(this.storage, (ref) => this.load(ref), changeset.id, refs);
+    const { ids, problems } = await resolveDependsOn(this.storage, (ref) => this.load(ref), changeset.id, refs, async (found) => {
+      // A record (verification, upgrade) never lands, so nothing could wait for it.
+      const refusal = await this.landingRefusal(found);
+      return refusal ? `'${found.name}' is a record that never lands, so nothing can depend on it` : null;
+    });
     if (problems.length > 0) throw new Error(`dependsOn refused: ${problems.join("; ")}`);
     return this.storage.setDependsOn(changeset.id, ids);
   }
