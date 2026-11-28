@@ -29093,3 +29093,71 @@ application.applicationfunction.tests-link-reason:
     created_at: 2026-11-26T18:43:05.715Z
     updated_at: 2026-11-26T18:43:05.715Z
     version: 1
+application.applicationfunction.staged-changeset-storage-amend-changes-in-place:
+  id: 53e1352f-78e0-4b4f-a524-f92ec0bf16be
+  path: application.applicationfunction.staged-changeset-storage-amend-changes-in-place
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: StagedChangesetStorage amendChangesInPlace
+  description: Replace the after of staged changes by position, with no new change, tombstone, lastSequence bump or modified update, so branches amending different changes of one plan merge in git.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/staged-changeset-storage.ts
+        symbol: StagedChangesetStorage.amendChangesInPlace
+  metadata:
+    created_at: 2026-11-28T14:26:59.629Z
+    updated_at: 2026-11-28T14:26:59.629Z
+    version: 1
+application.applicationfunction.staging-area-manager-amend-in-place:
+  id: 36fcad9c-23a8-4146-acf2-0173c56f7131
+  path: application.applicationfunction.staging-area-manager-amend-in-place
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: StagingAreaManager amendInPlace
+  description: Amend staged changes in place by position and refresh the projection; the manager's side of amendChangesInPlace.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/staging-area.ts
+        symbol: StagingAreaManager.amendInPlace
+  metadata:
+    created_at: 2026-11-28T14:26:59.629Z
+    updated_at: 2026-11-28T14:26:59.629Z
+    version: 1
+application.applicationfunction.take-built-for-element:
+  id: d08c3dfc-8f02-437e-8a77-4635beef88ba
+  path: application.applicationfunction.take-built-for-element
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: takeBuiltForElement
+  description: The model_update calls that take the built value for each divergent field of a planned element; offered by changeset_verify, never applied.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/changeset-verify.ts
+        symbol: takeBuiltForElement
+  metadata:
+    created_at: 2026-11-28T14:26:59.629Z
+    updated_at: 2026-11-28T14:26:59.629Z
+    version: 1
+application.applicationfunction.take-built-for-relationship:
+  id: af99d0d3-11e2-4ee6-b401-bcead0e128da
+  path: application.applicationfunction.take-built-for-relationship
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: takeBuiltForRelationship
+  description: The relationship_delete and relationship_add calls that take the built predicate or direction for a divergent relationship.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/changeset-verify.ts
+        symbol: takeBuiltForRelationship
+  metadata:
+    created_at: 2026-11-28T14:26:59.629Z
+    updated_at: 2026-11-28T14:26:59.629Z
+    version: 1

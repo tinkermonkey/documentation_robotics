@@ -1752,24 +1752,6 @@ testing.testcasesketch.changeset-verification-api-returns-changeset-verifys-repo
     created_at: 2026-11-24T21:39:56.349Z
     updated_at: 2026-11-24T21:39:56.349Z
     version: 1
-testing.testcasesketch.changeset-verify-and-the-source-references-extraction-found-1096-adds-the-reference-with-an-update-3665f5a5:
-  id: ecbae0c6-9006-476d-9944-2306107f1628
-  path: testing.testcasesketch.changeset-verify-and-the-source-references-extraction-found-1096-adds-the-reference-with-an-update-3665f5a5
-  spec_node_id: testing.testcasesketch
-  type: testcasesketch
-  layer_id: testing
-  name: changeset_verify and the source references extraction found (#1096) > adds the reference with an update when the plan updates an existing element
-  attributes:
-    status: automated
-  source_reference:
-    provenance: extracted
-    locations:
-      - file: cli/tests/integration/changeset-verify-source-references.test.ts
-        symbol: changeset_verify and the source references extraction found (#1096) > adds the reference with an update when the plan updates an existing element
-  metadata:
-    created_at: 2026-11-24T21:39:56.349Z
-    updated_at: 2026-11-24T21:39:56.349Z
-    version: 1
 testing.testcasesketch.changeset-verify-and-the-source-references-extraction-found-1096-changeset-adopt-source-references-9d0c9007:
   id: 6a14130d-ba1e-4674-8c13-4f76c508d05a
   path: testing.testcasesketch.changeset-verify-and-the-source-references-extraction-found-1096-changeset-adopt-source-references-9d0c9007
