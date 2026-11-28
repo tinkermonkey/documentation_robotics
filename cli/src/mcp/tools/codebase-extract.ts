@@ -2942,12 +2942,24 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
             else if (inGraph && (inGraph.status === "unchanged" || inGraph.alreadyInBase)) relationshipsInBase.push(r.key);
           }
           const rejectedKeys = new Map<string, string>();
+          // An element named by its id is unstaged alone when another element names one of its symbols
+          // too (one that this call doesn't reject): the symbol is that element's, not a non-element
+          // (#1255). Decided once per element, and only for an element the changeset adds now.
+          const rejectedIds = new Set(rejected.flatMap((c) => (c.elementId ? [c.elementId] : [])));
+          const aloneOwners = new Map<string, string[]>();
+          for (const card of rejected) {
+            const id = card.elementId;
+            const element = id ? graph?.elements.get(id) : undefined;
+            if (!id || aloneOwners.has(id) || !element || element.status !== "added" || element.alreadyInBase) continue;
+            const owners = [
+              ...new Set(rejected.filter((c) => c.elementId === id).flatMap((c) => otherOwnersOfSymbol(graph, decisionKey(c.file, c.symbol), id))),
+            ].filter((o) => !rejectedIds.has(o));
+            if (owners.length) aloneOwners.set(id, owners);
+          }
           for (const card of rejected) {
             const key = decisionKey(card.file, card.symbol);
-            // An element named by its id is unstaged alone when another element names its symbol too:
-            // the symbol is that element's, not a non-element (#1255).
-            const owners = card.elementId ? otherOwnersOfSymbol(graph, key, card.elementId) : [];
-            if (card.elementId && owners.length) {
+            const owners = card.elementId ? aloneOwners.get(card.elementId) : undefined;
+            if (card.elementId && owners) {
               symbolKeptFor.set(card.index, owners);
               toUnstage.set(card.elementId, card.symbol);
               continue;

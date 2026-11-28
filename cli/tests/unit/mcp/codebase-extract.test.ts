@@ -1487,6 +1487,37 @@ describe("codebase_extract round-2 fixes (wave 3)", () => {
     expect(decisions).not.toContain(staged.symbol);
   });
 
+  it("rejecting by id still records the symbol when the only other owner is rejected in the same call (#1255)", async () => {
+    await indexed();
+    const handler = createCodebaseExtractHandler(harness().deps);
+    const first = ok(await handler({ rootPath }));
+    const staged = (await storedRecord(first.changeset.id)).staged.find((s: any) => s.id === SCHEMA);
+    ok(
+      await modelAddHandler({
+        layer: "application",
+        type: "applicationcomponent",
+        name: "Second Owner",
+        attributes: { type: "internal" },
+        sourceFile: staged.file,
+        sourceSymbol: staged.symbol,
+        sourceProvenance: "extracted",
+        rootPath,
+      })
+    );
+    clearModelCache();
+    const rejected = ok(
+      await handler({
+        reject: [
+          { card: SCHEMA, reason: "both duplicates" },
+          { card: "application.applicationcomponent.second-owner", reason: "both duplicates" },
+        ],
+        rootPath,
+      })
+    );
+    expect(rejected.unstaged.items.map((u: any) => u.id).sort()).toEqual([SCHEMA, "application.applicationcomponent.second-owner"].sort());
+    expect(rejected.notElements.recorded.total).toBeGreaterThan(0);
+  });
+
   it("bug 6: the index says fresh-with-uncommitted-edits when the run warns about them", async () => {
     await indexed();
     const h = harness();
