@@ -23,7 +23,7 @@ import { StagingAreaManager } from "../../core/staging-area.js";
 import { stagedRelationshipChangesAtEnds, stagedRelationshipTriple } from "../../core/relationship-staging.js";
 import { CLIError, ErrorCategory, getErrorMessage } from "../../utils/errors.js";
 import { jsonResult, loadModel, reloadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
-import { changesetArg, changesetArgFields, intentArg, intentFields, resolveChangeset } from "./changeset-shared.js";
+import { changesetArg, changesetArgFields, dependsOnField, intentArg, intentFields, resolveChangeset } from "./changeset-shared.js";
 import { unstageDetailField, unstagedNotListedNote, unstagedReport } from "./unstage-report.js";
 
 const changesetFields = changesetArgFields("Changeset ID or name. Defaults to the active changeset.");
@@ -54,6 +54,7 @@ const updateInputSchema = {
   ...changesetFields,
   name: z.string().min(1).optional().describe("New name. Must not be another changeset's name."),
   ...intentFields("The new intent: what the change is for and what done looks like. An empty string clears it."),
+  dependsOn: dependsOnField,
   rebaseline: z
     .union([z.boolean(), z.literal("preview")])
     .optional()
@@ -166,19 +167,25 @@ export async function changesetUpdateHandler(args: ChangesetUpdateArgs): Promise
     const intent = intentArg(args);
     const rename = args.name !== undefined || intent !== undefined;
     const rebaselining = args.rebaseline === true || args.rebaseline === "preview";
-    if (!rename && !rebaselining) {
-      throw new CLIError("Nothing to update", ErrorCategory.USER, ['Pass "name", "intent" or "rebaseline: true"']);
+    if (!rename && !rebaselining && args.dependsOn === undefined) {
+      throw new CLIError("Nothing to update", ErrorCategory.USER, ['Pass "name", "intent", "dependsOn" or "rebaseline: true"']);
     }
     const model = await loadModel(args.rootPath);
     const manager = new StagingAreaManager(model.rootPath, model);
     const changeset = await resolveChangeset(manager, changesetArg(args));
 
-    const updated = rename
+    const renamed = rename
       ? await asUserError(
           () => manager.update(changeset.id!, { name: args.name, description: intent }),
           ['Use "changeset_list" to see the names already taken']
         )
       : changeset;
+    const updated =
+      args.dependsOn !== undefined
+        ? await asUserError(() => manager.declareDependsOn(renamed.id!, args.dependsOn!), [
+            'Use "changeset_list" to find the staged changesets to depend on',
+          ])
+        : renamed;
     const rebaselined = rebaselining
       ? await rebaseline(model.rootPath, updated, {
           preview: args.rebaseline === "preview",
@@ -195,6 +202,7 @@ export async function changesetUpdateHandler(args: ChangesetUpdateArgs): Promise
       description: updated.description ?? null,
       status: updated.status,
       changes: updated.changes.length,
+      ...(args.dependsOn !== undefined ? { dependsOn: updated.dependsOn ?? [] } : {}),
       ...(rebaselined ? { rebaselined } : {}),
     });
   });
@@ -203,7 +211,7 @@ export async function changesetUpdateHandler(args: ChangesetUpdateArgs): Promise
 export const changesetUpdateTool: McpToolDefinition<typeof updateInputSchema> = {
   name: "changeset_update",
   description:
-    "Rename a changeset or change its intent (markdown, stored as its description), or re-baseline it (rebaseline: true): " +
+    "Rename a changeset, change its intent (markdown, stored as its description) or its dependsOn (the staged changesets it builds on), or re-baseline it (rebaseline: true): " +
     "take the base model as it is now as its base and get back what moved under it. rebaseline: \"preview\" returns " +
     `the same and writes nothing. What moved is listed ${DRIFT_LIST_LIMIT} entries per list by default (limit, offset; ` +
     "moved.page has the true totals). Staged changes are untouched. Defaults to the active changeset.",
@@ -613,8 +621,12 @@ export async function changesetDiscardHandler(args: ChangesetDiscardArgs): Promi
     if (changeset.status !== "recorded") requireStaged(changeset, "discard it");
 
     if (args.confirm !== true) {
+      const waiting = await manager.dependentsOf(changeset.id!);
       throw new CLIError(
-        `Discarding '${changeset.name}' deletes its ${changeset.changes.length} staged change(s) permanently`,
+        `Discarding '${changeset.name}' deletes its ${changeset.changes.length} staged change(s) permanently` +
+          (waiting.length > 0
+            ? `, and ${waiting.map((d) => `'${d.name}'`).join(", ")} ${waiting.length === 1 ? "depends" : "depend"} on it (it would lose what this one stages)`
+            : ""),
         ErrorCategory.USER,
         [
           'Pass "confirm": true to discard it',
@@ -626,6 +638,8 @@ export async function changesetDiscardHandler(args: ChangesetDiscardArgs): Promi
 
     const wasActive = (await manager.getActiveId()) === changeset.id;
     const discardedChanges = changeset.changes.length;
+    // Changesets that build on this one lose what it staged (#1292): said, not refused.
+    const dependents = await manager.dependentsOf(changeset.id!);
     // Deletes the changeset's folder and clears the active marker if it named it.
     await manager.discard(changeset.id!);
     await reloadModel(args.rootPath);
@@ -637,6 +651,15 @@ export async function changesetDiscardHandler(args: ChangesetDiscardArgs): Promi
       discardedChanges,
       deactivated: wasActive,
       removed: `documentation-robotics/changesets/${changeset.id}/`,
+      ...(dependents.length > 0
+        ? {
+            warning:
+              `${dependents.map((d) => `'${d.name}'`).join(", ")} depend${dependents.length === 1 ? "s" : ""} on '${changeset.name}'. ` +
+              "What it staged no longer resolves for them, and they cannot land until their dependsOn is changed " +
+              "(changeset_update with dependsOn) or the elements they used are staged in them.",
+            dependents: dependents.map((d) => d.name),
+          }
+        : {}),
     });
   });
 }

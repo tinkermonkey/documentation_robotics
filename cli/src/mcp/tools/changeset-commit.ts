@@ -66,6 +66,7 @@ import {
   type McpToolDefinition,
 } from "./shared.js";
 import { resolveChangeset } from "./changeset-shared.js";
+import { assertDependenciesInOrder, overlapsForLanding } from "./changeset-landing-check.js";
 import { alreadyLandedResult, filesToCommit } from "./changeset-landed.js";
 import { isExtractionChangeset } from "./codebase-extract.js";
 import { landingRelayoutNote } from "../../core/model-relayout.js";
@@ -663,6 +664,11 @@ export async function changesetCommitHandler(
     const forceIgnored = args.force !== undefined;
     let forceWarned = false;
 
+    // Dependencies in order, and how the changesets overlap each other, read before the first lands.
+    const preManager = new StagingAreaManager((await loadModel(args.rootPath)).rootPath);
+    await assertDependenciesInOrder(preManager, names);
+    const overlapsBefore = names.length > 1 ? await overlapsForLanding(preManager, names) : undefined;
+
     const landed: LandedChangeset[] = [];
     let stopped: { changeset: string; error: string; suggestions: string[] } | undefined;
     for (const name of names) {
@@ -700,8 +706,10 @@ export async function changesetCommitHandler(
         ...landed.map(landedLine),
         ...(stopped ? [`${stopped.changeset}: not landed. ${stopped.error}`] : []),
         ...(notAttempted.length > 0 ? [`Not attempted: ${notAttempted.join(", ")}.`] : []),
+        ...(overlapsBefore ? [overlapsBefore.overlaps.note] : []),
       ],
       landed,
+      ...(overlapsBefore ?? {}),
       ...(stopped ? { stoppedAt: stopped } : {}),
       ...(notAttempted.length > 0 ? { notAttempted } : {}),
       filesToCommit: files,
@@ -718,7 +726,9 @@ export const changesetCommitTool: McpToolDefinition<typeof inputSchema> = {
     "changeset, or changesets to land several in order (stopping at the first refusal; the ones before it stay " +
     "landed). Validation errors the changeset introduces refuse it, as do changeset-only sessions (DrBot) and " +
     "verification and upgrade records. Drift does not: a drifted changeset lands, and the result says what the base " +
-    "overlapped and what landing did about it (force is ignored). The result gives each changeset's counts and " +
+    "overlapped and what landing did about it (force is ignored). A changeset's dependsOn must have landed, or come " +
+    "earlier in the same call: otherwise it is refused before anything lands. With several changesets the result also " +
+    "says how they overlap each other (changeset_overlaps lists them all). The result gives each changeset's counts and " +
     "layers, the branch it landed on, and filesToCommit: the model files and the changeset folders to commit with " +
     "the code. changeset_commit_preview is the read-only dry run.",
   inputSchema,

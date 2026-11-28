@@ -14,10 +14,10 @@ import { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { StagingAreaManager } from "../../core/staging-area.js";
 import { resolveOrigin } from "../../core/changeset-review.js";
-import { CLIError, ErrorCategory } from "../../utils/errors.js";
+import { CLIError, ErrorCategory, getErrorMessage } from "../../utils/errors.js";
 import { jsonResult, loadModel, reloadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
 import { collectSiblingPlans, matchSiblingPlans, siblingPlanFields } from "./sibling-plans.js";
-import { changesetArg, changesetArgFields, intentArg, intentFields, resolveChangeset } from "./changeset-shared.js";
+import { changesetArg, changesetArgFields, dependsOnField, intentArg, intentFields, resolveChangeset } from "./changeset-shared.js";
 
 // ---------------------------------------------------------------------------
 // changeset_create
@@ -33,6 +33,7 @@ const createInputSchema = {
     .boolean()
     .optional()
     .describe("Make it the active changeset so mutations stage into it (default true)."),
+  dependsOn: dependsOnField,
   rootPath: rootPathSchema,
 };
 
@@ -59,7 +60,14 @@ export async function changesetCreateHandler(args: ChangesetCreateArgs): Promise
     // A plan, unless DrBot (in `dr visualize`) is the one creating it. Its purpose is declared by
     // StagingAreaManager.create: `plan`, `chat` for DrBot, or the extraction's when it is the
     // changeset codebase_extract's waiting cards name.
-    const changeset = await manager.create(args.name, intent, resolveOrigin("plan"));
+    const created = await manager.create(args.name, intent, resolveOrigin("plan"));
+    const changeset = args.dependsOn?.length
+      ? await manager.declareDependsOn(created.id, args.dependsOn).catch(async (error) => {
+          // A refused declaration leaves no half-made changeset behind.
+          await manager.discard(created.id);
+          throw new CLIError(getErrorMessage(error), ErrorCategory.USER, ['Use "changeset_list" to find a staged changeset to depend on']);
+        })
+      : created;
     const activate = args.activate ?? true;
     const previouslyActive = activate ? await manager.getActiveId() : null;
     if (activate) {
@@ -73,6 +81,7 @@ export async function changesetCreateHandler(args: ChangesetCreateArgs): Promise
       ...(changeset.description ? { description: changeset.description } : {}),
       status: changeset.status,
       ...(changeset.purpose ? { purpose: changeset.purpose } : {}),
+      ...(changeset.dependsOn?.length ? { dependsOn: changeset.dependsOn } : {}),
       active: activate,
       ...(previouslyActive && previouslyActive !== changeset.id ? { deactivated: previouslyActive } : {}),
       ...siblingPlanFields(siblings, siblingMatches),
@@ -88,7 +97,8 @@ export const changesetCreateTool: McpToolDefinition<typeof createInputSchema> = 
     "of writing the model. Before calling it, propose the changeset's name and intent to the user and confirm both " +
     "with them. The intent is markdown, stored as the changeset's description (description is accepted for it too). Landing it is the user's call: changeset_commit lands it when they ask " +
     "(git and the PR are the gate), or they commit it in the viewer. The result lists plans staged in the project's other checkouts (worktrees) and warns when " +
-    "one looks like the same work (siblingPlans, siblingWarning); when the farm can't list them it says so.",
+    "one looks like the same work (siblingPlans, siblingWarning); when the farm can't list them it says so. dependsOn names staged " +
+    "changesets this one builds on: their staged elements resolve as targets for its writes and reads, and it lands only after they have.",
   inputSchema: createInputSchema,
   handler: changesetCreateHandler,
 };

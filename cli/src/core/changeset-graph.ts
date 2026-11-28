@@ -18,6 +18,8 @@ import { compactChange, nextSequenceNumber, sequenceOf } from "./changeset.js";
 import type { SourceReference } from "../types/source-reference.js";
 import { stagedSourceReference } from "./staged-source-reference.js";
 import { readAcceptedGaps, type AcceptedGap } from "./accepted-gaps.js";
+import { loadDependencyChain, type MissingDependency } from "./changeset-dependencies.js";
+import { StagedChangesetStorage } from "./staged-changeset-storage.js";
 
 export type ChangeStatus = "added" | "updated" | "deleted" | "unchanged";
 
@@ -182,6 +184,14 @@ export class ChangesetGraph {
   /** The staged changes this projection applied, in sequence order. */
   private appliedChanges: StagedChange[] = [];
   private _revision = -1;
+  /**
+   * Elements a changeset this one depends on adds or updates (#1292): the base model does not have
+   * them, or not as they are here yet, so a comparison with the base must not read them as removed
+   * or changed.
+   */
+  readonly dependencyElementIds = new Set<string>();
+  /** Dependencies that could not be applied (discarded or gone), so the projection lacks what they staged. */
+  missingDependencies: MissingDependency[] = [];
 
   private constructor(readonly changeset: Changeset) {}
 
@@ -235,6 +245,17 @@ export class ChangesetGraph {
       });
     }
 
+    // What the changesets this one depends on stage counts as landed (#1292): applied first, then
+    // settled to unchanged, so this changeset's own changes read against them, not as a copy.
+    if (changeset.dependsOn?.length && changeset.status === "staged") {
+      const { chain, missing } = await loadDependencyChain(new StagedChangesetStorage(model.rootPath), changeset);
+      graph.missingDependencies = missing;
+      for (const dependency of chain) {
+        for (const { change } of sequencedChanges(dependency)) graph.apply(change);
+      }
+      graph.settleDependencies();
+    }
+
     // Up to a revision, changes unstaged after it count again (from their tombstones).
     const through = options.throughSequence;
     const applied = changesAtRevision(changeset, through);
@@ -246,6 +267,25 @@ export class ChangesetGraph {
     }
 
     return graph;
+  }
+
+  /** Treats everything applied so far as landed: deletes are carried out, adds and updates become base. */
+  private settleDependencies(): void {
+    for (const [id, element] of [...this.elements]) {
+      if (element.status === "deleted") {
+        this.elements.delete(id);
+        continue;
+      }
+      if (element.status === "added" || element.status === "updated") {
+        this.dependencyElementIds.add(id);
+        element.status = "unchanged";
+        delete element.before;
+      }
+    }
+    for (const [key, rel] of [...this.relationshipsByKey]) {
+      if (rel.status === "deleted") this.relationshipsByKey.delete(key);
+      else rel.status = "unchanged";
+    }
   }
 
   /** Maps a UUID to its dotted path; returns any other identifier unchanged. */

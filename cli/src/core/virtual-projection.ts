@@ -21,6 +21,7 @@ import { Element as ElementClass } from "./element.js";
 import type { StagedChange, Change } from "./changeset.js";
 import { withSequenceNumbers } from "./changeset.js";
 import { StagedChangesetStorage } from "./staged-changeset-storage.js";
+import { loadDependencyChain } from "./changeset-dependencies.js";
 
 /**
  * A staged snapshot's accepted gaps: its own list when it has one (an empty list clears them),
@@ -288,9 +289,14 @@ export class VirtualProjectionEngine {
       throw new Error(`Changeset '${changesetId}' not found`);
     }
 
-    const layerChanges = withSequenceNumbers(changeset.changes)
-      .filter((c: StagedChange) => c.layerName === layerName)
-      .sort((a: StagedChange, b: StagedChange) => a.sequenceNumber - b.sequenceNumber);
+    // The changesets this one depends on apply first, as if landed (#1292); each in its own
+    // sequence order, since their numbers are not comparable with this one's.
+    const { chain } = await loadDependencyChain(this.stagingAreaManager, changeset);
+    const layerChanges = [...chain, changeset].flatMap((source) =>
+      withSequenceNumbers(source.changes)
+        .filter((c: StagedChange) => c.layerName === layerName)
+        .sort((a: StagedChange, b: StagedChange) => a.sequenceNumber - b.sequenceNumber)
+    );
 
     // Apply changes in sequence order
     for (const change of layerChanges) {
@@ -590,6 +596,18 @@ export class VirtualProjectionEngine {
   }
 
   /**
+   * Drops the cached projections of the other changesets (of `layerName`, or all layers): one that
+   * depends on `changesetId` (#1292) shows what it stages, and which changesets that is, is not
+   * known here. They are recomputed on the next read.
+   */
+  private invalidateOthers(changesetId: string, layerName?: string): void {
+    for (const key of [...this.projectionCache.cache.keys()]) {
+      if (key.startsWith(`${changesetId}:`)) continue;
+      if (!layerName || key.endsWith(`:${layerName}`)) this.projectionCache.cache.delete(key);
+    }
+  }
+
+  /**
    * Invalidate projection cache when changes are staged.
    * Removes cached projections to ensure fresh computation next time.
    *
@@ -601,6 +619,7 @@ export class VirtualProjectionEngine {
    * Otherwise, all projections for the changeset are invalidated.
    */
   invalidateOnStage(changesetId: string, layerName?: string): void {
+    this.invalidateOthers(changesetId, layerName);
     if (layerName) {
       // Invalidate specific layer projection
       const cacheKey = `${changesetId}:${layerName}`;
@@ -631,6 +650,7 @@ export class VirtualProjectionEngine {
    * If elementId is omitted, invalidates all projections for the changeset.
    */
   async invalidateOnUnstage(changesetId: string, elementId?: string): Promise<void> {
+    this.invalidateOthers(changesetId);
     if (elementId) {
       // Layer-specific invalidation: only invalidate affected layers
       const affectedLayers = await this.getAffectedLayers(changesetId, elementId);
@@ -659,6 +679,7 @@ export class VirtualProjectionEngine {
    * @param changesetId - ID of the changeset being discarded
    */
   invalidateOnDiscard(changesetId: string): void {
+    this.invalidateOthers(changesetId);
     for (const key of this.projectionCache.cache.keys()) {
       if (key.startsWith(`${changesetId}:`)) {
         this.projectionCache.cache.delete(key);

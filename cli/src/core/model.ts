@@ -7,7 +7,6 @@ import { StagedChangesetStorage } from "./staged-changeset-storage.js";
 import { readActiveMarker } from "./active-changeset-marker.js";
 import { Relationships, type Relationship } from "./relationships.js";
 import { CANONICAL_LAYER_NAMES } from "./layers.js";
-import type { StagedChange } from "./changeset.js";
 import { ensureDir, fileExists, writeFile } from "../utils/file-io.js";
 import { getCliBundledSpecVersion, getCliVersion } from "../utils/spec-version.js";
 import { startSpan, endSpan, startActiveSpan } from "../telemetry/index.js";
@@ -22,6 +21,7 @@ import { getNodeType } from "../generated/node-types.js";
 import type { SpecNodeId } from "../generated/node-types.js";
 import type { ChangesetHistoryEntry, ManifestData, ModelOptions } from "../types/index.js";
 import { readReconciledStamp } from "./reconciliation.js";
+import { loadDependencyChain, changesWithDependencies } from "./changeset-dependencies.js";
 import path from "node:path";
 import fs from "node:fs/promises";
 import crypto from "node:crypto";
@@ -1562,7 +1562,9 @@ export class Model {
               // Keep the committed relationships before the active changeset's are merged in
               // below, for views that apply a changeset themselves (ChangesetGraph).
               model._baseRelationships = model.relationships.getAll();
-              for (const change of changeset.changes as StagedChange[]) {
+              // What a changeset it depends on stages shows here too, as if landed (#1292).
+              const { chain } = await loadDependencyChain(storage, changeset);
+              for (const change of changesWithDependencies(chain, changeset)) {
                 // Track layer names for getLayerNames()
                 if (
                   change.type === "add" ||

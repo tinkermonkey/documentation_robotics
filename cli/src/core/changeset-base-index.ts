@@ -395,7 +395,7 @@ function indexPath(rootPath: string, changesetId: string): string {
   return path.join(rootPath, "documentation-robotics", "changesets", changesetId, BASE_INDEX_FILE);
 }
 
-function contentHash(element: GraphElement): string {
+export function contentHash(element: GraphElement): string {
   const content = {
     type: element.type,
     name: element.name,
@@ -608,6 +608,8 @@ export async function describeDrift(
   const now = options.base?.index ?? indexFromGraph(await baseGraph(model));
   const comparedWithBefore = new Set<string>();
   for (const [id, on] of stagedOn) {
+    // An element a dependency stages is not in the base yet, or not as the plan found it (#1292).
+    if (graph.dependencyElementIds.has(id)) continue;
     if (!(id in now.elements)) {
       flagElement(id, elementOps.get(id) === "delete" ? "already-removed" : "removed-in-base");
       continue;

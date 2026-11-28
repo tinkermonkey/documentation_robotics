@@ -16,6 +16,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `staged`; `changeset_brief` lists it in `feedback` and the landing summary has an `Annotations:` line.
   It lands with the plan and is discarded with it. With no changeset active nothing changes, and a
   changeset made before reads as having no staged annotations. Format in `docs/CHANGE_MODELING.md`.
+
+- **`changeset_overlaps` compares staged changesets with each other; `dependsOn` lets one build on another (#1209, #1292):**
+  - `changeset_overlaps` (a tool of its own, since it compares any number of changesets, not one against
+    the model) lists each element or link two staged changesets both change, with the drift report's
+    reasons read as "the later one landing over the earlier one", including links that end on an element
+    another changeset changes and full-element updates that would silently replace each other's text.
+    Each has a severity (`conflict`, `ordered`, `agrees`, `info`); for conflicts, `combined` says which
+    fields each changed and what one update carrying both would need. It suggests a landing order and
+    merges nothing. Counts are whole; `limit` and `offset` page the list.
+  - `changeset_commit` with `changesets: [...]` reports how those changesets overlap each other, from
+    the same comparison.
+  - `dependsOn` on `changeset_create` and `changeset_update` names staged changesets a changeset builds
+    on: their staged elements resolve as targets for `model_add` and `relationship_add` and in every
+    read. Landing a changeset whose dependency has not landed is refused, unless the dependency lands
+    first in the same `changesets: [...]` call (checked before anything lands). Discarding a dependency
+    warns about its dependents.
+
 - **`changeset_verify` says what it did not check (#1383, #1307, #1346):** a plan that changes only
   descriptions is no longer a verdict that reads like a pass: it says "Not checked: the plan changes
   only descriptions", and `descriptionOnly` lists what could be checked (each element's source files
