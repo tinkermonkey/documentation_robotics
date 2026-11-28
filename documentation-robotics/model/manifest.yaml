@@ -3,7 +3,7 @@ schema: documentation-robotics-v1
 cli_version: 0.9.0
 spec_version: 0.16.0
 created: 2026-02-20T15:28:17.945Z
-updated: 2026-11-28T12:51:24.939Z
+updated: 2026-11-28T13:16:14.910Z
 project:
   name: dr-codebase
   description: ""
@@ -52,7 +52,7 @@ layers:
     elements:
       applicationcomponent: 110
       applicationevent: 2
-      applicationfunction: 1708
+      applicationfunction: 1710
       applicationinterface: 4
       applicationservice: 116
       dataobject: 13
@@ -263,6 +263,9 @@ changeset_history:
     action: committed
   - name: cli010-v2b-verdicts
     committed_at: 2026-11-28T12:51:24.936Z
+    action: committed
+  - name: cli010-t1-exports-r6
+    committed_at: 2026-11-28T13:16:14.903Z
     action: committed
 reconciled:
   changeset: extract-723c609..5b32f88
