@@ -1,6 +1,6 @@
 # Intra-layer relationships
 # Format: source_id -> predicate -> target_id
-# Last updated: 2026-11-27T14:29:14.214Z
+# Last updated: 2026-11-28T02:15:07.691Z
 
 - source: motivation.outcome.changes-are-planned-as-changesets
   target: motivation.goal.dr-is-the-spec-for-software-changes
@@ -46386,12 +46386,6 @@
   layer: testing
   targetLayer: application
   category: structural
-- source: testing.testcasesketch.compact-verify-report-notes-that-layers-and-ids-narrow-sections-only
-  target: application.applicationfunction.compact-verify-report
-  predicate: tests
-  layer: testing
-  targetLayer: application
-  category: structural
 - source: testing.testcasesketch.compact-verify-report-pages-a-long-list-the-pages-together-are-the-whole-list-and-the-last-has-no-b157a1b5
   target: application.applicationfunction.compact-verify-report
   predicate: tests
@@ -75757,4 +75751,31 @@
   target: application.applicationfunction.code-changes-since
   predicate: depends-on
   layer: application
+  category: structural
+- source: application.applicationfunction.verify-changeset-in-model
+  target: application.applicationfunction.check-description-only-plan
+  predicate: depends-on
+  layer: application
+  category: structural
+- source: application.applicationfunction.compact-verify-report
+  target: application.applicationfunction.narrow-verify-report
+  predicate: depends-on
+  layer: application
+  category: structural
+- source: application.applicationfunction.verify-sections
+  target: application.applicationfunction.narrow-verify-report
+  predicate: depends-on
+  layer: application
+  category: structural
+- source: application.applicationfunction.check-description-only-plan
+  target: data-model.objectschema.description-only-check
+  predicate: accesses
+  layer: application
+  targetLayer: data-model
+  category: structural
+- source: application.applicationfunction.narrow-verify-report
+  target: data-model.objectschema.changeset-verify-verify-report
+  predicate: accesses
+  layer: application
+  targetLayer: data-model
   category: structural

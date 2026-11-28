@@ -18986,3 +18986,22 @@ data-model.objectschema.unseen-classification:
     created_at: 2026-11-26T18:41:39.583Z
     updated_at: 2026-11-26T18:41:39.583Z
     version: 1
+data-model.objectschema.description-only-check:
+  id: 65a19553-8016-4d9d-a7bd-3f330505a905
+  path: data-model.objectschema.description-only-check
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: DescriptionOnlyCheck
+  description: "What verify checked for a plan that changes only descriptions: per element, whether its source files changed and its symbols exist."
+  attributes:
+    type: object
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/core/changeset-verify.ts
+        symbol: DescriptionOnlyCheck
+  metadata:
+    created_at: 2026-11-27T17:03:29.444Z
+    updated_at: 2026-11-27T17:03:29.444Z
+    version: 1
