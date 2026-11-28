@@ -6,6 +6,39 @@
       "tool": "search_graph",
       "args": {
         "project": "docs-repo",
+        "label": "Variable",
+        "fields": ["signature", "is_exported", "start_line", "end_line"],
+        "limit": 500,
+        "offset": 0,
+        "max_output_tokens": 1000000,
+        "format": "json"
+      },
+      "response": {
+        "qn_rule": "qn = qn_prefix == \"\" ? name : qn_prefix + \".\" + name",
+        "cols": [
+          "name",
+          "label",
+          "lines",
+          "in",
+          "out",
+          "signature",
+          "is_exported",
+          "start_line",
+          "end_line"
+        ],
+        "groups": [],
+        "hint": "No results match the current filters; broaden or remove filters and retry.",
+        "total": 0,
+        "returned": 0,
+        "count": 0,
+        "has_more": false,
+        "truncated": false
+      }
+    },
+    {
+      "tool": "search_graph",
+      "args": {
+        "project": "docs-repo",
         "label": "Class",
         "fields": [
           "docstring",

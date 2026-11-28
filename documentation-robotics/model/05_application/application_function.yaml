@@ -28974,3 +28974,37 @@ application.applicationfunction.collect-untracked-landings:
     created_at: 2026-11-27T17:11:09.892Z
     updated_at: 2026-11-27T17:11:09.892Z
     version: 1
+application.applicationfunction.declaration-shapes-of:
+  id: 4ea44ee4-b918-4f77-a324-8c039bbe835c
+  path: application.applicationfunction.declaration-shapes-of
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: declarationShapesOf
+  description: Reads a JS/TS declaration's shapes (exported, react-hook, react-component) from its text, for Tier-0 rules' shape condition.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/cards/shapes.ts
+        symbol: declarationShapesOf
+  metadata:
+    created_at: 2026-11-28T13:18:48.963Z
+    updated_at: 2026-11-28T13:18:48.963Z
+    version: 1
+application.applicationfunction.is-declared-variable:
+  id: fda9b6cc-6f85-42b3-9f6e-03c7e4ddb079
+  path: application.applicationfunction.is-declared-variable
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: isDeclaredVariable
+  description: "Whether a Variable card is worth a card: an exported, non-primitive JS/TS const."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/cards/shapes.ts
+        symbol: isDeclaredVariable
+  metadata:
+    created_at: 2026-11-28T13:18:48.964Z
+    updated_at: 2026-11-28T13:18:48.964Z
+    version: 1

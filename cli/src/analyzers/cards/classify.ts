@@ -9,6 +9,7 @@
  */
 import { matchPattern } from "../heuristic-utils.js";
 import type { Tier0Outcome, Tier0Rule } from "../tier0-rules.js";
+import { isDeclaredVariable } from "./shapes.js";
 import { CARD_FIELDS, CARD_LABELS, CARD_VERSION, CardBuilder, FILE_LABELS, VENDOR_EXCLUDE, cardId, isCandidate, withStoredNames } from "./build.js";
 import { buildEdgeIndex } from "./edge-index.js";
 import { readFileSync } from "node:fs";
@@ -112,7 +113,9 @@ export async function classifyTier0(
       nodes.push(node);
     }
   }
-  const selected = options.limit !== undefined ? nodes.slice(0, options.limit) : nodes;
+  // The limit counts cards, and a Variable that is not worth a card is dropped after it is built: applied in the loop.
+  const selected = nodes;
+  const limit = options.limit ?? Infinity;
 
   const edges = await buildEdgeIndex(graph);
   const factsIndex = await buildFactsIndex(graph);
@@ -151,7 +154,7 @@ export async function classifyTier0(
   // JS/TS test cases and suites: no graph node, read from the test files' text as extraction does.
   // Collected before the graph cards are built, so progress reports one total throughout.
   const testLabels = [TEST_CASE_LABEL, TEST_SUITE_LABEL].filter((l) => labels.includes(l));
-  const room = options.limit !== undefined ? options.limit - selected.length : Infinity;
+  const room = limit;
   let tests: Awaited<ReturnType<typeof collectJsTestCases>>["symbols"] = [];
   if (options.sourceRoot && testLabels.length && room > 0) {
     const { symbols } = await collectJsTestCases(graph, (qn) => cardId(graph.project, qn), {
@@ -163,12 +166,14 @@ export async function classifyTier0(
       .filter((s) => !s.card.file_path || ((!options.filePattern || matchPattern(s.card.file_path, options.filePattern)) && !exclude.test(s.card.file_path)))
       .slice(0, room);
   }
-  const total = selected.length + tests.length;
+  const total = Math.min(limit, selected.length + tests.length);
 
   // Cards first, so visibility and nesting are read over all of them (as extraction does).
   const built: Array<{ card: SymbolCard; facts: CardFacts }> = [];
   for (const node of selected) {
+    if (built.length >= limit) break;
     const card = await builder.build(node);
+    if (!isDeclaredVariable(card)) continue;
     built.push({ card, facts: factsFor(factsIndex, node.qualified_name, card.file_path) });
   }
   const texts = new Map<string, string | null>();
@@ -183,7 +188,10 @@ export async function classifyTier0(
     record(card, facts, tier0ForCard(card, facts, rules, tier0Visibility(card, triage.get(card)?.visibility, textOf)));
   }
 
-  for (const s of tests) record(s.card, s.facts, s.tier0);
+  for (const s of tests) {
+    if (results.length >= limit) break;
+    record(s.card, s.facts, s.tier0);
+  }
 
   return { analyzer, project: graph.project, mode: "tier0", card_version: CARD_VERSION, rules: rules.length, summary, results };
 }

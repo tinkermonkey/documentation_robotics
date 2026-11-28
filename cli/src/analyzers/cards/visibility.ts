@@ -32,7 +32,7 @@ const JVM = /\.(java|kt|kts|cs|scala)$/i;
 /** Labels that are members of a class: their visibility is a modifier, not an export. */
 const MEMBER_LABELS: ReadonlySet<string> = new Set(["Method"]);
 /** Labels a source file declares: the ones visibility is read for. */
-const DECLARED_LABELS: ReadonlySet<string> = new Set(["Function", "Method", "Class", "Interface", "Type", "Enum", "Trait", "Struct"]);
+const DECLARED_LABELS: ReadonlySet<string> = new Set(["Function", "Method", "Class", "Interface", "Type", "Enum", "Trait", "Struct", "Variable"]);
 
 function escapeRegExp(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
