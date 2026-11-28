@@ -28872,3 +28872,54 @@ application.applicationfunction.empty-landing-hold:
     created_at: 2026-11-27T01:28:15.866Z
     updated_at: 2026-11-27T01:28:15.866Z
     version: 1
+application.applicationfunction.near-test-sketch:
+  id: 6ab1c2c5-cdd6-4e3b-8ec6-3cb51f3b16e1
+  path: application.applicationfunction.near-test-sketch
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: Near test sketch
+  description: Finds a planned test sketch whose source reference is the test's file with no symbol, or whose name is a prefix or suffix of the describe > test title, so extraction reports a near match instead of staging a duplicate.
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/analyzers/extraction-plan.ts
+        symbol: nearTestSketches
+  metadata:
+    created_at: 2026-11-27T17:03:03.565Z
+    updated_at: 2026-11-27T17:03:03.565Z
+    version: 1
+application.applicationfunction.group-planned-test-file-sketch:
+  id: e4b9815a-984f-430f-b0cf-3a6742d4a101
+  path: application.applicationfunction.group-planned-test-file-sketch
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: Group planned test file sketch
+  description: Pairs a planned test sketch that names only a test file with the per-function sketches built in that file, as a group, so verify does not read it as missing.
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/core/changeset-matching.ts
+        symbol: groupTestFileSketches
+  metadata:
+    created_at: 2026-11-27T17:03:03.566Z
+    updated_at: 2026-11-27T17:03:03.566Z
+    version: 1
+application.applicationfunction.shared-symbol-owners:
+  id: fc99db1a-28e8-4030-8a60-c265b39f724d
+  path: application.applicationfunction.shared-symbol-owners
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: Shared symbol owners
+  description: Names the other live elements that reference a symbol, so rejecting a staged element by id unstages it without recording the symbol as not an element.
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/mcp/tools/codebase-extract.ts
+        symbol: otherOwnersOfSymbol
+  metadata:
+    created_at: 2026-11-27T17:03:03.566Z
+    updated_at: 2026-11-27T17:03:03.566Z
+    version: 1
