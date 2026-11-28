@@ -1,0 +1,15 @@
+id: changeset-1795798864380-wohl7kv0g
+name: cli010-t1-exports-r4
+description: "CLI 0.10.0 Tier 0 recognition (#1344, #1381): exported TS consts, hooks and components get cards; hooks and components narrow to UX types by a new Tier-0 shape condition; callbacks nested in them are rejected."
+created: 2026-11-27T17:01:04.427Z
+modified: 2026-11-28T02:15:11.863Z
+status: committed
+baseSnapshot: v2:sha256:db1ad3fcfa4654d521ec8d78a2b4dd901cf52a13dcadf4c6e6a874a360dad97b
+origin:
+  kind: plan
+purpose: plan
+stats:
+  additions: 2
+  modifications: 0
+  deletions: 0
+lastSequence: 1
