@@ -20,7 +20,9 @@ import type { Model } from "../../core/model.js";
 import { StagingAreaManager } from "../../core/staging-area.js";
 import { CLIError, ErrorCategory } from "../../utils/errors.js";
 import { compactJson, jsonResult, reloadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
-import { CHANGESET_ALIAS_DESCRIPTION, changesetArg, resolveChangeset } from "./changeset-shared.js";
+import { CHANGESET_ALIAS_DESCRIPTION, changesetArg, milestoneArgs, milestoneField, resolveChangeset } from "./changeset-shared.js";
+import { ChangesetGraph } from "../../core/changeset-graph.js";
+import { milestoneScope, scopeViewOfGraph } from "../../core/milestone-scope.js";
 
 /** The size a compact or sections answer aims at without a limit (#1350): about one tool result. */
 export const VERIFY_RESULT_TARGET = 40_000;
@@ -110,6 +112,7 @@ const inputSchema = {
       "Only the items touching these element ids. The verdict and counts are computed over them (a slice of a big plan reads as " +
         "complete when its own elements are), with the whole plan's in wholePlan."
     ),
+  milestone: milestoneField,
   limit: z
     .number()
     .int()
@@ -211,14 +214,31 @@ export function fitVerifyReport(
   };
 }
 
+/**
+ * The milestone filter a call gives, read from the plan as it leaves the model (the elements
+ * scheduled for the milestone and what in the plan reaches them), or undefined without one.
+ */
+export async function milestoneFilter(
+  model: Model,
+  planned: Changeset,
+  milestone: string | string[] | undefined
+): Promise<{ milestones: string[]; elements: string[] } | undefined> {
+  const names = milestoneArgs(milestone);
+  if (names.length === 0) return undefined;
+  const scope = milestoneScope(scopeViewOfGraph(await ChangesetGraph.build(model, planned)), names);
+  return { milestones: scope.milestones.map((m) => m.id), elements: scope.elements };
+}
+
 export async function changesetVerifyHandler(args: ChangesetVerifyArgs): Promise<CallToolResult> {
   return runTool(async () => {
-    const { report } = await runVerify(args);
+    const { report, model, planned } = await runVerify(args);
+    const milestone = await milestoneFilter(model, planned, args.milestone);
     const result = fitVerifyReport(report, {
       detail: args.detail,
       sections: args.sections,
       layers: args.layers,
       ids: args.ids,
+      milestone,
       limit: args.limit,
       offset: args.offset,
     });
@@ -254,7 +274,7 @@ export const changesetVerifyTool: McpToolDefinition<typeof inputSchema> = {
     "elements are not matched with themselves (alreadyInBase) but looked for among the as-built changeset's new elements and source " +
     "references, and are unverifiable when none names them. A plan that changes only descriptions is never a match: the verdict " +
     "says \"Not checked\" and descriptionOnly lists what could be checked (source files changed in the range, symbols still in their files). " +
-    "With ids or layers, the verdict and counts cover that subset and wholePlan holds the whole plan's. " +
+    "With ids, layers or milestone (the elements scheduled for it and what the plan has that realizes, serves or composes them), the verdict and counts cover that subset, labelled, and wholePlan holds the whole plan's. " +
     "Reads the model fresh from disk, so a commit made outside MCP is seen. Read-only.",
   inputSchema,
   handler: changesetVerifyHandler,

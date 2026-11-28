@@ -17,7 +17,7 @@ import { recordChangesetWrite } from "./changeset-write-activity.js";
 import path from "path";
 import yaml from "yaml";
 import ansis from "ansis";
-import type { StagedChangesetData, StagedChange, UnstagedChange } from "./changeset.js";
+import type { StagedChangesetData, StagedChange, UnstagedChange, LandedPart } from "./changeset.js";
 import { Changeset, compactChange, nextSequenceNumber, withSequenceNumbers } from "./changeset.js";
 import { getErrorMessage } from "../utils/errors.js";
 import type { ChangesetOrigin, ChangesetReview, ReviewDecision } from "./changeset-review.js";
@@ -178,6 +178,13 @@ export async function changesetFilesStamp(changesetPath: string): Promise<string
 /**
  * Storage manager for staged changesets using YAML format
  */
+/** JSON with sorted keys, to compare two copies of one change. */
+function stableJson(value: unknown): string {
+  return JSON.stringify(value, (_key, v) =>
+    v && typeof v === "object" && !Array.isArray(v) ? Object.fromEntries(Object.entries(v).sort(([a], [b]) => a.localeCompare(b))) : v
+  );
+}
+
 export class StagedChangesetStorage {
   private changesetsDir: string;
   private rootPath: string;
@@ -322,6 +329,7 @@ export class StagedChangesetStorage {
       if (unstaged) data.unstaged = unstaged;
       const origin = readOrigin(metadata.origin);
       if (origin) data.origin = origin;
+      if (Array.isArray(metadata.landed) && metadata.landed.length > 0) data.landed = metadata.landed;
       Object.assign(data, purposeFields(readPurpose(metadata)));
       data.review = await this.readReviewFile(changesetPath);
 
@@ -377,6 +385,7 @@ export class StagedChangesetStorage {
       ...(changeset.purpose
         ? purposeFields({ purpose: changeset.purpose, verifies: changeset.verifies, scope: changeset.scope })
         : {}),
+      ...(changeset.landed?.length ? { landed: changeset.landed } : {}),
       stats: changeset.stats || { additions: 0, modifications: 0, deletions: 0 },
       // Sequence bookkeeping (see nextSequenceNumber); absent on changesets never unstaged from.
       ...(lastSequence !== undefined ? { lastSequence } : {}),
@@ -766,6 +775,38 @@ export class StagedChangesetStorage {
       changeset.updateModified();
       await this.save(changeset);
       return back.map((c) => c.sequenceNumber);
+    });
+  }
+
+  /**
+   * Take the changes with these sequence numbers out of a plan because they landed as a part of it
+   * (#1388), and record the part. Under the plan's file lock, on a fresh read: what was staged since
+   * stays. The removal is a revision of its own (it takes the next sequence number) but leaves no
+   * tombstones: these changes were not unstaged, they are in the base.
+   */
+  async removeLanded(id: string, landed: StagedChange[], part: LandedPart): Promise<number[]> {
+    const content = (c: StagedChange) => stableJson({ type: c.type, elementId: c.elementId, layerName: c.layerName, before: c.before, after: c.after });
+    const landedBy = new Map(landed.map((c) => [c.sequenceNumber, content(c)]));
+    return new FileLock(this.getChangesetPath(id)).withLock(async () => {
+      const changeset = await this.loadStaged(id);
+      const numbered = withSequenceNumbers(changeset.changes);
+      // A change edited since it was copied (a model_update folded into it keeps its number) is not
+      // what landed: it stays, so the edit is not lost.
+      const gone = new Set<number>();
+      const kept: number[] = [];
+      for (const c of numbered) {
+        const was = landedBy.get(c.sequenceNumber);
+        if (was === undefined) continue;
+        if (was === content(c)) gone.add(c.sequenceNumber);
+        else kept.push(c.sequenceNumber);
+      }
+      changeset.lastSequence = nextSequenceNumber({ ...changeset, changes: numbered });
+      changeset.changes = numbered.filter((c) => !gone.has(c.sequenceNumber));
+      changeset.landed = [...(changeset.landed ?? []), part];
+      changeset.updateModified();
+      await this.save(changeset);
+      await recordChangesetWrite(this.rootPath, id);
+      return kept;
     });
   }
 

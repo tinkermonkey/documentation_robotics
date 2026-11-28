@@ -22,7 +22,8 @@ import { ChangesetGraph } from "../../core/changeset-graph.js";
 import { elementFilter } from "../../core/element-filter.js";
 import { nextPageHint, pageOf, pagingFields } from "../../core/paging.js";
 import { StagingAreaManager } from "../../core/staging-area.js";
-import { activeStagedChangeset } from "./changeset-shared.js";
+import { activeStagedChangeset, milestoneArgs, milestoneField } from "./changeset-shared.js";
+import { milestoneScope, scopeViewOfGraph, scopeViewOfModel } from "../../core/milestone-scope.js";
 import { getAllLayerIds, isValidLayer } from "../../generated/layer-registry.js";
 import { NODE_TYPES } from "../../generated/node-types.js";
 import { CLIError, ErrorCategory, findSimilar, formatValidOptions } from "../../utils/errors.js";
@@ -70,6 +71,7 @@ const inputSchema = {
     .array(z.string())
     .optional()
     .describe('Leave out elements of these types, as "testcasesketch" or "testing.testcasesketch".'),
+  milestone: milestoneField,
   sourceFile: z.string().optional().describe("Find elements whose source_reference points at this file path."),
   detail: z
     .enum(["compact", "full"])
@@ -184,13 +186,16 @@ interface SearchResult {
   /** The fields the query was found in, when not the id or name. */
   matchedIn?: SearchField[];
   changeStatus?: string;
+  /** With milestone: why the element is in its scope (`scheduled-for <milestone>`, or `<predicate> <element it reaches>`). */
+  scopeVia?: string;
 }
 
 export async function modelSearchHandler(args: ModelSearchArgs): Promise<CallToolResult> {
   return runTool(async () => {
-    if (!args.query && !args.sourceFile && !args.layer && !args.type) {
+    const milestones = milestoneArgs(args.milestone);
+    if (!args.query && !args.sourceFile && !args.layer && !args.type && milestones.length === 0) {
       throw new CLIError(
-        "At least one of query, sourceFile, layer, or type must be provided",
+        "At least one of query, sourceFile, layer, type or milestone must be provided",
         ErrorCategory.USER,
         ['Use "model_list" to list all elements without filtering']
       );
@@ -217,6 +222,14 @@ export async function modelSearchHandler(args: ModelSearchArgs): Promise<CallToo
     const otherFields = FIELDS.filter((f) => !fields.includes(f));
     const elsewhere: Record<string, number> = {};
 
+    // A milestone keeps the elements in its scope (read from the plan as it leaves the model, or the base).
+    const earlyActive = milestones.length > 0 ? await activeStagedChangeset(new StagingAreaManager(model.rootPath, model)) : undefined;
+    const scope =
+      milestones.length > 0
+        ? milestoneScope(earlyActive ? scopeViewOfGraph(await ChangesetGraph.build(model, earlyActive)) : await scopeViewOfModel(model), milestones)
+        : undefined;
+    const inScope = scope ? new Set(scope.elements) : undefined;
+
     const found: Array<{ result: SearchResult; hit?: Hit; order: number }> = [];
     for (const layerName of model.getLayerNames()) {
       if (args.layer && layerName !== args.layer) continue;
@@ -225,6 +238,7 @@ export async function modelSearchHandler(args: ModelSearchArgs): Promise<CallToo
 
       for (const element of layerObj.listElements()) {
         if (!filter.keepsLayerType(layerName, element.type)) continue;
+        if (inScope && !inScope.has(element.path || element.id)) continue;
 
         let hit: Hit | undefined;
         if (isSourceFileSearch) {
@@ -258,6 +272,7 @@ export async function modelSearchHandler(args: ModelSearchArgs): Promise<CallToo
             ...(location?.file ? { sourceFile: location.file } : {}),
             ...(location?.symbol ? { sourceSymbol: location.symbol } : {}),
             ...(hit && hit.rank > FIELD_RANK.id ? { matchedIn: hit.matchedIn } : {}),
+            ...(scope ? { scopeVia: scope.via[element.path || element.id] } : {}),
           },
         });
       }
@@ -306,6 +321,16 @@ export async function modelSearchHandler(args: ModelSearchArgs): Promise<CallToo
         ...(active ? { changeset: { id: active.id, name: active.name } } : {}),
         ...(isSourceFileSearch || !args.query ? {} : { fields, match }),
         ...(filter.active ? { filter: filter.applied } : {}),
+        ...(scope
+          ? {
+              milestone: {
+                milestones: scope.milestones.map((m) => m.id),
+                scheduled: scope.scheduled.length,
+                inScope: scope.elements.length,
+                note: "The milestone's elements and what the model links to them with realizes, serves or composes; a starting set to check, not a statement of what the milestone needs.",
+              },
+            }
+          : {}),
         count: all.length,
         ...(byLayer ? { byLayer } : {}),
         results,
@@ -325,7 +350,7 @@ export const modelSearchTool: McpToolDefinition<typeof inputSchema> = {
     'match: "all" or "any" matches the query\'s words apart. The closest come first: an exact id or name, more ' +
     "words, then name and id hits before description hits. layer and type narrow; excludeLayers and excludeTypes " +
     `leave layers and types out. Compact entries, ${SEARCH_LIMITS.compact} a page (limit, offset): count is the true ` +
-    "total, byLayer counts every match by layer and type when there is more than one page, and more names the next call.",
+    "total, milestone (one or several) lists the elements scheduled for it and what realizes, serves or composes them (scopeVia says why each is in), byLayer counts every match by layer and type when there is more than one page, and more names the next call.",
   inputSchema,
   handler: modelSearchHandler,
 };

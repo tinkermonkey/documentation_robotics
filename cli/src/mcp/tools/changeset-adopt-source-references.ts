@@ -12,7 +12,9 @@ import { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { adoptVerifiedSourceReferences, type VerifiedAdoptionReport } from "../../core/source-reference-adoption.js";
 import { jsonResult, reloadModel, runTool, type McpToolDefinition } from "./shared.js";
-import { runVerify, verifyComparisonInputs } from "./changeset-verify.js";
+import { milestoneFilter, runVerify, verifyComparisonInputs } from "./changeset-verify.js";
+import { narrowVerifyReport } from "../../core/changeset-verify.js";
+import { milestoneField } from "./changeset-shared.js";
 import { strictItem } from "../strict-schema.js";
 
 const inputSchema = {
@@ -49,6 +51,7 @@ const inputSchema = {
         "over all of them; past the limit each copied reference is still named by its element id and each skipped one is " +
         "listed under its reason."
     ),
+  milestone: milestoneField,
   verbose: z.boolean().optional().describe("Return every item in full, with the references still missing (large for a big plan)."),
 };
 
@@ -65,7 +68,10 @@ export async function changesetAdoptSourceReferencesHandler(
   args: ChangesetAdoptSourceReferencesArgs
 ): Promise<CallToolResult> {
   return runTool(async () => {
-    const { model, manager, planned, plannedName, asBuilt, report } = await runVerify(args);
+    const { model, manager, planned, plannedName, asBuilt, report: whole } = await runVerify(args);
+    // With milestone: only the references of the elements in its scope (the rest stay as they are).
+    const milestone = await milestoneFilter(model, planned, args.milestone);
+    const report = milestone ? narrowVerifyReport(whole, { milestone }) : whole;
     const result = await adoptVerifiedSourceReferences(model, manager, {
       planned,
       asBuilt,
@@ -185,7 +191,8 @@ export const changesetAdoptSourceReferencesTool: McpToolDefinition<typeof inputS
     "references ({id, sourceFile, sourceSymbol}); changeset_verify lists candidates under sourceReferences.unreferenced. " +
     "The result gives total and counts over everything, then each list in full up to limit (default 50): past it a copied " +
     "reference is still named by its element id and every skipped one is listed under its reason; verbose: true returns " +
-    "every item in full.",
+    "every item in full. With milestone, only the elements scheduled for it and what the plan has that realizes, serves or composes " +
+    "them are copied; the rest stay as they are.",
   inputSchema,
   handler: changesetAdoptSourceReferencesHandler,
 };

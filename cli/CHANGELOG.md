@@ -16,6 +16,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `staged`; `changeset_brief` lists it in `feedback` and the landing summary has an `Annotations:` line.
   It lands with the plan and is discarded with it. With no changeset active nothing changes, and a
   changeset made before reads as having no staged annotations. Format in `docs/CHANGE_MODELING.md`.
+- **Land part of a plan, and scope calls to a milestone (#1388, #1389):**
+  - `changeset_commit` and `changeset_commit_preview` take `ids`, `milestone` and/or `withSourceReference` to
+    land only that part of a plan. The part lands as its own committed changeset (`<plan>-landed`) and the plan
+    stays staged with the rest, recording each part in its metadata (`landed`); a plan whose base only the
+    landing moved is re-baselined. Staged links between the part and an element it does not take cross the
+    boundary: the preview lists them, and the landing refuses unless `crossing` is `include` (far ends land too)
+    or `leave` (those links stay staged).
+  - `milestone` (one or several) on `changeset_brief`, `changeset_verify`, `changeset_adopt_source_references`
+    and `model_search`: the elements scheduled for it and what in the plan realizes, serves or composes them,
+    followed transitively. Verify's verdict and counts are over that set, labelled, with the whole plan's in
+    `wholePlan`; `model_search` lists the set paged, with a true total and why each element is in it.
+
 - **`changeset_verify` says what it did not check (#1383, #1307, #1346):** a plan that changes only
   descriptions is no longer a verdict that reads like a pass: it says "Not checked: the plan changes
   only descriptions", and `descriptionOnly` lists what could be checked (each element's source files

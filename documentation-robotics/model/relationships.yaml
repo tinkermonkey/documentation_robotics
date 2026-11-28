@@ -1,6 +1,6 @@
 # Intra-layer relationships
 # Format: source_id -> predicate -> target_id
-# Last updated: 2026-11-28T13:37:25.991Z
+# Last updated: 2026-11-28T13:38:24.115Z
 
 - source: motivation.outcome.changes-are-planned-as-changesets
   target: motivation.goal.dr-is-the-spec-for-software-changes
@@ -74913,6 +74913,16 @@
   category: structural
 - source: application.applicationfunction.find-annotation
   target: application.applicationservice.annotation-reply-handler
+  predicate: realizes
+  layer: application
+  category: structural
+- source: application.applicationfunction.land-part
+  target: application.applicationservice.changeset-commit-handler
+  predicate: realizes
+  layer: application
+  category: structural
+- source: application.applicationfunction.preview-part
+  target: application.applicationservice.changeset-commit-preview-handler
   predicate: realizes
   layer: application
   category: structural

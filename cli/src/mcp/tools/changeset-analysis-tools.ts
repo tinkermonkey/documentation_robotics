@@ -24,12 +24,13 @@ import {
   SECTIONS_TARGET_BYTES,
 } from "../../core/changeset-brief-compact.js";
 import { describeDrift } from "../../core/changeset-base-index.js";
-import { getErrorMessage } from "../../utils/errors.js";
+import { CLIError, ErrorCategory, getErrorMessage } from "../../utils/errors.js";
+import { milestoneLabel, milestoneScope, scopeViewOfGraph } from "../../core/milestone-scope.js";
 import { reviewForAgent } from "../../core/changeset-review.js";
 import { nextPageCall } from "../../core/paging.js";
 import { compactJson, jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
 import { elementCard, graphConnections } from "./element-card.js";
-import { changesetArg, changesetArgFields, loadChangesetGraph } from "./changeset-shared.js";
+import { changesetArg, changesetArgFields, loadChangesetGraph, milestoneArgs, milestoneField } from "./changeset-shared.js";
 
 const changesetFields = changesetArgFields("Changeset ID or name. Defaults to the active changeset.");
 
@@ -235,6 +236,7 @@ const briefInputSchema = {
         "codeTouched and feedback, each with its incoming staged relationships too. Ids the changeset does not " +
         "change come back in unchanged, a card each (name, description, connections as the plan leaves them)."
     ),
+  milestone: milestoneField,
   driftLimit: z
     .number()
     .int()
@@ -342,6 +344,22 @@ export async function changesetBriefHandler(args: ChangesetBriefArgs): Promise<C
   return runTool(async () => {
     const model = await loadModel(args.rootPath);
     const { manager, changeset, graph } = await loadChangesetGraph(model, changesetArg(args));
+    // A milestone narrows the element sections to the changed elements in its scope (#1389).
+    const milestone = milestoneArgs(args.milestone);
+    const scope = milestone.length > 0 ? milestoneScope(scopeViewOfGraph(graph), milestone) : undefined;
+    const scoped = scope?.elements.filter((id) => (graph.getElement(id)?.status ?? "unchanged") !== "unchanged");
+    if (scope && scoped!.length === 0) {
+      throw new CLIError(
+        `${milestoneLabel(scope)} has ${scope.elements.length} element(s) in its scope and this changeset changes none of them`,
+        ErrorCategory.USER,
+        [
+          scope.elements.length === 0
+            ? "Nothing is scheduled-for it (or realizes, serves or composes what is) in the plan as it leaves the model: model_search with milestone lists the set"
+            : "They are all in the base unchanged: model_search with milestone lists them",
+        ]
+      );
+    }
+    const ids = [...new Set([...(args.ids ?? []), ...(scoped ?? [])])];
 
     // The base's annotations, and the ones staged in this changeset (they land with it).
     const stagedAnnotations = await AnnotationStore.forChangeset(manager.changesetPath(changeset.id!))
@@ -421,7 +439,7 @@ export async function changesetBriefHandler(args: ChangesetBriefArgs): Promise<C
       const callArgs = Object.fromEntries(Object.entries(own).filter(([, value]) => value !== undefined));
       const result = briefSections(brief, named, {
         delta,
-        filter: { layers: args.layers, types: args.types, ids: args.ids, otherLayers: args.otherLayers },
+        filter: { layers: args.layers, types: args.types, ids: ids.length > 0 ? ids : args.ids, otherLayers: args.otherLayers },
         full: args.detail === "full",
         offset: args.offset,
         limit: args.limit,
@@ -446,7 +464,18 @@ export async function changesetBriefHandler(args: ChangesetBriefArgs): Promise<C
           return { cards, missing };
         },
       });
-      return jsonResult(withReview(result), { compact: true });
+      const shown = scope
+        ? {
+            ...result,
+            milestone: {
+              milestones: scope.milestones.map((m) => m.id),
+              inScope: scope.elements.length,
+              changedInScope: scoped!.length,
+              note: "The sections cover the changed elements in the milestone's scope (scheduled-for it, and what the plan has that realizes, serves or composes them); model_search with milestone lists the whole set.",
+            },
+          }
+        : result;
+      return jsonResult(withReview(shown), { compact: true });
     }
     const compact = compactBrief(brief, {
       unwired: listUnwired ? undefined : computeUnwired(graph),
@@ -455,10 +484,10 @@ export async function changesetBriefHandler(args: ChangesetBriefArgs): Promise<C
       idsPerType: args.idsPerType,
     });
     const sectionOnly = [args.otherLayers?.length, args.offset, args.targetBytes, args.maxConnections, args.traced];
-    const narrows = args.layers?.length || args.types?.length || args.ids?.length;
+    const narrows = args.layers?.length || args.types?.length || args.ids?.length || scope;
     if (narrows || sectionOnly.some((value) => value !== undefined && value !== 0 && value !== false)) {
       compact.note =
-        "layers, types, ids, otherLayers, offset, targetBytes, maxConnections and traced shape sections output only, so the whole compact brief is returned. Pass sections too, " +
+        "layers, types, ids, milestone, otherLayers, offset, targetBytes, maxConnections and traced shape sections output only, so the whole compact brief is returned. Pass sections too, " +
         'e.g. sections: ["changes"] with them for those elements\' build view.';
     }
     return jsonResult(withReview(compact), { compact: true });
@@ -495,7 +524,8 @@ export const changesetBriefTool: McpToolDefinition<typeof briefInputSchema> = {
     "the unwired listing, code per " +
     "element), or with sections those sections in full. It returns a revision and a revisionToken: pass the token back as since on the " +
     "next pass to get what changed. Use it to pressure-test a plan and, at the start of a build, as its spec. When the " +
-    "reviewer has given verdicts in the viewer, review lists them (keep / drop / ask per change sequence, with notes).",
+    "reviewer has given verdicts in the viewer, review lists them (keep / drop / ask per change sequence, with notes). " +
+    "milestone (one or several) narrows the sections to the changed elements scheduled for it and what the plan has that realizes, serves or composes them.",
   inputSchema: briefInputSchema,
   handler: changesetBriefHandler,
 };

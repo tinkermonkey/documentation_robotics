@@ -69,6 +69,7 @@ import { resolveChangeset } from "./changeset-shared.js";
 import { alreadyLandedResult, filesToCommit } from "./changeset-landed.js";
 import { isExtractionChangeset } from "./codebase-extract.js";
 import { landingRelayoutNote } from "../../core/model-relayout.js";
+import { choosesPart, landPart, partFields, previewPart } from "./changeset-commit-part.js";
 
 /**
  * How many overlaps of one kind the landing summary names by default. A display default, not a
@@ -269,7 +270,7 @@ export function landingSummaryText(
   ].join("\n");
 }
 
-function refusal(message: string, suggestions: string[]): CLIError {
+export function refusal(message: string, suggestions: string[]): CLIError {
   return new CLIError(message, ErrorCategory.USER, suggestions, { operation: "changeset_commit" });
 }
 
@@ -388,7 +389,7 @@ async function landingWarnings(target: LandingTarget): Promise<string[]> {
  * Finds the staged changeset to land and reads its drift, which never refuses the landing. Returns
  * a result instead when there is nothing to commit. Writes nothing.
  */
-async function prepareLanding(
+export async function prepareLanding(
   args: { changeset: string; rootPath?: string }
 ): Promise<{ landing: LandingTarget } | { answer: Record<string, unknown> }> {
   // A process whose installed CLI changed under it would land with the old code: refuse before the
@@ -443,7 +444,7 @@ interface LandingSummary {
  * Checks the landing with a dry run, so the preview never promises a commit that would fail, and
  * builds the summary. Writes nothing.
  */
-async function summarizeLanding(target: LandingTarget, toolName: string): Promise<LandingSummary> {
+export async function summarizeLanding(target: LandingTarget, toolName: string): Promise<LandingSummary> {
   const { model, manager, changeset, hash } = target;
   let preExistingErrors = 0;
   try {
@@ -485,6 +486,7 @@ const inputSchema = {
       "Several changesets to land in this order (IDs or names), stopping at the first one refused: the ones before it " +
         "stay landed. Each is checked against the base as the ones before it left it."
     ),
+  ...partFields,
   force: z
     .boolean()
     .optional()
@@ -501,10 +503,10 @@ function requestedNames(args: { changeset?: string; changesets?: string[] }): st
 }
 
 /** What landing one changeset gives, in the shape changeset_commit returns for a single changeset. */
-type LandedChangeset = Record<string, unknown> & { status: string; name: string; filesToCommit?: string[]; warnings?: string[] };
+export type LandedChangeset = Record<string, unknown> & { status: string; name: string; filesToCommit?: string[]; warnings?: string[] };
 
 /** Lands one changeset: its answer when there is nothing to land, else the landing's result. Throws a refusal. */
-async function landOne(name: string, rootArg: string | undefined, forceIgnored: boolean): Promise<LandedChangeset> {
+export async function landOne(name: string, rootArg: string | undefined, forceIgnored: boolean): Promise<LandedChangeset> {
   const prepared = await prepareLanding({ changeset: name, rootPath: rootArg });
   if ("answer" in prepared) return prepared.answer as LandedChangeset;
   const target = prepared.landing;
@@ -660,6 +662,17 @@ export async function changesetCommitHandler(
     if (names.length === 0) {
       throw refusal("Name the changeset to land: changeset, or changesets for several.", ['Use "changeset_list" to find a staged changeset']);
     }
+    const part = choosesPart(args);
+    if (part && names.length !== 1) {
+      throw refusal("A part of a plan lands from one changeset: give changeset (and no other), with ids, milestone or withSourceReference.", [
+        "Land the whole of several changesets with changesets, or one part at a time",
+      ]);
+    }
+    if (!part && args.crossing) {
+      throw refusal("crossing says what to do with links at the boundary of a part, and no part is chosen.", [
+        "Choose the part with ids, milestone or withSourceReference, or leave crossing out",
+      ]);
+    }
     const forceIgnored = args.force !== undefined;
     let forceWarned = false;
 
@@ -667,7 +680,9 @@ export async function changesetCommitHandler(
     let stopped: { changeset: string; error: string; suggestions: string[] } | undefined;
     for (const name of names) {
       try {
-        const one = await landOne(name, args.rootPath, forceIgnored && !forceWarned);
+        const one = part
+          ? await landPart({ ...args, changeset: name }, forceIgnored && !forceWarned)
+          : await landOne(name, args.rootPath, forceIgnored && !forceWarned);
         if (one.status === "committed") forceWarned = true;
         landed.push(one);
       } catch (error) {
@@ -720,13 +735,18 @@ export const changesetCommitTool: McpToolDefinition<typeof inputSchema> = {
     "verification and upgrade records. Drift does not: a drifted changeset lands, and the result says what the base " +
     "overlapped and what landing did about it (force is ignored). The result gives each changeset's counts and " +
     "layers, the branch it landed on, and filesToCommit: the model files and the changeset folders to commit with " +
-    "the code. changeset_commit_preview is the read-only dry run.",
+    "the code. changeset_commit_preview is the read-only dry run. To land part of a plan (what is built, the rest " +
+    "still planned), choose the part with ids, milestone (a milestone's elements) and/or withSourceReference " +
+    "(the elements tied to code): the part lands as its own committed changeset and stays out of the plan, which " +
+    "stays staged with the rest. Staged links between the part and an element it does not take cross the boundary: " +
+    "the landing refuses and lists them unless crossing says \"include\" (far ends land too) or \"leave\" (links stay staged).",
   inputSchema,
   handler: changesetCommitHandler,
 };
 
 const previewInputSchema = {
   changeset: z.string().min(1).describe("Changeset ID or name to land."),
+  ...partFields,
   force: z.boolean().optional().describe("Deprecated and ignored: drift no longer refuses a commit."),
   rootPath: rootPathSchema,
 };
@@ -738,6 +758,12 @@ export async function changesetCommitPreviewHandler(
   _context?: McpToolContext
 ): Promise<CallToolResult> {
   return runTool(async () => {
+    if (choosesPart(args)) return previewPart(args);
+    if (args.crossing) {
+      throw refusal("crossing says what to do with links at the boundary of a part, and no part is chosen.", [
+        "Choose the part with ids, milestone or withSourceReference, or leave crossing out",
+      ]);
+    }
     const prepared = await prepareLanding(args);
     if ("answer" in prepared) return jsonResult(prepared.answer);
     const { changeset, hash } = prepared.landing;
@@ -782,7 +808,9 @@ export const changesetCommitPreviewTool: McpToolDefinition<typeof previewInputSc
     "files the landing would put in the commit. Drift does not stop a landing. A read-only dry run: it returns no " +
     "token and changeset_commit needs none. A changeset already landed is answered with status 'already-landed' " +
     "(when, its files, whether git has them): nothing to do. stillWriting says when something writes into it now, " +
-    "or another process staged into it moments ago.",
+    "or another process staged into it moments ago. With ids, milestone or withSourceReference it previews landing that part " +
+    "of the plan: what lands and what stays staged, and the staged links that cross the boundary (listed; the landing " +
+    "refuses them unless crossing is \"include\" or \"leave\"), checked as the part's own landing.",
   inputSchema: previewInputSchema,
   handler: changesetCommitPreviewHandler,
 };

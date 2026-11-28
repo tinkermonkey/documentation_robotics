@@ -29007,6 +29007,73 @@ application.applicationfunction.is-declared-variable:
   metadata:
     created_at: 2026-11-28T13:18:48.964Z
     updated_at: 2026-11-28T13:18:48.964Z
+application.applicationfunction.milestone-scope:
+  id: 4ebb38e4-3897-4037-a9d7-29ffacf0d7bb
+  path: application.applicationfunction.milestone-scope
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: milestoneScope
+  description: The elements scheduled for a milestone and what the plan has that realizes, serves or composes them, transitively
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/core/milestone-scope.ts
+        symbol: milestoneScope
+  metadata:
+    created_at: 2026-11-28T13:32:18.000Z
+    updated_at: 2026-11-28T13:32:18.000Z
+    version: 1
+application.applicationfunction.plan-partial-landing:
+  id: db51ee6f-2ef4-4535-97f8-2288e7a8f889
+  path: application.applicationfunction.plan-partial-landing
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: planPartialLanding
+  description: Chooses the part of a plan to land by ids, milestone or source reference, and finds the staged links that cross its boundary
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/core/partial-landing.ts
+        symbol: planPartialLanding
+  metadata:
+    created_at: 2026-11-28T13:32:18.000Z
+    updated_at: 2026-11-28T13:32:18.000Z
+    version: 1
+application.applicationfunction.land-part:
+  id: aa416b8e-874a-43a4-ac19-5174be1e7cf1
+  path: application.applicationfunction.land-part
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: landPart
+  description: Lands a part of a plan as its own committed changeset and takes it out of the plan, which stays staged
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/mcp/tools/changeset-commit-part.ts
+        symbol: landPart
+  metadata:
+    created_at: 2026-11-28T13:32:18.000Z
+    updated_at: 2026-11-28T13:32:18.000Z
+    version: 1
+application.applicationfunction.preview-part:
+  id: 2c86a4ae-b4ee-40f2-9df2-d2924474c31c
+  path: application.applicationfunction.preview-part
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: previewPart
+  description: Previews landing a part of a plan, listing the links that cross the boundary
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/mcp/tools/changeset-commit-part.ts
+        symbol: previewPart
+  metadata:
+    created_at: 2026-11-28T13:32:18.000Z
+    updated_at: 2026-11-28T13:32:18.000Z
     version: 1
 application.applicationfunction.annotation-store-for-changeset:
   id: a101c8d1-95d1-47ec-b86f-4a9df81e30b2

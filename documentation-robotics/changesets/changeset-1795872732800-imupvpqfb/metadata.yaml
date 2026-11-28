@@ -1,0 +1,47 @@
+id: changeset-1795872732800-imupvpqfb
+name: cli010-t3-partial-landing
+description: |-
+  Land part of a plan and scope calls to a milestone (#1388, #1389).
+
+  **In scope:** `milestoneScope` (the milestone's elements), `planPartialLanding` (the part and its boundary), `landPart`/`previewPart` (changeset_commit with ids/milestone/withSourceReference), milestone filter on brief, verify, adopt and model_search.
+
+  **Done when:** a milestone's part lands as its own committed changeset while the rest stays staged and recorded.
+created: 2026-11-28T13:32:12.844Z
+modified: 2026-11-28T13:38:24.320Z
+status: committed
+baseSnapshot: v2:sha256:dd8ce0bbd03f580d60091e7602c8841b82b1d55433ba1b83d71b5e4b1606aa7e
+origin:
+  kind: plan
+purpose: plan
+stats:
+  additions: 6
+  modifications: 0
+  deletions: 0
+lastSequence: 8
+unstaged:
+  - sequence: 6
+    removedAt: 8
+    change:
+      type: relationship-add
+      elementId: application.applicationfunction.plan-partial-landing::realizes::application.applicationservice.changeset-commit-handler
+      layerName: application
+      after:
+        source: application.applicationfunction.plan-partial-landing
+        target: application.applicationservice.changeset-commit-handler
+        predicate: realizes
+        layer: application
+        category: structural
+      timestamp: 2026-11-28T13:32:23.540Z
+  - sequence: 7
+    removedAt: 8
+    change:
+      type: relationship-add
+      elementId: application.applicationfunction.milestone-scope::realizes::application.applicationservice.changeset-commit-handler
+      layerName: application
+      after:
+        source: application.applicationfunction.milestone-scope
+        target: application.applicationservice.changeset-commit-handler
+        predicate: realizes
+        layer: application
+        category: structural
+      timestamp: 2026-11-28T13:32:23.540Z
