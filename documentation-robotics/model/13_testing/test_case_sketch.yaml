@@ -48163,3 +48163,93 @@ testing.testcasesketch.intent-tracing-in-a-bootstrap-1329-anchors-an-added-capab
     created_at: 2026-11-26T18:48:42.845Z
     updated_at: 2026-11-26T18:48:42.845Z
     version: 1
+testing.testcasesketch.annotations-staged-in-a-changeset-stages-while-a-changeset-is-active-keeps-replies-and-updates-585ef336:
+  id: 684be09e-646f-4510-9e0d-37bd8189586e
+  path: testing.testcasesketch.annotations-staged-in-a-changeset-stages-while-a-changeset-is-active-keeps-replies-and-updates-585ef336
+  spec_node_id: testing.testcasesketch
+  type: testcasesketch
+  layer_id: testing
+  name: annotations staged in a changeset stages while a changeset is active, keeps replies and updates staged, and lands with the plan
+  attributes:
+    status: automated
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/tests/unit/mcp/staged-annotations.test.ts
+        symbol: annotations staged in a changeset > stages while a changeset is active, keeps replies and updates staged, and lands with the plan
+  metadata:
+    created_at: 2026-11-28T13:28:33.386Z
+    updated_at: 2026-11-28T13:28:33.386Z
+    version: 1
+testing.testcasesketch.annotations-staged-in-a-changeset-is-discarded-with-the-plan:
+  id: 54d446ba-3fb9-47d6-97e6-1f3b90c8e6ee
+  path: testing.testcasesketch.annotations-staged-in-a-changeset-is-discarded-with-the-plan
+  spec_node_id: testing.testcasesketch
+  type: testcasesketch
+  layer_id: testing
+  name: annotations staged in a changeset is discarded with the plan
+  attributes:
+    status: automated
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/tests/unit/mcp/staged-annotations.test.ts
+        symbol: annotations staged in a changeset > is discarded with the plan
+  metadata:
+    created_at: 2026-11-28T13:28:33.386Z
+    updated_at: 2026-11-28T13:28:33.386Z
+    version: 1
+testing.testcasesketch.annotations-staged-in-a-changeset-deletes-a-staged-annotation-from-the-changeset-not-the-base:
+  id: f7e1d38e-4750-4c0e-ac11-0cf506940675
+  path: testing.testcasesketch.annotations-staged-in-a-changeset-deletes-a-staged-annotation-from-the-changeset-not-the-base
+  spec_node_id: testing.testcasesketch
+  type: testcasesketch
+  layer_id: testing
+  name: annotations staged in a changeset deletes a staged annotation from the changeset, not the base
+  attributes:
+    status: automated
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/tests/unit/mcp/staged-annotations.test.ts
+        symbol: annotations staged in a changeset > deletes a staged annotation from the changeset, not the base
+  metadata:
+    created_at: 2026-11-28T13:28:48.270Z
+    updated_at: 2026-11-28T13:28:48.270Z
+    version: 1
+testing.testcasesketch.annotations-staged-in-a-changeset-takes-changeset-to-stage-in-a-changeset-that-is-not-active:
+  id: 11e19d78-497e-45d6-86f8-45661b99a836
+  path: testing.testcasesketch.annotations-staged-in-a-changeset-takes-changeset-to-stage-in-a-changeset-that-is-not-active
+  spec_node_id: testing.testcasesketch
+  type: testcasesketch
+  layer_id: testing
+  name: annotations staged in a changeset takes `changeset` to stage in a changeset that is not active
+  attributes:
+    status: automated
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/tests/unit/mcp/staged-annotations.test.ts
+        symbol: annotations staged in a changeset > takes `changeset` to stage in a changeset that is not active
+  metadata:
+    created_at: 2026-11-28T13:28:48.270Z
+    updated_at: 2026-11-28T13:28:48.270Z
+    version: 1
+testing.testcasesketch.annotations-staged-in-a-changeset-writes-to-the-base-as-before-when-no-changeset-is-active-and-03ec4b06:
+  id: 989bfc30-1736-4540-8620-9d0aa60ebc5f
+  path: testing.testcasesketch.annotations-staged-in-a-changeset-writes-to-the-base-as-before-when-no-changeset-is-active-and-03ec4b06
+  spec_node_id: testing.testcasesketch
+  type: testcasesketch
+  layer_id: testing
+  name: annotations staged in a changeset writes to the base as before when no changeset is active, and reads a changeset without annotations
+  attributes:
+    status: automated
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/tests/unit/mcp/staged-annotations.test.ts
+        symbol: annotations staged in a changeset > writes to the base as before when no changeset is active, and reads a changeset without annotations
+  metadata:
+    created_at: 2026-11-28T13:28:48.270Z
+    updated_at: 2026-11-28T13:28:48.270Z
+    version: 1

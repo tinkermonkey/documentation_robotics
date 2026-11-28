@@ -7,8 +7,8 @@ description: |-
 
   **Done when:** a staged annotation is invisible to the base until the plan lands; changesets made before still read unchanged.
 created: 2026-11-28T13:23:25.310Z
-modified: 2026-11-28T13:28:53.130Z
-status: staged
+modified: 2026-11-28T13:37:26.915Z
+status: committed
 baseSnapshot: v2:sha256:dd8ce0bbd03f580d60091e7602c8841b82b1d55433ba1b83d71b5e4b1606aa7e
 origin:
   kind: plan
