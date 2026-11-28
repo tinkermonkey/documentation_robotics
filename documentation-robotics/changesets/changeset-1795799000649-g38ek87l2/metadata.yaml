@@ -1,0 +1,50 @@
+id: changeset-1795799000649-g38ek87l2
+name: cli010-v2b-verdicts
+description: |-
+  changeset_verify never reports a pass for something it didn't check (#1383, #1307, #1346).
+
+  **In scope:**
+  - `checkDescriptionOnlyPlan` (#1383): a plan that only changes descriptions checks that each element's source files changed in the range and its referenced symbols still exist; otherwise the verdict says "not checked: the plan changes only descriptions".
+  - Already-applied plans (#1307): a planned add already in the base unchanged is matched against the as-built changeset's new elements and source references, not against itself; unmatched it is unverifiable and `verdictText` says the plan was applied before the build. `changeset_adopt_source_references` counts planned elements with no source reference anywhere (`unreferenced`) with a next step.
+  - `narrowVerifyReport` (#1346): `ids`/`layers` compute the verdict and counts over the subset, with `wholePlan` totals beside them.
+
+  **Done when:** the three behaviours are covered by tests and the verify docs and tool descriptions say so.
+created: 2026-11-27T17:03:20.691Z
+modified: 2026-11-28T12:51:24.937Z
+status: committed
+baseSnapshot: v2:sha256:db1ad3fcfa4654d521ec8d78a2b4dd901cf52a13dcadf4c6e6a874a360dad97b
+origin:
+  kind: plan
+purpose: plan
+stats:
+  additions: 8
+  modifications: 0
+  deletions: 2
+lastSequence: 12
+unstaged:
+  - sequence: 3
+    removedAt: 5
+    change:
+      type: relationship-add
+      elementId: application.applicationfunction.check-description-only-plan::realizes::application.applicationservice.changeset-verify-handler
+      layerName: application
+      after:
+        source: application.applicationfunction.check-description-only-plan
+        target: application.applicationservice.changeset-verify-handler
+        predicate: realizes
+        layer: application
+        category: structural
+      timestamp: 2026-11-27T17:03:29.451Z
+  - sequence: 4
+    removedAt: 5
+    change:
+      type: relationship-add
+      elementId: application.applicationfunction.narrow-verify-report::realizes::application.applicationservice.changeset-verify-handler
+      layerName: application
+      after:
+        source: application.applicationfunction.narrow-verify-report
+        target: application.applicationservice.changeset-verify-handler
+        predicate: realizes
+        layer: application
+        category: structural
+      timestamp: 2026-11-27T17:03:29.451Z

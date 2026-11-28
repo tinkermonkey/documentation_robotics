@@ -99,10 +99,17 @@ const inputSchema = {
     .array(z.string())
     .optional()
     .describe(
-      "With sections: only the items touching elements in these layers (canonical layer names): a match by its " +
-        "planned or built element, a relationship by either end. Combines with ids (either keeps an item)."
+      "Only the items touching elements in these layers (canonical layer names): a match by its " +
+        "planned or built element, a relationship by either end. Combines with ids (either keeps an item). The verdict and " +
+        "counts are computed over those items, with the whole plan's in wholePlan (subset says what the numbers cover)."
     ),
-  ids: z.array(z.string()).optional().describe("With sections: only the items touching these element ids."),
+  ids: z
+    .array(z.string())
+    .optional()
+    .describe(
+      "Only the items touching these element ids. The verdict and counts are computed over them (a slice of a big plan reads as " +
+        "complete when its own elements are), with the whole plan's in wholePlan."
+    ),
   limit: z
     .number()
     .int()
@@ -243,6 +250,11 @@ export const changesetVerifyTool: McpToolDefinition<typeof inputSchema> = {
     "lists the unplanned items; matched every match with its notes), narrowed with layers or ids; or detail: \"full\" " +
     "for the whole report (large for a big build). Every list is a page (limit, offset): page.totals gives every list's " +
     `true length, page.nextOffset the next offset (absent on the last page), and more the call for it; without limit a page is smaller than the default when that keeps the answer near ${VERIFY_RESULT_TARGET / 1000} KB (sized says so). ` +
+    "A plan applied before its build (committed, or its adds already in the base unchanged) is said first in verdictText: those " +
+    "elements are not matched with themselves (alreadyInBase) but looked for among the as-built changeset's new elements and source " +
+    "references, and are unverifiable when none names them. A plan that changes only descriptions is never a match: the verdict " +
+    "says \"Not checked\" and descriptionOnly lists what could be checked (source files changed in the range, symbols still in their files). " +
+    "With ids or layers, the verdict and counts cover that subset and wholePlan holds the whole plan's. " +
     "Reads the model fresh from disk, so a commit made outside MCP is seen. Read-only.",
   inputSchema,
   handler: changesetVerifyHandler,

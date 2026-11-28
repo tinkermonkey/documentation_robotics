@@ -57,6 +57,12 @@ export interface ElementMatching {
    * exactly (see Plan.baseElementIds): unchanged elements unrelated to the plan were set aside.
    */
   baseUnknown: boolean;
+  /**
+   * Planned adds whose id is in the built world but not among what the build changed: they were
+   * already in the base (a plan applied before its build). They are not paired with themselves; they
+   * were looked for among the build's changed elements, and are listed here whether or not one was found.
+   */
+  alreadyInBase: Set<string>;
 }
 
 export interface MatchingOptions {
@@ -180,11 +186,18 @@ export function matchPlannedElements(plan: Plan, built: BuiltSide, options: Matc
   const ambiguous = new Map<string, string[]>();
 
   const live = plan.elements.filter((e) => e.op !== "delete");
+  // Against an as-built changeset (what the build changed is known), a planned add that is already in
+  // the base unchanged would match itself: the plan was applied before it was built. That says nothing
+  // about the build, so it is matched among the build's changed elements instead (#1307).
+  const alreadyInBase = new Set<string>();
   for (const planned of live) {
-    if (builtById.has(planned.id)) {
-      claimed.add(planned.id);
-      pairs.set(planned.id, { built: planned.id, match: "exact" });
+    if (!builtById.has(planned.id)) continue;
+    claimed.add(planned.id);
+    if (planned.op === "add" && built.changedElements && !changedIds.has(planned.id)) {
+      alreadyInBase.add(planned.id);
+      continue;
     }
+    pairs.set(planned.id, { built: planned.id, match: "exact" });
   }
   const pending = live.filter((e) => !pairs.has(e.id));
 
@@ -278,7 +291,13 @@ export function matchPlannedElements(plan: Plan, built: BuiltSide, options: Matc
   for (const tier of tiers) {
     for (const planned of pending) {
       if (pairs.has(planned.id)) continue;
-      const candidates = built.elements.filter((c) => !claimed.has(c.id) && tier.test(planned, c) && canBeBuildOf(planned, c));
+      const candidates = built.elements.filter(
+        (c) =>
+          !claimed.has(c.id) &&
+          (!alreadyInBase.has(planned.id) || changedIds.has(c.id)) &&
+          tier.test(planned, c) &&
+          canBeBuildOf(planned, c)
+      );
       if (candidates.length === 0) continue;
       let chosen = candidates;
       if (chosen.length > 1 && changedIds.size > 0) {
@@ -332,7 +351,7 @@ export function matchPlannedElements(plan: Plan, built: BuiltSide, options: Matc
     });
     ambiguous.delete(planned.id);
   }
-  return { pairs, ambiguous, baseUnknown };
+  return { pairs, ambiguous, baseUnknown, alreadyInBase };
 }
 
 /** Elements of this type name the file of a test: a sketch of the test file's tests as a whole. */
