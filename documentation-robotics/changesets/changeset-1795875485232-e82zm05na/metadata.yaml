@@ -1,0 +1,20 @@
+id: changeset-1795875485232-e82zm05na
+name: cli010-d0-rule-docs
+description: |-
+  Record the maintainer's founding rule (2026-11-28, #1492, #1463) in DR's own model: agents interpret everything; deterministic CBM-to-spec mappings are suggestions only.
+
+  **In scope:** `motivation.principle.agents-interpret-everything`, the requirement `extraction-stages-only-what-an-agent-decided` that realizes it, and links to the as-built goal, the existing extraction requirements and the `extraction-to-a-changeset` feature.
+
+  **Done when:** the principle sits beside `a-file-is-a-source-link-not-an-element`. No code changes; #1492 builds the behaviour, and the by-rule requirements and feature are revised then.
+created: 2026-11-28T14:18:05.278Z
+modified: 2026-11-28T14:22:34.806Z
+status: committed
+baseSnapshot: v2:sha256:08a82976728bea8f9f6b3c675771240510fefb3f66c802116b16e88860dc7638
+origin:
+  kind: plan
+purpose: plan
+stats:
+  additions: 7
+  modifications: 0
+  deletions: 0
+lastSequence: 6

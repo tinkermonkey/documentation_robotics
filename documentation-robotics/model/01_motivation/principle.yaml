@@ -143,3 +143,18 @@ motivation.principle.authenticate-every-call-then-trust:
     created_at: 2026-11-21T17:14:10.879Z
     updated_at: 2026-11-21T17:14:10.879Z
     version: 1
+motivation.principle.agents-interpret-everything:
+  id: 86c50d7e-eb75-4136-bf46-7a53be8d2094
+  path: motivation.principle.agents-interpret-everything
+  spec_node_id: motivation.principle
+  type: principle
+  layer_id: motivation
+  name: Agents interpret everything
+  description: DR interprets every input it uses through the configured coding agents. Deterministic mappings from the code graph to the spec are suggestions, never rules.
+  attributes:
+    category: architecture
+    documentation: "DR always interprets everything it uses as input through the configured coding agents (Claude Code, GitHub Copilot). Deterministic mappings from the CBM graph to the DR spec are suggestions: a starting point, a convenience and an efficiency for bootstrapping a model, never rules. Maintainer ruling, 2026-11-28 (#1492, #1463): there can never be a rule on how to interpret a CBM element such as a CommonJS module, or anything to do with Electron; no DR code says 'this has to be modelled this way because this code says how to interpret it'. Tier 0 rules and the Tier 1 decision model give the agent evidence and suggestions on a card; the agent decides, and may accept suggestions in bulk as its own decision. What a tool cannot see or confirm is listed for the agent to check, never counted as missing or drift and never accepted away. Every skill, tool description, CLI output and error message an agent could read as direction reinforces this, and where useful prompts the agent on how to start interpreting. It is a mixed-initiative, suggestion-and-confirm design with the coding agent as the person in the loop. Not yet true of the code: the requirements 'Extraction decisions are made by rule and kept with the model' and 'A rule never silently overrides what Tier 0 decided', and the feature 'Extraction triage by rule', describe by-rule staging that #1492 revises in CLI 0.10.0."
+  metadata:
+    created_at: 2026-11-28T14:18:12.390Z
+    updated_at: 2026-11-28T14:18:12.390Z
+    version: 1

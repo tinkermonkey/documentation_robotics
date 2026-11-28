@@ -1,6 +1,6 @@
 # Intra-layer relationships
 # Format: source_id -> predicate -> target_id
-# Last updated: 2026-11-28T13:37:25.991Z
+# Last updated: 2026-11-28T14:22:34.590Z
 
 - source: motivation.outcome.changes-are-planned-as-changesets
   target: motivation.goal.dr-is-the-spec-for-software-changes
@@ -74915,4 +74915,30 @@
   target: application.applicationservice.annotation-reply-handler
   predicate: realizes
   layer: application
+  category: structural
+- source: motivation.principle.agents-interpret-everything
+  target: motivation.goal.model-stays-as-built
+  predicate: influence
+  layer: motivation
+  category: structural
+- source: motivation.principle.agents-interpret-everything
+  target: motivation.requirement.extraction-decisions-are-made-by-rule-and-kept-with-the-model
+  predicate: influence
+  layer: motivation
+  category: structural
+- source: motivation.principle.agents-interpret-everything
+  target: motivation.requirement.extraction-offers-only-reported-declarations-as-candidates
+  predicate: influence
+  layer: motivation
+  category: structural
+- source: motivation.requirement.extraction-stages-only-what-an-agent-decided
+  target: motivation.principle.agents-interpret-everything
+  predicate: realizes
+  layer: motivation
+  category: structural
+- source: product.feature.extraction-to-a-changeset
+  target: motivation.requirement.extraction-stages-only-what-an-agent-decided
+  predicate: satisfies
+  layer: product
+  targetLayer: motivation
   category: structural

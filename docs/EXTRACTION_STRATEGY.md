@@ -5,6 +5,20 @@ the reference for _why_ the eval harness, the spec enrichment pass, and the
 decision-model cascade exist, and in what order they are meant to land. Update it when
 a phase completes or the plan changes.
 
+## The rule this plan serves (2026-11-28)
+
+**DR always interprets everything it uses as input through the configured coding agents** (Claude Code, GitHub Copilot). The CBM graph, how the code is used and the spec's patterns are raw material for the agent to read. A deterministic mapping from CBM to the DR spec is a **suggestion**: a starting point and a convenience for bootstrapping a model, never a rule. No DR code says "this must be modelled this way because this code says so", and there is no rule for how to read a CommonJS module, an Electron handler or any other framework. The source is [#1492](https://github.com/tinkermonkey/documentation_robotics/issues/1492); the short form for contributors is "Founding rule" in [CLAUDE.md](../CLAUDE.md), and the model carries it as `motivation.principle.agents-interpret-everything`.
+
+This follows the suggestion-and-confirm pattern of mixed-initiative interfaces (Horvitz, "Principles of Mixed-Initiative User Interfaces", CHI 1999: weigh the cost of a wrong guess, and use dialog to resolve uncertainty rather than act on it) and the human-in-the-loop designs that grew from it, with the coding agent in the place of the person at the keyboard. The tools gather and rank evidence; the agent, which can read the code and the spec side by side, decides.
+
+What this means for the pieces below:
+
+- **Tier 0 rules** produce a suggestion on the card (an element type, "not an element" or a narrower set of types) with the rule that made it, as evidence the agent can weigh.
+- **Tier 1, the decision model**, produces its answer and confidence as a suggestion on the card. Its calibration measures how good a suggestion is, not whether it may act alone.
+- **The agent** decides each card, and may accept suggestions in bulk as its own decision. Project rules the agent records with `decide` and `keep: true` are its interpretation, re-applied and listed on every run so it can re-check them.
+
+**Where the code does not follow this yet.** Today Tier 0 `decide` and `reject` stage or drop cards without the agent, Tier 1 hide mode hides the not-element band, stage mode can stage the accept band, and some relationships, `tests` links, routes and candidate deletes are staged from evidence. Several sections below describe those as they were measured and built. That is the state of the code, not the intent: [#1492](https://github.com/tinkermonkey/documentation_robotics/issues/1492) changes all of it in CLI 0.10.0, so that a bootstrap or `since` extraction stages nothing an agent did not decide. The House gate "Tier 1 accept band staged" was decided on 2026-11-28 as never.
+
 ## Where the project stood on 2026-10-24
 
 - CLI 0.2.0, spec 0.10.0, `main` at `749a455e`.

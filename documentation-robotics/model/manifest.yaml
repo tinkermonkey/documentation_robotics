@@ -3,7 +3,7 @@ schema: documentation-robotics-v1
 cli_version: 0.9.0
 spec_version: 0.16.0
 created: 2026-02-20T15:28:17.945Z
-updated: 2026-11-28T14:11:55.365Z
+updated: 2026-11-28T14:22:34.806Z
 project:
   name: dr-codebase
   description: ""
@@ -20,8 +20,8 @@ layers:
       constraint: 2
       goal: 3
       outcome: 6
-      principle: 10
-      requirement: 34
+      principle: 11
+      requirement: 35
   business:
     order: 2
     name: Business
@@ -275,6 +275,9 @@ changeset_history:
     action: committed
   - name: cli010-k1-tests-links
     committed_at: 2026-11-28T14:11:55.337Z
+    action: committed
+  - name: cli010-d0-rule-docs
+    committed_at: 2026-11-28T14:22:34.805Z
     action: committed
 reconciled:
   changeset: extract-723c609..5b32f88

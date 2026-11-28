@@ -3,6 +3,14 @@
 _The design for using a DR changeset as the spec for a change. The vision and the reasons are in
 [VISION.md](VISION.md); this document is the working design for the tools. Update it as tools land._
 
+## The rule this design serves (2026-11-28)
+
+**DR always interprets everything it uses as input through the configured coding agents.** A changeset is the spec for a change, and the as-built changeset that `codebase_extract` stages is a record of what the agent decided the code shows. Deterministic mappings from the codebase-memory (CBM) graph to the DR spec are **suggestions, never rules**: Tier 0 rules and the Tier 1 decision model give the agent evidence and suggestions on a card, and the agent decides ([#1492](https://github.com/tinkermonkey/documentation_robotics/issues/1492); [CLAUDE.md](../CLAUDE.md), "Founding rule"). What `codebase_verify` and `changeset_verify` cannot see or confirm is listed for the agent to check, not counted as missing or drift.
+
+This follows the suggestion-and-confirm pattern of mixed-initiative interfaces (Horvitz, "Principles of Mixed-Initiative User Interfaces", CHI 1999: weigh the cost of a wrong guess, and use dialog to resolve uncertainty rather than act on it) and the human-in-the-loop designs that grew from it, with the coding agent in the place of the person at the keyboard. The tools gather and rank evidence; the agent, which can read the code and the spec side by side, decides.
+
+**Where the code does not follow this yet.** The sections on [what `codebase_extract` stages](#what-codebase_extract-stages), Tier 1 stage mode and hide mode, and the relationships, routes, `tests` links and deletes staged from evidence describe the code as it is: it stages some of those without the agent. [#1492](https://github.com/tinkermonkey/documentation_robotics/issues/1492) changes this in CLI 0.10.0, so that an extraction stages only what an agent decided. Until it lands, read those sections as the current behaviour, not as the intent.
+
 ## The loop
 
 ```text
@@ -1417,39 +1425,6 @@ Comments left in the viewer and the agent's `annotation_*` calls use the same fi
 server watches the folder and broadcasts changes the agent makes (`annotation.added`, and so on), and
 annotations survive a restart. The viewer accepts a comment on an element in the model or on one a
 staged changeset adds.
-
-### Annotations staged in a changeset
-
-While a changeset is active, `annotation_create` stages the annotation in it instead of writing the
-base model's `annotations/` folder; `annotation_create` also takes `changeset` (ID or name) to stage
-in a changeset that is not active. With no changeset active it writes to the base, as before.
-
-A staged annotation is a file in the changeset's own folder, in the same format as the base's:
-
-```
-documentation-robotics/changesets/<id>/
-├── metadata.yaml
-├── changes.yaml
-└── annotations/            # optional: absent in a changeset made before staged annotations
-    └── <annotation-id>.yaml    # id, elementId, author, content, createdAt, tags, resolved, replies[]
-```
-
-- `annotation_get`, `annotation_update`, `annotation_reply` and `annotation_delete` look in the
-  active (or named) changeset's `annotations/` first, then the base; a reply or update to a staged
-  annotation is written to the staged file, so it stays staged. `annotation_list` returns the
-  base's annotations and the changeset's, each staged one marked `staged: { changeset }`.
-- `changeset_brief` lists each staged annotation in `feedback` with `staged: true` (it need not be on
-  a changed element), and the landing summary of `changeset_commit_preview` / `changeset_commit`
-  gives an `Annotations:` line naming them. `filesToCommit` adds `documentation-robotics/annotations`
-  when any landed.
-- Landing writes each staged annotation to `documentation-robotics/annotations/` (an id already
-  there is left alone) after the model changes have landed; a failure there is a warning
-  (`annotationsWarning`), not "not landed", and the staged copies stay in the changeset's folder as
-  the plan's record. Discarding the changeset deletes its folder, annotations included.
-- A changeset with no `annotations/` folder (every changeset made before this) reads as having none.
-  A plan that stages annotations and no model changes still has nothing to land.
-- The viewer's REST routes (`/api/annotations`) still read and write the base's folder only; showing
-  staged annotations there is a viewer-side change.
 
 ## Known limits
 

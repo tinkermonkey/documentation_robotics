@@ -7,6 +7,21 @@ exist, where each one lives, what it reads and writes, and which decisions are s
 [CBM_MAPPING_INVENTORY.md](CBM_MAPPING_INVENTORY.md) is the companion list of what the mapping
 covers.
 
+## The rule this design serves (2026-11-28)
+
+**DR always interprets everything it uses as input through the configured coding agents.** In this pipeline that means every tier produces **suggestions and evidence on a card**; the coding agent reads the card and decides. Deterministic mappings from CBM to the spec are a starting point and an efficiency, never rules ([#1492](https://github.com/tinkermonkey/documentation_robotics/issues/1492); [CLAUDE.md](../../CLAUDE.md), "Founding rule").
+
+This follows the suggestion-and-confirm pattern of mixed-initiative interfaces (Horvitz, "Principles of Mixed-Initiative User Interfaces", CHI 1999: weigh the cost of a wrong guess, and use dialog to resolve uncertainty rather than act on it) and the human-in-the-loop designs that grew from it, with the coding agent in the place of the person at the keyboard. The tools gather and rank evidence; the agent, which can read the code and the spec side by side, decides.
+
+Read the rest of this document with that in mind (the bullets say what the rule requires, not what the code does yet):
+
+- Tier 0 "decides", "rejects" and "narrows" below are the rule's **suggestion** (with the rule named on the card), not an outcome.
+- Tier 1's probabilities and bands are a **suggestion with a confidence**. Cards in the "accept" band are suggested, not staged; cards in the "not an element" band are suggested as such, not dropped or hidden.
+- Tier 2, the calling agent, is not a fallback for what the other tiers could not settle: it is the decision-maker for every card.
+- Edges mapped from `edge-mapping.json` are suggested relationships.
+
+**Where the code does not follow this yet.** As built, Tier 0 stages its decisions and rejects without the agent, Tier 1 can hide its not-element band, stage mode can stage its accept band, and edges from `edge-mapping.json` are staged as relationships. That breaks the rule, and [#1492](https://github.com/tinkermonkey/documentation_robotics/issues/1492) changes it in CLI 0.10.0. The text below describes the pipeline as built and measured; where it says a tier "stages" or "drops", read the target as "suggests".
+
 ## The pipeline in one paragraph
 
 `dr analyzer classify` reads the codebase-memory-mcp (CBM) graph, builds one _card_ per
