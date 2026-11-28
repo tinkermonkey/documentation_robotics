@@ -58,6 +58,20 @@ export function intentArg(args: { intent?: string; description?: string }): stri
   return args.intent ?? args.description;
 }
 
+/**
+ * `dependsOn` on changeset_create and changeset_update (#1292): staged changesets this one builds
+ * on. Their staged elements resolve as targets for its writes and reads, and it lands only after
+ * they have (or after them in the same changeset_commit call).
+ */
+export const dependsOnField = z
+  .array(z.string().min(1))
+  .optional()
+  .describe(
+    "Staged changesets (IDs or names) this one builds on. Their staged elements resolve as targets for model_add " +
+      "and relationship_add and in every read, as if landed; this one lands only after they have, or after them " +
+      "in the same changeset_commit call. On changeset_update it replaces the list; [] clears it."
+  );
+
 export interface ChangesetArgOptions {
   /** Refuse the call when neither name is given. */
   required?: boolean;

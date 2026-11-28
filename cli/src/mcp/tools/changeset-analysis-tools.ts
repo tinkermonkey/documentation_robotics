@@ -24,6 +24,10 @@ import {
   SECTIONS_TARGET_BYTES,
 } from "../../core/changeset-brief-compact.js";
 import { describeDrift } from "../../core/changeset-base-index.js";
+import { computeChangesetOverlaps } from "../../core/changeset-overlaps.js";
+import { StagingAreaManager } from "../../core/staging-area.js";
+import type { Changeset } from "../../core/changeset.js";
+import { CLIError, ErrorCategory } from "../../utils/errors.js";
 import { getErrorMessage } from "../../utils/errors.js";
 import { reviewForAgent } from "../../core/changeset-review.js";
 import { nextPageCall } from "../../core/paging.js";
@@ -498,4 +502,95 @@ export const changesetBriefTool: McpToolDefinition<typeof briefInputSchema> = {
     "reviewer has given verdicts in the viewer, review lists them (keep / drop / ask per change sequence, with notes).",
   inputSchema: briefInputSchema,
   handler: changesetBriefHandler,
+};
+
+// ---------------------------------------------------------------------------
+// changeset_overlaps
+// ---------------------------------------------------------------------------
+
+/**
+ * Its own tool, not a `with` on changeset_impact (#1209): impact walks outward from one changeset
+ * through the model, while this compares any number of changesets with each other and answers a
+ * different question (which changes meet, in what order they can land), and the landing summary of
+ * several changesets uses the same comparison.
+ */
+const overlapsInputSchema = {
+  changesets: z
+    .array(z.string().min(1))
+    .min(2)
+    .optional()
+    .describe("Staged changesets (IDs or names) to compare with each other, in the order to consider them. Default: every staged plan."),
+  limit: z
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .describe("How many overlaps to list (default all), conflicts first. A page size: counts are whole."),
+  offset: z.number().int().min(0).optional().describe("Where in the list to start; pass page.nextOffset to go on."),
+  rootPath: rootPathSchema,
+};
+
+export type ChangesetOverlapsArgs = z.infer<z.ZodObject<typeof overlapsInputSchema>>;
+
+export async function changesetOverlapsHandler(args: ChangesetOverlapsArgs): Promise<CallToolResult> {
+  return runTool(async () => {
+    const model = await loadModel(args.rootPath);
+    const manager = new StagingAreaManager(model.rootPath, model);
+    const loaded: Changeset[] = [];
+    if (args.changesets?.length) {
+      for (const ref of new Set(args.changesets)) {
+        const found = await manager.load(ref);
+        if (!found) throw new CLIError(`Changeset ${ref} not found`, ErrorCategory.NOT_FOUND, ['Use "changeset_list" to see the staged changesets']);
+        if (found.status !== "staged") throw new CLIError(`Changeset '${found.name}' is ${found.status}: only staged changesets can overlap`, ErrorCategory.USER);
+        if (!loaded.some((c) => c.id === found.id)) loaded.push(found);
+      }
+    } else {
+      for (const cs of await manager.list()) {
+        if (cs.status !== "staged") continue;
+        // Plans only: a verification record or an upgrade record never lands.
+        if ((await manager.landingRefusal(cs)) === null) loaded.push(cs);
+      }
+    }
+    if (loaded.length < 2) {
+      return jsonResult({
+        changesets: loaded.map((c) => ({ id: c.id, name: c.name })),
+        message: loaded.length === 1 ? `Only '${loaded[0].name}' is staged: nothing to compare it with.` : "No changesets are staged.",
+      });
+    }
+    const report = computeChangesetOverlaps(loaded, { limit: args.limit, offset: args.offset });
+    const offset = args.offset ?? 0;
+    const returned = report.overlaps.length;
+    const total = report.counts.total;
+    const nextOffset = offset + returned < total ? offset + returned : undefined;
+    return jsonResult(
+      {
+        ...report,
+        page: { total, returned, offset, ...(nextOffset !== undefined ? { nextOffset } : {}) },
+        ...(nextOffset !== undefined
+          ? { more: `${returned} of ${total} overlaps listed: changeset_overlaps with offset: ${nextOffset}${args.limit ? `, limit: ${args.limit}` : ""} lists the rest.` }
+          : {}),
+        next:
+          report.counts.bySeverity.conflict > 0
+            ? "Conflicts are changes that cannot both land as they are. Nothing is merged for you: decide each (combined shows what one change would carry), restage it in one changeset, unstage it from the other, then land in suggestedOrder."
+            : "Land them with changeset_commit and changesets: [...] in suggestedOrder.",
+      },
+      { compact: true }
+    );
+  });
+}
+
+export const changesetOverlapsTool: McpToolDefinition<typeof overlapsInputSchema> = {
+  name: "changeset_overlaps",
+  description:
+    "Compare staged changesets with each other before landing any of them. Lists each element or link that two of " +
+    "them both change, with the reasons the drift report uses (already-in-base, changed-in-base, removed-in-base, " +
+    "linked-in-base, endpoint-removed-in-base ...) read as: the later one landing over the earlier. It includes links " +
+    "that end on an element another changeset changes, and full-element updates of one element, which would silently " +
+    "replace each other's text: those are conflicts, with a combined entry saying which fields each changed and what one " +
+    "update carrying both would need. Each overlap has a severity (conflict: cannot both land as they are; ordered; " +
+    "agrees; info). It suggests a landing order (dependsOn, an element's adder before what links to it, a delete last). " +
+    "It never merges anything: the agent decides. The counts are whole; limit and offset page the list, conflicts first. " +
+    "Default: every staged plan; changesets names some.",
+  inputSchema: overlapsInputSchema,
+  handler: changesetOverlapsHandler,
 };

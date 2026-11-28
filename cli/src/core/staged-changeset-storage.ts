@@ -107,6 +107,8 @@ export interface StagedSummary {
   name: string;
   description?: string;
   purpose?: string;
+  /** The ids of the staged changesets it depends on (#1292). */
+  dependsOn?: string[];
 }
 
 export function readMetadataStatus(text: string): string | null {
@@ -323,6 +325,10 @@ export class StagedChangesetStorage {
       const origin = readOrigin(metadata.origin);
       if (origin) data.origin = origin;
       Object.assign(data, purposeFields(readPurpose(metadata)));
+      if (Array.isArray(metadata.dependsOn)) {
+        const dependsOn = metadata.dependsOn.filter((d: unknown): d is string => typeof d === "string" && d.length > 0);
+        if (dependsOn.length > 0) data.dependsOn = dependsOn;
+      }
       data.review = await this.readReviewFile(changesetPath);
 
       return Changeset.fromJSON(data);
@@ -377,6 +383,7 @@ export class StagedChangesetStorage {
       ...(changeset.purpose
         ? purposeFields({ purpose: changeset.purpose, verifies: changeset.verifies, scope: changeset.scope })
         : {}),
+      ...(changeset.dependsOn?.length ? { dependsOn: changeset.dependsOn } : {}),
       stats: changeset.stats || { additions: 0, modifications: 0, deletions: 0 },
       // Sequence bookkeeping (see nextSequenceNumber); absent on changesets never unstaged from.
       ...(lastSequence !== undefined ? { lastSequence } : {}),
@@ -450,6 +457,9 @@ export class StagedChangesetStorage {
           name: typeof meta.name === "string" ? meta.name : id,
           ...(typeof meta.description === "string" && meta.description.trim() ? { description: meta.description } : {}),
           ...(typeof meta.purpose === "string" ? { purpose: meta.purpose } : {}),
+          ...(Array.isArray(meta.dependsOn) && meta.dependsOn.some((d) => typeof d === "string")
+            ? { dependsOn: meta.dependsOn.filter((d): d is string => typeof d === "string") }
+            : {}),
         });
       } catch (error) {
         unreadable.push(`${id}: ${getErrorMessage(error)}`);
@@ -932,6 +942,25 @@ export class StagedChangesetStorage {
       changeset.purpose = declaration.purpose;
       changeset.verifies = declaration.verifies;
       changeset.scope = declaration.scope;
+      await this.save(changeset);
+      return changeset;
+    });
+  }
+
+  /**
+   * Set the ids of the staged changesets this one depends on (#1292), replacing any set before,
+   * under the changeset's file lock. An empty list clears it.
+   */
+  async setDependsOn(id: string, dependsOn: string[]): Promise<Changeset> {
+    const lock = new FileLock(this.getChangesetPath(id));
+    return lock.withLock(async () => {
+      const changeset = await this.load(id);
+      if (!changeset) {
+        throw new Error(`Changeset '${id}' not found`);
+      }
+      if (dependsOn.length > 0) changeset.dependsOn = [...dependsOn];
+      else delete changeset.dependsOn;
+      changeset.updateModified();
       await this.save(changeset);
       return changeset;
     });

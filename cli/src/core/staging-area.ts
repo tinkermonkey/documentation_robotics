@@ -12,6 +12,7 @@ import path from "path";
 import { rm } from "fs/promises";
 import ansis from "ansis";
 import { StagedChangesetStorage } from "./staged-changeset-storage.js";
+import { resolveDependsOn, stagedDependentsOf, unlandedDependencies } from "./changeset-dependencies.js";
 import {
   clearActiveMarker,
   clearLandedNote,
@@ -301,6 +302,55 @@ export class StagingAreaManager {
       this.projectionEngine = new VirtualProjectionEngine(this.rootPath);
     }
     return this.projectionEngine;
+  }
+
+  /**
+   * Declares which staged changesets this one builds on (#1292), replacing any declared before. Each
+   * is read by id or name; one that is not a staged changeset, is this one, or would make the two
+   * wait for each other is refused with why. An empty list clears it.
+   */
+  async declareDependsOn(nameOrId: string, refs: string[]): Promise<Changeset> {
+    const changeset = await this.load(nameOrId);
+    if (!changeset) throw new Error(`Changeset '${nameOrId}' not found`);
+    if (changeset.status !== "staged") {
+      throw new Error(`Changeset '${changeset.name}' is ${changeset.status}; only a staged changeset can depend on another`);
+    }
+    const { ids, problems } = await resolveDependsOn(this.storage, (ref) => this.load(ref), changeset.id, refs, async (found) => {
+      // A record (verification, upgrade) never lands, so nothing could wait for it.
+      const refusal = await this.landingRefusal(found);
+      return refusal ? `'${found.name}' is a record that never lands, so nothing can depend on it` : null;
+    });
+    if (problems.length > 0) throw new Error(`dependsOn refused: ${problems.join("; ")}`);
+    return this.storage.setDependsOn(changeset.id, ids);
+  }
+
+  /** Staged changesets that name `changesetId` in their dependsOn (#1292). */
+  async dependentsOf(changesetId: string): Promise<Array<{ id: string; name: string }>> {
+    return stagedDependentsOf(this.storage, changesetId);
+  }
+
+  /**
+   * The refusal for landing a changeset whose dependencies have not landed (#1292): one still
+   * staged, or gone. `landsFirst` names dependencies the same call has landed before it.
+   */
+  async dependencyRefusal(changeset: Changeset, landsFirst: ReadonlySet<string> = new Set()): Promise<Error | null> {
+    const { staged, missing } = await unlandedDependencies(this.storage, changeset, landsFirst);
+    if (staged.length === 0 && missing.length === 0) return null;
+    const parts = [
+      ...(staged.length > 0
+        ? [`${staged.map((d) => `'${d.name}'`).join(", ")} ${staged.length === 1 ? "has" : "have"} not landed`]
+        : []),
+      ...missing.map((m) => `'${m.id}' (needed by '${m.requiredBy}') is not usable: ${m.reason}`),
+    ];
+    return new CLIError(
+      `Changeset '${changeset.name}' depends on other changesets that have not landed: ${parts.join("; ")}.`,
+      ErrorCategory.USER,
+      [
+        staged.length > 0
+          ? `Land ${staged.map((d) => `'${d.name}'`).join(", ")} first, or in the same changeset_commit call before it: changesets: [${[...staged.map((d) => `"${d.name}"`), `"${changeset.name}"`].join(", ")}]`
+          : 'Use "changeset_update" with dependsOn to point it at a changeset that exists, or clear it',
+      ]
+    );
   }
 
   /**
@@ -1114,6 +1164,10 @@ export class StagingAreaManager {
         });
         throw refusal;
       }
+
+      // A changeset that builds on others lands after them (#1292); a dry run says so too.
+      const dependencyRefusal = await this.dependencyRefusal(changeset);
+      if (dependencyRefusal) throw dependencyRefusal;
 
       const isDryRun = options.dryRun === true;
       const shouldValidate = options.validate !== false;

@@ -1,6 +1,6 @@
 # Intra-layer relationships
 # Format: source_id -> predicate -> target_id
-# Last updated: 2026-11-28T13:37:25.991Z
+# Last updated: 2026-11-28T14:11:57.258Z
 
 - source: motivation.outcome.changes-are-planned-as-changesets
   target: motivation.goal.dr-is-the-spec-for-software-changes
@@ -74914,5 +74914,25 @@
 - source: application.applicationfunction.find-annotation
   target: application.applicationservice.annotation-reply-handler
   predicate: realizes
+  layer: application
+  category: structural
+- source: application.applicationfunction.compute-changeset-overlaps
+  target: application.applicationservice.changeset-overlaps-handler
+  predicate: realizes
+  layer: application
+  category: structural
+- source: application.applicationfunction.overlaps-for-landing
+  target: application.applicationfunction.compute-changeset-overlaps
+  predicate: depends-on
+  layer: application
+  category: structural
+- source: application.applicationfunction.assert-dependencies-in-order
+  target: application.applicationfunction.unlanded-dependencies
+  predicate: depends-on
+  layer: application
+  category: structural
+- source: application.applicationfunction.unlanded-dependencies
+  target: application.applicationfunction.load-dependency-chain
+  predicate: depends-on
   layer: application
   category: structural

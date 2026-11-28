@@ -51,6 +51,7 @@ export const DR_MCP_READ_TOOLS: readonly string[] = Object.freeze([
   "changeset_list",
   "changeset_show",
   "changeset_impact",
+  "changeset_overlaps",
   "changeset_brief",
   "changeset_verify",
   "spec_type",

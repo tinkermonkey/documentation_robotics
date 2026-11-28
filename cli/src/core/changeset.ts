@@ -230,6 +230,11 @@ export interface StagedChangesetData {
   verifies?: string;
   /** For a verification record: what its extraction read. */
   scope?: VerificationScope;
+  /**
+   * Ids of the staged changesets this one builds on (#1292). Their staged elements and links resolve
+   * as if landed, for writes and reads; this changeset lands only after they have.
+   */
+  dependsOn?: string[];
   /** The reviewer's verdicts, read from review.yaml (never written by save; see updateReview). */
   review?: ChangesetReview;
   stats?: {
@@ -271,6 +276,8 @@ export class Changeset {
   verifies?: string;
   /** For a verification record: what its extraction read. */
   scope?: VerificationScope;
+  /** Ids of the staged changesets this one builds on (#1292); see StagedChangesetData.dependsOn. */
+  dependsOn?: string[];
   /**
    * The reviewer's verdicts as read from review.yaml when the changeset was loaded. Read-only here:
    * `save` never writes it; StagedChangesetStorage.updateReview does, under the changeset's lock.
@@ -329,6 +336,7 @@ export class Changeset {
     if (data.purpose) this.purpose = data.purpose;
     if (data.verifies) this.verifies = data.verifies;
     if (data.scope) this.scope = data.scope;
+    if (Array.isArray(data.dependsOn) && data.dependsOn.length > 0) this.dependsOn = [...data.dependsOn];
     if (data.review) this.review = data.review;
     // Note: Stats are computed from changes array via getter; ignore any stored stats
   }
@@ -485,6 +493,7 @@ export class Changeset {
       ...(this.purpose ? { purpose: this.purpose } : {}),
       ...(this.verifies ? { verifies: this.verifies } : {}),
       ...(this.scope ? { scope: this.scope } : {}),
+      ...(this.dependsOn?.length ? { dependsOn: this.dependsOn } : {}),
     };
   }
 

@@ -29076,3 +29076,139 @@ application.applicationfunction.find-annotation:
     created_at: 2026-11-28T13:28:28.302Z
     updated_at: 2026-11-28T13:28:28.302Z
     version: 1
+application.applicationfunction.compute-changeset-overlaps:
+  id: c1860710-4df6-4aa7-92c2-9399d14f1524
+  path: application.applicationfunction.compute-changeset-overlaps
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: computeChangesetOverlaps
+  description: "Compares staged changesets pairwise: each element or link two both change, with the drift report's reasons read as the later landing over the earlier, a severity, what a combined change needs, and a suggested landing order. Merges nothing."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/changeset-overlaps.ts
+        symbol: computeChangesetOverlaps
+  metadata:
+    created_at: 2026-11-28T13:33:42.094Z
+    updated_at: 2026-11-28T13:33:42.094Z
+    version: 1
+application.applicationfunction.load-dependency-chain:
+  id: 3d1110f2-4644-436d-ab89-608a80ed4e6e
+  path: application.applicationfunction.load-dependency-chain
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: loadDependencyChain
+  description: Reads the staged changesets a changeset depends on, transitively, dependencies first; names dependencies that are gone or no longer staged.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/changeset-dependencies.ts
+        symbol: loadDependencyChain
+  metadata:
+    created_at: 2026-11-28T13:33:42.094Z
+    updated_at: 2026-11-28T13:33:42.094Z
+    version: 1
+application.applicationfunction.resolve-depends-on:
+  id: 6a02271b-88ce-4bd6-9431-b1a84dea7575
+  path: application.applicationfunction.resolve-depends-on
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: resolveDependsOn
+  description: "Checks a dependsOn declaration: each must be a staged changeset other than itself, and none may lead back to it."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/changeset-dependencies.ts
+        symbol: resolveDependsOn
+  metadata:
+    created_at: 2026-11-28T13:33:42.094Z
+    updated_at: 2026-11-28T13:33:42.094Z
+    version: 1
+application.applicationfunction.unlanded-dependencies:
+  id: 9986fcb5-1466-4df9-8a79-e07600b40d15
+  path: application.applicationfunction.unlanded-dependencies
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: unlandedDependencies
+  description: The dependencies of a changeset that have not landed, so it cannot yet; a dependency landed first in the same call does not count.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/changeset-dependencies.ts
+        symbol: unlandedDependencies
+  metadata:
+    created_at: 2026-11-28T13:33:42.094Z
+    updated_at: 2026-11-28T13:33:42.094Z
+    version: 1
+application.applicationfunction.assert-dependencies-in-order:
+  id: e3068f1e-ee29-4288-ace9-a1c7e2c7f485
+  path: application.applicationfunction.assert-dependencies-in-order
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: assertDependenciesInOrder
+  description: Refuses a changeset_commit call that lands a changeset before a dependency, before anything lands.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/changeset-landing-check.ts
+        symbol: assertDependenciesInOrder
+  metadata:
+    created_at: 2026-11-28T13:33:42.094Z
+    updated_at: 2026-11-28T13:33:42.094Z
+    version: 1
+application.applicationfunction.overlaps-for-landing:
+  id: e9af0dbc-7975-4103-b955-4c0c1867b36c
+  path: application.applicationfunction.overlaps-for-landing
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: overlapsForLanding
+  description: How the changesets one changeset_commit call lands overlap each other, from the same comparison as changeset_overlaps.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/changeset-landing-check.ts
+        symbol: overlapsForLanding
+  metadata:
+    created_at: 2026-11-28T13:33:42.094Z
+    updated_at: 2026-11-28T13:33:42.094Z
+    version: 1
+application.applicationfunction.changes-with-dependencies:
+  id: 4d03fd9d-9c6f-4d25-9281-680ec416df13
+  path: application.applicationfunction.changes-with-dependencies
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: changesWithDependencies
+  description: A changeset's staged changes with those of the changesets it depends on applied first, each in its own order.
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/core/changeset-dependencies.ts
+        symbol: changesWithDependencies
+  metadata:
+    created_at: 2026-11-28T13:34:58.497Z
+    updated_at: 2026-11-28T13:34:58.497Z
+    version: 1
+application.applicationfunction.staged-dependents-of:
+  id: 541dc3c3-6e63-49b2-8a87-b92cd312058e
+  path: application.applicationfunction.staged-dependents-of
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: stagedDependentsOf
+  description: The staged changesets that name a changeset in their dependsOn, read from metadata alone; discarding it warns about them.
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/core/changeset-dependencies.ts
+        symbol: stagedDependentsOf
+  metadata:
+    created_at: 2026-11-28T13:34:58.497Z
+    updated_at: 2026-11-28T13:34:58.497Z
+    version: 1

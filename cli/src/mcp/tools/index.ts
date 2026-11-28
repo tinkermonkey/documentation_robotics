@@ -19,7 +19,7 @@ export { modelReloadTool } from "./model-reload.js";
 export { changesetListTool } from "./changeset-list.js";
 export { changesetShowTool } from "./changeset-show.js";
 export { changesetCreateTool, changesetActivateTool, changesetDeactivateTool } from "./changeset-lifecycle.js";
-export { changesetImpactTool, changesetBriefTool } from "./changeset-analysis-tools.js";
+export { changesetImpactTool, changesetBriefTool, changesetOverlapsTool } from "./changeset-analysis-tools.js";
 export { relationshipAddTool, relationshipDeleteTool } from "./relationship-tools.js";
 export { specTypeTool } from "./spec-type.js";
 export { chatStatusTool } from "./chat-status.js";
