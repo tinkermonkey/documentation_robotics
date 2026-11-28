@@ -27,6 +27,41 @@ const plan = (...elements: VerifyElement[]): Plan => ({
 });
 const built = (...elements: VerifyElement[]): BuiltSide => ({ label: "b", kind: "changeset", elements, relationships: [], changedElements: elements, notes: [] });
 
+describe("matchPlannedElements, a planned test file sketch (#1364)", () => {
+  const sketch = (id: string, file: string, symbol?: string) => el(id, { file, symbol });
+  it("pairs a sketch that names a test file with the per-test sketches built in it, as a group", () => {
+    const tests = [
+      sketch("testing.testcasesketch.a-loads", "t.test.ts", "suite > loads"),
+      sketch("testing.testcasesketch.b-saves", "t.test.ts", "suite > saves"),
+      sketch("testing.testcasesketch.c-other", "u.test.ts", "suite > other"),
+    ];
+    const { pairs, ambiguous } = matchPlannedElements(plan(sketch("testing.testcasesketch.suite", "t.test.ts")), built(...tests));
+    expect(pairs.get("testing.testcasesketch.suite")).toMatchObject({
+      match: "probable",
+      group: ["testing.testcasesketch.a-loads", "testing.testcasesketch.b-saves"],
+    });
+    expect(ambiguous.has("testing.testcasesketch.suite")).toBe(false);
+  });
+
+  it("leaves a sketch that names a symbol, or one test only, to the other tiers", () => {
+    const one = matchPlannedElements(plan(sketch("testing.testcasesketch.suite", "t.test.ts")), built(sketch("testing.testcasesketch.a", "t.test.ts", "suite > a")));
+    expect(one.pairs.get("testing.testcasesketch.suite")?.group).toBeUndefined();
+    const named = matchPlannedElements(
+      plan(sketch("testing.testcasesketch.suite", "t.test.ts", "suite > gone")),
+      built(sketch("testing.testcasesketch.a", "t.test.ts", "suite > a"), sketch("testing.testcasesketch.b", "t.test.ts", "suite > b"))
+    );
+    expect(named.pairs.get("testing.testcasesketch.suite")?.group).toBeUndefined();
+  });
+
+  it("does not group other element types", () => {
+    const { pairs } = matchPlannedElements(
+      plan(sketch("api.operation.all", "r.ts")),
+      built(sketch("api.operation.a", "r.ts", "a"), sketch("api.operation.b", "r.ts", "b"))
+    );
+    expect(pairs.get("api.operation.all")?.group).toBeUndefined();
+  });
+});
+
 describe("matchPlannedElements", () => {
   it("pairs by file and symbol exactly, among several elements of one file (#1318)", () => {
     const { pairs } = matchPlannedElements(

@@ -18,6 +18,9 @@
  * 7. the same layer and type, and a similar description, when the plan names no source file at all:
  *    probable.
  *
+ * After the tiers, a planned test sketch that names a test file and no symbol is paired with the
+ * per-function sketches built in that file as a group (#1364): see {@link ElementPairing.group}.
+ *
  * Tiers 3 to 7 give a probable match: the caller reports why, and the agent confirms it. A built
  * element that cannot be the build of a planned add (it existed before the plan) is never taken.
  */
@@ -36,6 +39,12 @@ export interface ElementPairing {
    * against the built symbol's name says nothing about whether it is the same element.
    */
   bySource?: boolean;
+  /**
+   * Set when a planned test sketch that names a test file (no symbol) stands for the per-function
+   * sketches built in that file: every built id in the group, `built` being the first. The group is
+   * the build of the plan's one sketch, so none of them is an unplanned change.
+   */
+  group?: string[];
 }
 
 export interface ElementMatching {
@@ -307,5 +316,58 @@ export function matchPlannedElements(plan: Plan, built: BuiltSide, options: Matc
       }
     }
   }
+
+  // A planned test sketch for a whole test file, built as one sketch per test in it.
+  for (const planned of pending) {
+    if (pairs.has(planned.id)) continue;
+    const group = groupTestFileSketches(planned, built.elements, claimed, (c) => canBeBuildOf(planned, c));
+    if (!group) continue;
+    for (const id of group.ids) claimed.add(id);
+    pairs.set(planned.id, {
+      built: group.ids[0],
+      match: "probable",
+      reason: `a planned sketch of the test file ${group.file}, built as ${group.ids.length} per-test sketches in it (${group.ids.slice(0, 5).join(", ")}${group.ids.length > 5 ? ", ..." : ""}): matched as a group`,
+      bySource: true,
+      group: group.ids,
+    });
+    ambiguous.delete(planned.id);
+  }
   return { pairs, ambiguous, baseUnknown };
+}
+
+/** Elements of this type name the file of a test: a sketch of the test file's tests as a whole. */
+const TEST_SKETCH_TYPE = "testcasesketch";
+
+/**
+ * The built per-test sketches a planned test sketch stands for: the plan's sketch names a file and
+ * no symbol (the tests it describes were not written yet, or are many), and two or more unclaimed
+ * built sketches name that file with a symbol each. One built sketch alone is the file-sharing tier's
+ * to pair; none leaves the plan's sketch to be reported missing.
+ */
+function groupTestFileSketches(
+  planned: PlannedElementChange,
+  candidates: VerifyElement[],
+  claimed: ReadonlySet<string>,
+  canBeBuildOf: (c: VerifyElement) => boolean
+): { file: string; ids: string[] } | undefined {
+  if (normalizeName(planned.type) !== TEST_SKETCH_TYPE) return undefined;
+  const locations = planned.sourceReference?.locations ?? [];
+  const named = locations.filter((l) => cleanFile(l?.file).length > 0);
+  // Only a plan that names files alone: a symbol says which test it is, and the symbol tier decides.
+  if (named.length === 0 || named.some((l) => l.symbol?.trim())) return undefined;
+  for (const file of new Set(named.map((l) => cleanFile(l.file)))) {
+    const ids = candidates
+      .filter(
+        (c) =>
+          !claimed.has(c.id) &&
+          c.layer === planned.layer &&
+          sameType(c, planned) &&
+          (c.sourceReference?.locations ?? []).some((l) => cleanFile(l?.file) === file && !!l.symbol?.trim()) &&
+          canBeBuildOf(c)
+      )
+      .map((c) => c.id)
+      .sort();
+    if (ids.length >= 2) return { file, ids };
+  }
+  return undefined;
 }

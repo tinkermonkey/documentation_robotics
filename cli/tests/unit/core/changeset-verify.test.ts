@@ -150,6 +150,22 @@ describe("planFromChangeset", () => {
   });
 });
 
+describe("verifyChangeset, a planned test file sketch (#1364)", () => {
+  it("matches it as a group of the per-test sketches built in its file: neither missing nor unplanned", async () => {
+    const plan = planFromChangeset(changeset("plan", [addEl("testing.testcasesketch.loader-suite", { file: "t.test.ts" })]));
+    const built = await asBuilt([
+      addEl("testing.testcasesketch.loads", { file: "t.test.ts", symbol: "loader > loads" }),
+      addEl("testing.testcasesketch.saves", { file: "t.test.ts", symbol: "loader > saves" }),
+    ]);
+    const report = verifyChangeset(plan, built);
+    expect(report.elements.missing).toEqual([]);
+    expect(report.elements.unplanned).toEqual([]);
+    expect(report.elements.matched).toHaveLength(1);
+    expect(report.elements.matched[0]).toMatchObject({ match: "probable" });
+    expect(report.elements.matched[0].reason).toContain("as a group");
+  });
+});
+
 describe("verifyChangeset against an as-built changeset", () => {
   it("matches an identical build exactly", async () => {
     const changes = [addEl(FN), addEl(OP), addRel(OP, "realizes", FN)];

@@ -1,0 +1,20 @@
+id: changeset-1795798977152-9w6xga571
+name: cli010-t3-test-since
+description: |-
+  Test staging under `since` stages only changed tests; verify groups a planned test-file sketch with its per-function sketches; near-match test sketches are reported, not duplicated; rejecting an element by id keeps a symbol another element names (#1364, #1255).
+
+  **In scope:** `extraction-plan.ts` test staging, `changeset-matching.ts` group match, `codebase-extract.ts` element-id reject.
+
+  **Done when:** targeted tests pass and verify of the build matches this plan.
+created: 2026-11-27T17:02:57.197Z
+modified: 2026-11-28T02:14:59.524Z
+status: committed
+baseSnapshot: v2:sha256:db1ad3fcfa4654d521ec8d78a2b4dd901cf52a13dcadf4c6e6a874a360dad97b
+origin:
+  kind: plan
+purpose: plan
+stats:
+  additions: 3
+  modifications: 0
+  deletions: 0
+lastSequence: 2
