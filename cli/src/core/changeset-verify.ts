@@ -1792,6 +1792,7 @@ export function verifyChangeset(plan: Plan, built: BuiltSide, options: VerifyOpt
   for (const [id, pairing] of matching.pairs) {
     elementMap.set(id, pairing);
     claimed.add(pairing.built);
+    for (const member of pairing.group ?? []) claimed.add(member);
   }
   if (matching.baseUnknown) {
     notes.push(
@@ -1833,6 +1834,13 @@ export function verifyChangeset(plan: Plan, built: BuiltSide, options: VerifyOpt
               }`),
         ...(candidates ? { candidates } : {}),
       });
+      continue;
+    }
+
+    // A planned sketch of a test file, built as one sketch per test: the group is the match, and one
+    // member's fields say nothing about the plan's.
+    if (mapping.group) {
+      report.elements.matched.push({ planned: planned.id, built: mapping.built, op: planned.op, match: mapping.match, ...(mapping.reason ? { reason: mapping.reason } : {}) });
       continue;
     }
 

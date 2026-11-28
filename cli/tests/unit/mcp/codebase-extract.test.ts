@@ -1458,6 +1458,66 @@ describe("codebase_extract round-2 fixes (wave 3)", () => {
     expect(bad.error).toContain("not among the cards or staged symbols");
   });
 
+  it("rejecting a staged element by its id unstages it alone when another element names its symbol (#1255)", async () => {
+    await indexed();
+    const h = harness();
+    const handler = createCodebaseExtractHandler(h.deps);
+    const first = ok(await handler({ rootPath }));
+    const staged = (await storedRecord(first.changeset.id)).staged.find((s: any) => s.id === SCHEMA);
+    // A planned element the agent pointed at the same symbol: it is the build of that code, the staged one a duplicate.
+    ok(
+      await modelAddHandler({
+        layer: "application",
+        type: "applicationcomponent",
+        name: "Planned Owner",
+        attributes: { type: "internal" },
+        sourceFile: staged.file,
+        sourceSymbol: staged.symbol,
+        sourceProvenance: "manual",
+        rootPath,
+      })
+    );
+    clearModelCache();
+    const rejected = ok(await handler({ reject: [{ card: SCHEMA, reason: "a duplicate of the planned element" }], rootPath }));
+    expect(rejected.unstaged.items.map((u: any) => u.id)).toEqual([SCHEMA]);
+    expect(JSON.stringify(rejected.reject)).toContain("application.applicationcomponent.planned-owner");
+    // Nothing says the symbol is not an element: a run does not leave it out.
+    expect(rejected.notElements?.recorded?.total ?? 0).toBe(0);
+    const decisions = await readFile(join(rootPath, ".dr", "analyzers", "extract", "decisions.json"), "utf-8").catch(() => "{}");
+    expect(decisions).not.toContain(staged.symbol);
+  });
+
+  it("rejecting by id still records the symbol when the only other owner is rejected in the same call (#1255)", async () => {
+    await indexed();
+    const handler = createCodebaseExtractHandler(harness().deps);
+    const first = ok(await handler({ rootPath }));
+    const staged = (await storedRecord(first.changeset.id)).staged.find((s: any) => s.id === SCHEMA);
+    ok(
+      await modelAddHandler({
+        layer: "application",
+        type: "applicationcomponent",
+        name: "Second Owner",
+        attributes: { type: "internal" },
+        sourceFile: staged.file,
+        sourceSymbol: staged.symbol,
+        sourceProvenance: "extracted",
+        rootPath,
+      })
+    );
+    clearModelCache();
+    const rejected = ok(
+      await handler({
+        reject: [
+          { card: SCHEMA, reason: "both duplicates" },
+          { card: "application.applicationcomponent.second-owner", reason: "both duplicates" },
+        ],
+        rootPath,
+      })
+    );
+    expect(rejected.unstaged.items.map((u: any) => u.id).sort()).toEqual([SCHEMA, "application.applicationcomponent.second-owner"].sort());
+    expect(rejected.notElements.recorded.total).toBeGreaterThan(0);
+  });
+
   it("bug 6: the index says fresh-with-uncommitted-edits when the run warns about them", async () => {
     await indexed();
     const h = harness();
