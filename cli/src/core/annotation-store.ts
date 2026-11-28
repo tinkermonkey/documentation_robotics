@@ -82,11 +82,45 @@ function notBefore(iso: string): string {
   return new Date(Math.max(Date.now(), Date.parse(iso) || 0)).toISOString();
 }
 
+/** The folder of a changeset that holds its staged annotations, one file each, as the base store does. */
+export const STAGED_ANNOTATIONS_DIR = "annotations";
+
 export class AnnotationStore {
   private annotationsDir: string;
 
   constructor(rootPath: string) {
     this.annotationsDir = path.join(rootPath, "documentation-robotics", "annotations");
+  }
+
+  /**
+   * The store of the annotations staged in a changeset: `{changeset folder}/annotations/`, the same
+   * file format as the base store. A changeset made before annotations could be staged has no such
+   * folder and reads as having none.
+   */
+  static forChangeset(changesetPath: string): AnnotationStore {
+    const store = new AnnotationStore("");
+    store.annotationsDir = path.join(changesetPath, STAGED_ANNOTATIONS_DIR);
+    return store;
+  }
+
+  /**
+   * Lands a changeset's staged annotations: writes each into the base store (an id already there
+   * is left alone), keeping the staged copies as the plan's record. Returns how many were written.
+   */
+  async landInto(base: AnnotationStore): Promise<number> {
+    let landed = 0;
+    for (const annotation of await this.list()) {
+      if (await base.get(annotation.id)) continue;
+      await base.put(annotation);
+      landed++;
+    }
+    return landed;
+  }
+
+  /** Writes an annotation as it is (the id and times it already has). */
+  async put(annotation: Annotation): Promise<void> {
+    await ensureDir(this.annotationsDir);
+    await atomicWrite(this.getPath(annotation.id), stringifyDrYaml(annotation));
   }
 
   /** Lists all annotations, optionally filtered to a single element, oldest first. Skips (and warns on) individual files that fail to load rather than failing the whole list. */

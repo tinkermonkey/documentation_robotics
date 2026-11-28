@@ -5,11 +5,13 @@
 
 import type { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { AnnotationStore } from "../../core/annotation-store.js";
 import { findElementLayer } from "../../utils/element-utils.js";
 import { CLIError, ErrorCategory } from "../../utils/errors.js";
 import {
   annotationAuthorSchema,
+  annotationChangesetSchema,
+  annotationResult,
+  annotationWriteTarget,
   annotationContentSchema,
   annotationTagsSchema,
   elementIdSchema,
@@ -21,6 +23,7 @@ const inputSchema = {
   content: annotationContentSchema,
   author: annotationAuthorSchema,
   tags: annotationTagsSchema,
+  changeset: annotationChangesetSchema,
   rootPath: rootPathSchema,
 };
 
@@ -37,21 +40,24 @@ export async function annotationCreateHandler(args: AnnotationCreateArgs): Promi
       ]);
     }
 
-    const store = new AnnotationStore(model.rootPath);
-    const annotation = await store.create({
+    const home = await annotationWriteTarget(model, args.changeset);
+    const annotation = await home.store.create({
       elementId: args.elementId,
       content: args.content,
       author: args.author,
       tags: args.tags,
     });
 
-    return jsonResult(annotation);
+    return jsonResult(annotationResult(annotation, home));
   });
 }
 
 export const annotationCreateTool: McpToolDefinition<typeof inputSchema> = {
   name: "annotation_create",
-  description: "Create a new annotation on a model element.",
+  description:
+    "Create a new annotation on a model element. While a changeset is active (or with `changeset`), the annotation is " +
+    "staged in it: changeset_brief and the landing summary list it, it lands when the plan lands and is discarded with " +
+    "it, and replies and updates to it stay staged. With no changeset it is written to the base model at once.",
   inputSchema,
   handler: annotationCreateHandler,
 };

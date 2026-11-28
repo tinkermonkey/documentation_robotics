@@ -6,9 +6,8 @@
 
 import { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { AnnotationStore } from "../../core/annotation-store.js";
 import { CLIError, ErrorCategory } from "../../utils/errors.js";
-import { annotationContentSchema, annotationIdSchema, annotationTagsSchema } from "./annotation-shared.js";
+import { annotationChangesetSchema, annotationContentSchema, annotationIdSchema, annotationResult, annotationTagsSchema, findAnnotation, NOT_FOUND_HINT } from "./annotation-shared.js";
 import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
 
 const inputSchema = {
@@ -16,6 +15,7 @@ const inputSchema = {
   content: annotationContentSchema.optional(),
   tags: annotationTagsSchema,
   resolved: z.boolean().optional().describe("Mark the annotation resolved or unresolved."),
+  changeset: annotationChangesetSchema,
   rootPath: rootPathSchema,
 };
 
@@ -28,26 +28,26 @@ export async function annotationUpdateHandler(args: AnnotationUpdateArgs): Promi
     }
 
     const model = await loadModel(args.rootPath);
-    const store = new AnnotationStore(model.rootPath);
-    const updated = await store.update(args.annotationId, {
+    const found = await findAnnotation(model, args.annotationId, args.changeset);
+    const updated = found && (await found.store.update(args.annotationId, {
       content: args.content,
       tags: args.tags,
       resolved: args.resolved,
-    });
+    }));
 
-    if (!updated) {
+    if (!found || !updated) {
       throw new CLIError(`Annotation ${args.annotationId} not found`, ErrorCategory.NOT_FOUND, [
-        'Use "annotation_list" to find existing annotations',
+        NOT_FOUND_HINT,
       ]);
     }
 
-    return jsonResult(updated);
+    return jsonResult(annotationResult(updated, found));
   });
 }
 
 export const annotationUpdateTool: McpToolDefinition<typeof inputSchema> = {
   name: "annotation_update",
-  description: "Partially update an annotation's content, tags, or resolved state.",
+  description: "Partially update an annotation's content, tags, or resolved state. An update to a staged annotation stays staged in its changeset.",
   inputSchema,
   handler: annotationUpdateHandler,
 };

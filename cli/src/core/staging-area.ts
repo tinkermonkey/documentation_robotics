@@ -29,6 +29,7 @@ import { BaseSnapshotManager } from "./base-snapshot-manager.js";
 import { Changeset, StagedChange, withSequenceNumbers, type ChangesetStatus } from "./changeset.js";
 import { ChangesetValidator } from "./changeset-validator.js";
 import { fileExists } from "../utils/file-io.js";
+import { AnnotationStore } from "./annotation-store.js";
 import { trackModelWrite } from "./model-write-tracker.js";
 import type { Model } from "./model.js";
 import type { VirtualProjectionEngine } from "./virtual-projection.js";
@@ -167,6 +168,10 @@ export interface CommitResult {
    * when it was not active, on a dry run, or when clearing failed (see deactivationError).
    */
   deactivated: boolean;
+  /** How many annotations staged in the changeset landed in the base model's annotations. */
+  annotationsLanded?: number;
+  /** Set when the staged annotations could not be written to the base after the landing. */
+  annotationsWarning?: string;
   /**
    * Set when the landed changeset was active and its on-disk marker could not be cleared. The model
    * passed to commit is already deactivated; only the marker remains, so a model loaded afterwards
@@ -1639,6 +1644,23 @@ export class StagingAreaManager {
 
         // The plan has landed: the verification records that name it are kept as records now.
         await this.recordVerificationsOf(changeset);
+
+        // The annotations staged in the plan land with it, after the landing is safe: a failure here
+        // is a warning, never "not landed", and the staged copies stay in the changeset's folder.
+        try {
+          const landed = await AnnotationStore.forChangeset(this.changesetPath(changeset.id!)).landInto(
+            new AnnotationStore(model.rootPath)
+          );
+          if (landed > 0) result.annotationsLanded = landed;
+        } catch (error) {
+          result.annotationsWarning =
+            `The staged annotations could not be written to documentation-robotics/annotations/ (${getErrorMessage(error)}); ` +
+            `they are still in the changeset's folder, under annotations/.`;
+          emitLog(SeverityNumber.WARN, "Failed to land the changeset's staged annotations", {
+            "changeset.id": changesetId,
+            "error.message": getErrorMessage(error),
+          });
+        }
 
         (span as any).setAttribute("commit.success", true);
         (span as any).setAttribute("commit.committed", result.committed);

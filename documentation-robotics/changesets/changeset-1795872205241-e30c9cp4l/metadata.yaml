@@ -1,0 +1,19 @@
+id: changeset-1795872205241-e30c9cp4l
+name: cli010-n1-annotations
+description: |-
+  While a changeset is active, `annotation_create` stages the annotation inside it (or takes `changeset`) instead of writing `documentation-robotics/annotations/`. The brief and the landing summary list staged annotations; they land with the plan or are discarded with it; replies, updates and deletes of a staged annotation stay staged. With no changeset active, annotations behave as before.
+
+  **In scope:** `cli/src/core/annotation-store.ts`, `cli/src/mcp/tools/annotation-*.ts`, landing in `staging-area.ts`, the brief and landing summary, `docs/CHANGE_MODELING.md`.
+
+  **Done when:** a staged annotation is invisible to the base until the plan lands; changesets made before still read unchanged.
+created: 2026-11-28T13:23:25.310Z
+modified: 2026-11-28T13:23:25.316Z
+status: staged
+baseSnapshot: v2:sha256:dd8ce0bbd03f580d60091e7602c8841b82b1d55433ba1b83d71b5e4b1606aa7e
+origin:
+  kind: plan
+purpose: plan
+stats:
+  additions: 0
+  modifications: 0
+  deletions: 0
