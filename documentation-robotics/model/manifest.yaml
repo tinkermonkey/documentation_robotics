@@ -3,7 +3,7 @@ schema: documentation-robotics-v1
 cli_version: 0.9.0
 spec_version: 0.16.0
 created: 2026-02-20T15:28:17.945Z
-updated: 2026-11-28T13:37:26.932Z
+updated: 2026-11-28T13:38:24.321Z
 project:
   name: dr-codebase
   description: ""
@@ -52,7 +52,7 @@ layers:
     elements:
       applicationcomponent: 110
       applicationevent: 2
-      applicationfunction: 1715
+      applicationfunction: 1719
       applicationinterface: 4
       applicationservice: 116
       dataobject: 13
@@ -272,6 +272,9 @@ changeset_history:
     action: committed
   - name: cli010-n1-annotations
     committed_at: 2026-11-28T13:37:26.177Z
+    action: committed
+  - name: cli010-t3-partial-landing
+    committed_at: 2026-11-28T13:38:24.314Z
     action: committed
 reconciled:
   changeset: extract-723c609..5b32f88
