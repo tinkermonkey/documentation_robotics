@@ -625,6 +625,10 @@ describe("codebase_extract intent and plan coverage", () => {
     expect(run.next[0]).toContain("without becoming active");
     expect(run.next.join(" ")).toContain(`changeset: "${plan.id}" and against: {changeset: "${run.changeset.id}"}`);
 
+    // A later run into that changeset keeps the plan and still leaves the active changeset alone.
+    ok(await handler({ changeset: "planner-as-built", rootPath }));
+    expect(await manager().getActiveId()).toBe(other.id);
+
     // A plan that is not a changeset, or is not staged, is refused; so is plan with no since.
     expect(fail(await handler({ since: "main", plan: "no-such-plan", rootPath })).error).toContain("not a changeset");
     expect(fail(await handler({ plan: "plan-the-planner", rootPath })).error).toContain("no since");

@@ -227,7 +227,6 @@ const RESPONSE_BUDGET_BYTES = 28 * 1024;
 const MAX_LISTED = 100;
 /** Groups of cards a response lists by default. */
 const DEFAULT_GROUPS = 50;
-/** Layers that hold intent, not code: a planned element there has no declaration for extraction to find. */
 /** The evidence that a candidate delete's code is gone, sure enough to stage the delete (#1375). */
 const STAGED_DELETE_EVIDENCE: ReadonlySet<CandidateDelete["evidence"]> = new Set(["file-deleted", "symbol-missing"]);
 
@@ -242,6 +241,7 @@ interface StagedDelete {
   detail: string;
 }
 
+/** Layers that hold intent, not code: a planned element there has no declaration for extraction to find. */
 const INTENT_LAYERS: ReadonlySet<string> = new Set(["motivation", "business", "product"]);
 
 const rejectItemSchema = strictItem("A reject[] item", {
@@ -529,6 +529,8 @@ interface StoredCards {
   /** The base model's manifest timestamp when the cards were read. */
   baseModified?: string;
   previousActive?: { id: string; name: string } | null;
+  /** The run named its plan (`plan`), so previousActive is that plan and the run left the active changeset alone (#1352). */
+  planNamed?: boolean;
   /** The purpose the run declared, and for a verification record the plan it verifies (core/changeset-purpose.ts). */
   purpose?: ChangesetPurpose;
   verifies?: string;
@@ -2702,6 +2704,11 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         }
         namedPlan = { id: found.id!, name: found.name };
       }
+      // A later run into a changeset made with a named plan keeps that plan, and leaves the active changeset alone too.
+      if (!namedPlan && stored?.planNamed && stored.previousActive) {
+        const kept = await manager.load(stored.previousActive.id);
+        if (kept?.status === "staged") namedPlan = { id: kept.id!, name: kept.name };
+      }
       // The scope: every file, or the files changed since a ref (a run, or a default name to find).
       let changes: CodeChangesResult | null = null;
       if (since && (!(paging || decisionsOnly) || (!changeset && !stored))) changes = await (deps.codeChanges ?? codeChangesSince)(codebaseRoot, since);
@@ -4055,29 +4062,42 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         const stagedDeletes: StagedDelete[] = [];
         if (since && plan.candidateDeletes.some((d) => STAGED_DELETE_EVIDENCE.has(d.evidence))) {
           const tracker = dependencyTracker(model);
-          const going = new Set(plan.candidateDeletes.filter((d) => STAGED_DELETE_EVIDENCE.has(d.evidence)).map((d) => d.id));
-          const hints: CandidateDelete[] = [];
-          for (const d of plan.candidateDeletes) {
-            if (!STAGED_DELETE_EVIDENCE.has(d.evidence)) {
-              hints.push(d);
-              continue;
-            }
+          const sure = (d: CandidateDelete) => d.evidence === "file-deleted" || (d.evidence === "symbol-missing" && d.baseChecked === true);
+          // What each sure candidate cannot go with: it is the as-built changeset's own add, or elements outside the
+          // candidates still reference it. A candidate that stays blocks the ones that reference it, so repeat until stable.
+          const going = new Set(plan.candidateDeletes.filter(sure).map((d) => d.id));
+          const why = new Map<string, string>();
+          const ready = new Map<string, { snapshot: Record<string, unknown>; base: { id?: unknown; path?: unknown } }>();
+          for (const d of plan.candidateDeletes.filter(sure)) {
             const current = await currentSnapshot(model, before, changeset ?? emptyChangeset(), d.id, d.layer);
             const base = (await model.getBaseLayer(d.layer))?.getElement(d.id);
-            const dependents = tracker.traceDependencies(d.id, TraceDirection.DOWN, null).filter((dep) => !going.has(dep));
-            if (!current || current.stagedAdd || !base || dependents.length > 0) {
-              const why =
-                current?.stagedAdd || !base || !current
-                  ? "the as-built changeset adds this element, or the base model does not have it"
-                  : `${dependents.length} element(s) still reference it (${dependents.slice(0, 3).join(", ")})`;
-              hints.push({ ...d, detail: `${d.detail}. Not staged: ${why}` });
+            if (!current || current.stagedAdd || !base) {
+              why.set(d.id, "the as-built changeset adds this element, or the base model does not have it");
+              going.delete(d.id);
+            } else ready.set(d.id, { snapshot: current.snapshot, base });
+          }
+          for (let changed = true; changed; ) {
+            changed = false;
+            for (const id of [...going]) {
+              const dependents = tracker.traceDependencies(id, TraceDirection.DOWN, null).filter((dep) => !going.has(dep));
+              if (dependents.length === 0) continue;
+              why.set(id, `${dependents.length} element(s) still reference it (${dependents.slice(0, 3).join(", ")})`);
+              going.delete(id);
+              changed = true;
+            }
+          }
+          const hints: CandidateDelete[] = [];
+          for (const d of plan.candidateDeletes) {
+            if (!going.has(d.id)) {
+              hints.push(why.has(d.id) ? { ...d, detail: `${d.detail}. Not staged: ${why.get(d.id)}` } : d);
               continue;
             }
+            const { snapshot, base } = ready.get(d.id)!;
             batch.push({
               type: "delete",
               elementId: d.id,
               layerName: d.layer,
-              before: current.snapshot,
+              before: snapshot,
               origin: { by: "tier0", rule: `candidate-delete:${d.evidence}` },
             });
             // The relationships that name it go with it, as model_delete stages them, so a landing leaves none dangling.
@@ -4731,6 +4751,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
             layers: layers ?? null,
             baseModified,
             previousActive: recordedPrevious,
+            ...(namedPlan ? { planNamed: true } : {}),
             ...recordedPurpose(purposeDecision),
             ...uncommittedRecord,
             createdAt: now,
@@ -4756,6 +4777,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
             layers: layers ?? null,
             baseModified,
             previousActive,
+            ...(namedPlan ? { planNamed: true } : {}),
             ...recordedPurpose(purposeDecision),
             ...uncommittedRecord,
             createdAt: now,
