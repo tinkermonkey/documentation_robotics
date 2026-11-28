@@ -623,6 +623,8 @@ interface StoredCards {
   candidateDeletes?: string[];
   /** The relationships the last run suggested (`source::predicate::target`), none staged: the agent decides them. */
   suggestedLinks?: Array<{ key: string; files?: string[] }>;
+  /** The deletions the last run suggested and nobody accepted (ids): the agent decides them. */
+  suggestedDeletes?: string[];
   /** A since run whose changed lines were known: the default pile is the cards the range changed. */
   rangeOnly?: boolean;
   /**
@@ -4777,6 +4779,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
           ...(updatedRecord.length ? { updated: updatedRecord } : {}),
           ...(candidateDeleteIds.length ? { candidateDeletes: candidateDeleteIds } : {}),
           ...(suggestedLinkKeys.length ? { suggestedLinks: suggestedLinkKeys } : {}),
+          ...(plan.candidateDeletes.length ? { suggestedDeletes: plan.candidateDeletes.map((d) => d.id) } : {}),
         };
         // Verify mode: which planned elements the as-built side has, and which cards could be the others.
         let coverage: PlanCoverageItem[] = [];

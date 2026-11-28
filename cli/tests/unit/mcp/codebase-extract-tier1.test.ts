@@ -366,7 +366,7 @@ describe("codebase_extract with Tier 1", () => {
     expect(tombstone.change.origin).toMatchObject({ by: "tier1", rule: "tier1:dr-qset-2" });
   });
 
-  it("relationships inherit the origin of the decision that created their end; landing never writes origin into an element", async () => {
+  it("an accepted relationship carries the agent's origin, whoever decided its ends; landing never writes origin into an element", async () => {
     await optIn();
     const project = springProject();
     // Helpers defines format: once Tier 1's component and function are staged, the edge relates them.
@@ -626,7 +626,7 @@ describe("codebase_extract with Tier 1 in stage mode (held-out verified threshol
     expect(again.undecided.items.map((c: any) => c.symbol)).toEqual(["Helpers.format"]);
   });
 
-  it("relationships between elements stage mode decided carry their origin", async () => {
+  it("a link between elements stage mode decided is a suggestion: accepting it is the agent's decision", async () => {
     await optIn();
     const project = springProject();
     const helpers = project.nodes.find((n) => n.name === "Helpers")!.qualified_name;
@@ -1037,7 +1037,7 @@ describe("codebase_extract with Tier 1: review fixes", () => {
     expect(existsSync(join(rootPath, "documentation-robotics", "changesets"))).toBe(false);
   });
 
-  it("a relationship to an element Tier 1 decided in an earlier run takes that element's origin", async () => {
+  it("a link to an element Tier 1 decided in an earlier run is accepted as the agent's own", async () => {
     await optIn();
     const project = springProject();
     const model = new ScriptedModel([

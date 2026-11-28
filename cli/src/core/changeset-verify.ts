@@ -429,6 +429,8 @@ export interface ExtractionRecord {
   candidateDeletes: string[];
   /** The relationships the last run suggested (`source::predicate::target`), none staged: the agent decides them (#1492). */
   suggestedLinks: string[];
+  /** The deletions the last run suggested and nobody accepted (ids). */
+  suggestedDeletes: string[];
 }
 
 function readList<T>(value: unknown, keep: (entry: any) => boolean): T[] {
@@ -477,6 +479,7 @@ export async function readExtractionRecord(
     earlierCards: readList(raw.earlierCards, symbol),
     updated: readList(raw.updated, (e) => typeof e.id === "string"),
     candidateDeletes: Array.isArray(raw.candidateDeletes) ? raw.candidateDeletes.filter((d): d is string => typeof d === "string") : [],
+    suggestedDeletes: Array.isArray(raw.suggestedDeletes) ? raw.suggestedDeletes.filter((d): d is string => typeof d === "string") : [],
     suggestedLinks: Array.isArray(raw.suggestedLinks)
       ? raw.suggestedLinks.flatMap((l: unknown) => (typeof l === "string" ? [l] : l && typeof (l as { key?: unknown }).key === "string" ? [(l as { key: string }).key] : []))
       : [],
@@ -1029,6 +1032,7 @@ export function narrowVerifyReport<R extends VerifyReport>(report: R, filter: Ve
     unverifiable: e.unverifiable.filter((u) => keep(u.planned)),
     unplanned: e.unplanned.filter((u) => keep(u.id)),
     deletionsNotDone: e.deletionsNotDone.filter((d) => keep(d.planned, d.built)),
+    ...(e.deletionsToCheck ? { deletionsToCheck: e.deletionsToCheck.filter((d) => keep(d.planned, d.built)) } : {}),
   };
   const relationships: VerifyReport["relationships"] = {
     matched: r.matched.filter((m) => keepRel(m.planned, m.built)),
@@ -1037,14 +1041,27 @@ export function narrowVerifyReport<R extends VerifyReport>(report: R, filter: Ve
     unverifiable: r.unverifiable.filter((u) => keepRel(u.planned)),
     unplanned: r.unplanned.filter((u) => keepRel(u)),
     deletionsNotDone: r.deletionsNotDone.filter((d) => keepRel(d.planned, d.built)),
+    ...(r.testsToCheck ? { testsToCheck: r.testsToCheck.filter((m) => keepRel(m.planned)) } : {}),
+    ...(r.suggestedToCheck ? { suggestedToCheck: r.suggestedToCheck.filter((m) => keepRel(m.planned)) } : {}),
   };
   // Every planned change is in exactly one of these lists.
   const plannedIn = (s: { matched: unknown[]; divergent: unknown[]; missing: unknown[]; unverifiable: unknown[]; deletionsNotDone: unknown[] }) =>
     s.matched.length + s.divergent.length + s.missing.length + s.unverifiable.length + s.deletionsNotDone.length;
-  const planned = { elements: plannedIn(elements), relationships: plannedIn(relationships) };
+  // Planned changes the agent is left to check are in none of them (tests links, suggested links and deletions).
+  const planned = {
+    elements: plannedIn(elements) + (elements.deletionsToCheck?.length ?? 0),
+    relationships: plannedIn(relationships) + (relationships.testsToCheck?.length ?? 0) + (relationships.suggestedToCheck?.length ?? 0),
+  };
   const summary = {
-    elements: { ...countCategories(planned.elements, elements) },
-    relationships: { ...countCategories(planned.relationships, relationships) },
+    elements: {
+      ...countCategories(planned.elements, elements),
+      ...(elements.deletionsToCheck?.length ? { suggestedToCheck: elements.deletionsToCheck.length } : {}),
+    },
+    relationships: {
+      ...countCategories(planned.relationships, relationships),
+      ...(relationships.testsToCheck?.length ? { testsToCheck: relationships.testsToCheck.length } : {}),
+      ...(relationships.suggestedToCheck?.length ? { suggestedToCheck: relationships.suggestedToCheck.length } : {}),
+    },
   };
   const registered = elements.unverifiable.filter((u) => u.registeredByName).length;
   if (registered > 0) summary.elements.missingUnlessRegisteredByName = registered;
@@ -2343,7 +2360,7 @@ export async function verifyChangesetInModel(
         );
       }
     } else {
-      suggested = { links: new Set(record.suggestedLinks), deletes: new Set(record.candidateDeletes) };
+      suggested = { links: new Set(record.suggestedLinks), deletes: new Set(record.suggestedDeletes) };
       defaultedFields = new Map(
         record.staged.filter((st) => st.defaulted?.length).map((st) => [st.id, new Map(st.defaulted!.map((k) => [k, st.attributes?.[k]]))])
       );

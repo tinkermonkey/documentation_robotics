@@ -11,7 +11,7 @@ import {
   builtFromSnapshot,
   normalizeName,
   planFromChangeset,
-  verifyChangeset,
+  verifyChangeset, narrowVerifyReport,
   type BuiltSide,
   type ObservabilityCheck,
   LIFECYCLE_FIELDS,
@@ -476,6 +476,13 @@ describe("relationship matching", () => {
     expect(report.summary.elements.suggestedToCheck).toBe(1);
     expect(report.verdict).not.toBe("incomplete");
     expect(report.verdictText).toContain("suggested by extraction and not yet decided");
+
+    // A layer filter keeps the suggested items in the slice, counted and listed.
+    const slice = narrowVerifyReport(report, { layers: ["application"] });
+    expect(slice.relationships.suggestedToCheck).toHaveLength(1);
+    expect(slice.elements.deletionsToCheck).toHaveLength(1);
+    expect(slice.summary.relationships.suggestedToCheck).toBe(1);
+    expect(slice.verdict).not.toBe("empty-plan");
   });
 
   it("a plan of only tests links to check is not read as an exact match (#1413)", async () => {
