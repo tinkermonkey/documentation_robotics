@@ -1,0 +1,176 @@
+id: changeset-1795872267931-b1dloo2pt
+name: cli010-m1-overlaps
+description: |-
+  Compare staged changesets with each other before landing (#1209) and let a changeset declare `dependsOn` another staged one (#1292).
+
+  **In scope:** a `changeset_overlaps` tool and core module that list each element or link two staged changesets both change, with the drift report's reasons, suggest a landing order, and for changes that cannot both land as they are show what a combined change needs; `changeset_commit` with `changesets: [...]` uses the same logic. `dependsOn` on a changeset: writes and reads resolve elements staged in the dependency, landing is refused until the dependency landed (or lands first in the same call), discarding a dependency warns about its dependents.
+
+  **Done when:** the agent decides every merge (nothing merges automatically); targeted tests pass; plan landed with the PR.
+created: 2026-11-28T13:24:27.988Z
+modified: 2026-11-28T13:37:26.482Z
+status: staged
+baseSnapshot: v2:sha256:dd8ce0bbd03f580d60091e7602c8841b82b1d55433ba1b83d71b5e4b1606aa7e
+origin:
+  kind: plan
+purpose: plan
+stats:
+  additions: 13
+  modifications: 0
+  deletions: 0
+lastSequence: 21
+unstaged:
+  - sequence: 4
+    removedAt: 11
+    change:
+      type: add
+      elementId: application.applicationfunction.assert-dependencies-in-order
+      layerName: application
+      after:
+        id: e3068f1e-ee29-4288-ace9-a1c7e2c7f485
+        path: application.applicationfunction.assert-dependencies-in-order
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: assertDependenciesInOrder
+        description: Refuses a changeset_commit call that lands a changeset before a dependency, before anything lands.
+        metadata:
+          created_at: 2026-11-28T13:33:42.094Z
+          updated_at: 2026-11-28T13:33:42.094Z
+          version: 1
+      timestamp: 2026-11-28T13:33:42.180Z
+    rewritten: true
+  - sequence: 0
+    removedAt: 12
+    change:
+      type: add
+      elementId: application.applicationfunction.compute-changeset-overlaps
+      layerName: application
+      after:
+        id: c1860710-4df6-4aa7-92c2-9399d14f1524
+        path: application.applicationfunction.compute-changeset-overlaps
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: computeChangesetOverlaps
+        description: "Compares staged changesets pairwise: each element or link two both change, with the drift report's reasons read as the later landing over the earlier, a severity, what a combined change needs, and a suggested landing order. Merges nothing."
+        metadata:
+          created_at: 2026-11-28T13:33:42.094Z
+          updated_at: 2026-11-28T13:33:42.094Z
+          version: 1
+      timestamp: 2026-11-28T13:33:42.180Z
+    rewritten: true
+  - sequence: 1
+    removedAt: 13
+    change:
+      type: add
+      elementId: application.applicationfunction.load-dependency-chain
+      layerName: application
+      after:
+        id: 3d1110f2-4644-436d-ab89-608a80ed4e6e
+        path: application.applicationfunction.load-dependency-chain
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: loadDependencyChain
+        description: Reads the staged changesets a changeset depends on, transitively, dependencies first; names dependencies that are gone or no longer staged.
+        metadata:
+          created_at: 2026-11-28T13:33:42.094Z
+          updated_at: 2026-11-28T13:33:42.094Z
+          version: 1
+      timestamp: 2026-11-28T13:33:42.180Z
+    rewritten: true
+  - sequence: 5
+    removedAt: 14
+    change:
+      type: add
+      elementId: application.applicationfunction.overlaps-for-landing
+      layerName: application
+      after:
+        id: e9af0dbc-7975-4103-b955-4c0c1867b36c
+        path: application.applicationfunction.overlaps-for-landing
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: overlapsForLanding
+        description: How the changesets one changeset_commit call lands overlap each other, from the same comparison as changeset_overlaps.
+        metadata:
+          created_at: 2026-11-28T13:33:42.094Z
+          updated_at: 2026-11-28T13:33:42.094Z
+          version: 1
+      timestamp: 2026-11-28T13:33:42.180Z
+    rewritten: true
+  - sequence: 2
+    removedAt: 15
+    change:
+      type: add
+      elementId: application.applicationfunction.resolve-depends-on
+      layerName: application
+      after:
+        id: 6a02271b-88ce-4bd6-9431-b1a84dea7575
+        path: application.applicationfunction.resolve-depends-on
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: resolveDependsOn
+        description: "Checks a dependsOn declaration: each must be a staged changeset other than itself, and none may lead back to it."
+        metadata:
+          created_at: 2026-11-28T13:33:42.094Z
+          updated_at: 2026-11-28T13:33:42.094Z
+          version: 1
+      timestamp: 2026-11-28T13:33:42.180Z
+    rewritten: true
+  - sequence: 3
+    removedAt: 16
+    change:
+      type: add
+      elementId: application.applicationfunction.unlanded-dependencies
+      layerName: application
+      after:
+        id: 9986fcb5-1466-4df9-8a79-e07600b40d15
+        path: application.applicationfunction.unlanded-dependencies
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: unlandedDependencies
+        description: The dependencies of a changeset that have not landed, so it cannot yet; a dependency landed first in the same call does not count.
+        metadata:
+          created_at: 2026-11-28T13:33:42.094Z
+          updated_at: 2026-11-28T13:33:42.094Z
+          version: 1
+      timestamp: 2026-11-28T13:33:42.180Z
+    rewritten: true
+  - sequence: 6
+    removedAt: 17
+    change:
+      type: add
+      elementId: application.applicationservice.changeset-overlaps-handler
+      layerName: application
+      after:
+        id: 3308d86c-769d-47c8-a353-9050b1a7f60c
+        path: application.applicationservice.changeset-overlaps-handler
+        spec_node_id: application.applicationservice
+        type: applicationservice
+        layer_id: application
+        name: changesetOverlapsHandler
+        description: "The changeset_overlaps MCP tool: compares staged changesets with each other, paged with true totals."
+        attributes:
+          serviceType: synchronous
+        metadata:
+          created_at: 2026-11-28T13:33:42.094Z
+          updated_at: 2026-11-28T13:33:42.094Z
+          version: 1
+      timestamp: 2026-11-28T13:33:42.180Z
+    rewritten: true
+  - sequence: 20
+    removedAt: 21
+    change:
+      type: relationship-add
+      elementId: application.applicationfunction.assert-dependencies-in-order::depends-on::application.applicationfunction.changes-with-dependencies
+      layerName: application
+      after:
+        source: application.applicationfunction.assert-dependencies-in-order
+        target: application.applicationfunction.changes-with-dependencies
+        predicate: depends-on
+        layer: application
+        category: structural
+      timestamp: 2026-11-28T13:34:58.510Z
