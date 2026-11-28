@@ -41,6 +41,12 @@ export interface ChangeOrigin {
   p?: { layer: number; type: number | null };
   /** Tier 1: `auto` (stage mode) or `agent` (the agent passed acceptTier1). */
   confirmed?: "auto" | "agent";
+  /**
+   * `agent` only: the suggestion the agent accepted (`edge:CALLS` for a relationship suggested from
+   * a call, `candidate-delete:file-deleted` for a suggested delete). The decision is the agent's;
+   * this says what it rested on (#1492).
+   */
+  suggestedBy?: string;
 }
 
 /**
@@ -54,7 +60,7 @@ export interface ChangeOrigin {
 export function originLabel(origin: ChangeOrigin): string {
   // Read from changes.yaml, so a hand-edited origin may lack fields.
   const by = typeof origin.by === "string" ? origin.by : "unknown";
-  if (by !== "tier1") return origin.rule ? `${by} ${origin.rule}` : by;
+  if (by !== "tier1") return origin.rule ? `${by} ${origin.rule}` : origin.suggestedBy ? `${by} accepted ${origin.suggestedBy}` : by;
   const p = (n: number | null | undefined) => (typeof n === "number" ? n.toFixed(2) : "-");
   const model =
     typeof origin.model === "string" && typeof origin.provider === "string"

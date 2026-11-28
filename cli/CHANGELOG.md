@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Relationships and deletions are suggestions the agent accepts, not staged by extraction (#1492):** under
+  the founding rule (agents interpret everything), `codebase_extract` no longer stages a relationship from a
+  CBM edge (a call, a usage, a `tests` link inferred from a test file's name or through a rejected symbol) or
+  a delete from evidence (`file-deleted`, `symbol-missing`). Links come back as `suggested.links`, each with
+  its evidence (the edge, up to three call sites, the best resolution confidence and how it was resolved),
+  totals by edge and predicate, and the page's call for the rest (`list: "suggestedLinks"`); deletions stay
+  `candidateDeletes`. The agent accepts them in bulk as its own decision with `acceptLinks` (by `edge`,
+  `predicate`, `files`, `source`, `target`, `minConfidence`, `keys` or `all`) and `acceptDeletes` (by
+  `evidence`, `files`, `ids` or `all`); what it accepts is staged with origin `{by: agent, suggestedBy:
+  edge:CALLS}` (or `candidate-delete:file-deleted`). `reject` works on a suggested link as before, and
+  `changeset_verify` lists a planned link or deletion extraction suggested and nobody decided under
+  `suggestedToCheck`, not as missing or not done.
 - **`tests` links the code graph can't confirm are for you to check, not drift (#1413):** `codebase_verify`
   lists the testing layer's model `tests` links that extraction can't confirm under
   `relationships.tests_to_check` (replacing `relationships.in_model_only`), each with a reason (target type

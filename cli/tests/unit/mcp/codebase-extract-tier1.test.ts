@@ -366,7 +366,7 @@ describe("codebase_extract with Tier 1", () => {
     expect(tombstone.change.origin).toMatchObject({ by: "tier1", rule: "tier1:dr-qset-2" });
   });
 
-  it("relationships inherit the origin of the decision that created their end; landing never writes origin into an element", async () => {
+  it("an accepted relationship carries the agent's origin, whoever decided its ends; landing never writes origin into an element", async () => {
     await optIn();
     const project = springProject();
     // Helpers defines format: once Tier 1's component and function are staged, the edge relates them.
@@ -380,10 +380,10 @@ describe("codebase_extract with Tier 1", () => {
     ]);
     const { deps } = setup(model, { project });
     const handler = createCodebaseExtractHandler(deps);
-    const first = ok(await handler({ rootPath }));
+    const first = ok(await handler({ acceptLinks: [{ all: true }], acceptDeletes: [{ all: true }], rootPath }));
     expect(first.tier1.bands.accept).toBe(3);
     clearModelCache();
-    const r = ok(await handler({ rootPath, changeset: first.changeset.name, acceptTier1: true }));
+    const r = ok(await handler({ acceptLinks: [{ all: true }], acceptDeletes: [{ all: true }], rootPath, changeset: first.changeset.name, acceptTier1: true }));
     expect(r.tier1.staged).toBe(3);
     const changeset = await changesetOf(first.changeset.id);
     const rels = changeset.changes.filter((c) => c.type === "relationship-add");
@@ -391,10 +391,11 @@ describe("codebase_extract with Tier 1", () => {
     const byTier1 = rels.filter((c) => c.elementId.includes("helpers"));
     expect(byTier1.map((c) => c.elementId)).toEqual(["application.applicationcomponent.helpers::assigned-to::application.applicationfunction.helpers-format"]);
     expect(r.staged.relationships).toBe(1);
-    for (const rel of byTier1) expect(rel.origin).toMatchObject({ by: "tier1", rule: "tier1:dr-qset-2", confirmed: "agent" });
+    // A link is a suggestion from an edge: accepting it is the agent's own decision, whoever decided its ends.
+    for (const rel of byTier1) expect(rel.origin).toMatchObject({ by: "agent", suggestedBy: expect.stringMatching(/^edge:/) });
     const tier0Rels = rels.filter((c) => !byTier1.includes(c));
     expect(tier0Rels.length).toBeGreaterThan(0);
-    for (const rel of tier0Rels) expect(rel.origin?.by).toBe("tier0");
+    for (const rel of tier0Rels) expect(rel.origin?.by).toBe("agent");
 
     // Landing writes `after`, never `origin`.
     clearModelCache();
@@ -625,7 +626,7 @@ describe("codebase_extract with Tier 1 in stage mode (held-out verified threshol
     expect(again.undecided.items.map((c: any) => c.symbol)).toEqual(["Helpers.format"]);
   });
 
-  it("relationships between elements stage mode decided carry their origin", async () => {
+  it("a link between elements stage mode decided is a suggestion: accepting it is the agent's decision", async () => {
     await optIn();
     const project = springProject();
     const helpers = project.nodes.find((n) => n.name === "Helpers")!.qualified_name;
@@ -637,13 +638,13 @@ describe("codebase_extract with Tier 1 in stage mode (held-out verified threshol
       ["public class Helpers", { ...stage1("application", 0.9), element_type: choiceAnswer("applicationcomponent", 0.8) }],
     ]);
     const { deps } = setup(model, { project, defaults: HELD_OUT });
-    const r = ok(await createCodebaseExtractHandler(deps)({ rootPath }));
+    const r = ok(await createCodebaseExtractHandler(deps)({ acceptLinks: [{ all: true }], acceptDeletes: [{ all: true }], rootPath }));
     expect(r.tier1.staged).toBe(3);
     expect(r.undecided.total).toBe(0);
     const changeset = await changesetOf(r.changeset.id);
     const rel = changeset.changes.find((c) => c.type === "relationship-add" && c.elementId.includes("helpers"))!;
     expect(rel.elementId).toBe("application.applicationcomponent.helpers::assigned-to::application.applicationfunction.helpers-format");
-    expect(rel.origin).toMatchObject({ by: "tier1", confirmed: "auto" });
+    expect(rel.origin).toMatchObject({ by: "agent", suggestedBy: expect.stringMatching(/^edge:/) });
   });
 
   it("stays within the run's layers: an accept answer outside them is an escalate card, not staged", async () => {
@@ -1036,7 +1037,7 @@ describe("codebase_extract with Tier 1: review fixes", () => {
     expect(existsSync(join(rootPath, "documentation-robotics", "changesets"))).toBe(false);
   });
 
-  it("a relationship to an element Tier 1 decided in an earlier run takes that element's origin", async () => {
+  it("a link to an element Tier 1 decided in an earlier run is accepted as the agent's own", async () => {
     await optIn();
     const project = springProject();
     const model = new ScriptedModel([
@@ -1046,19 +1047,19 @@ describe("codebase_extract with Tier 1: review fixes", () => {
     ]);
     const { deps } = setup(model, { project });
     const handler = createCodebaseExtractHandler(deps);
-    const first = ok(await handler({ rootPath }));
+    const first = ok(await handler({ acceptLinks: [{ all: true }], acceptDeletes: [{ all: true }], rootPath }));
     clearModelCache();
-    ok(await handler({ rootPath, changeset: first.changeset.name, acceptTier1: true }));
+    ok(await handler({ acceptLinks: [{ all: true }], acceptDeletes: [{ all: true }], rootPath, changeset: first.changeset.name, acceptTier1: true }));
     // The code gains the edge after both ends were staged from Tier 1.
     const helpers = project.nodes.find((n) => n.name === "Helpers")!.qualified_name;
     const format = project.nodes.find((n) => n.name === "format")!.qualified_name;
     project.edges.push({ type: "DEFINES_METHOD", from: helpers, to: format });
     clearModelCache();
-    const r = ok(await handler({ rootPath, changeset: first.changeset.name }));
+    const r = ok(await handler({ acceptLinks: [{ all: true }], acceptDeletes: [{ all: true }], rootPath, changeset: first.changeset.name }));
     expect(r.staged.relationships).toBe(1);
     const changeset = await changesetOf(first.changeset.id);
     const rel = changeset.changes.find((c) => c.type === "relationship-add" && c.elementId.includes("helpers"))!;
-    expect(rel.origin).toMatchObject({ by: "tier1", rule: "tier1:dr-qset-2", confirmed: "agent" });
+    expect(rel.origin).toMatchObject({ by: "agent", suggestedBy: expect.stringMatching(/^edge:/) });
   });
 });
 

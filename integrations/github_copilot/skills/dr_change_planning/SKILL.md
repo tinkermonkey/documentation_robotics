@@ -224,9 +224,12 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
    could be them, and a card whose symbol a planned element names says `planned` (`view: {planned: true}`):
    stage a card that is the planned element with `decide: [{card, as, reason}]` (`card` takes the
    cardId or `file#symbol`);
-   then call `codebase_extract` again to stage their relationships. A `since` run stages the deletes
-   whose evidence is unambiguous (`staged.deleted`: a deleted file, a symbol gone from a file that had
-   it); `model_delete` the other `candidateDeletes` that are really gone. Pass `plan: "<plan id or
+   then call `codebase_extract` again: it suggests their relationships (`suggested.links`, each with
+   its evidence: the CBM edge, call sites, resolution confidence) and stages none. Read a sample against
+   the code, then accept in bulk as your own decision with `acceptLinks` (by `edge`, `predicate`,
+   `files`, `minConfidence`, `keys` or `all`); `reject` the wrong ones. Elements whose code is gone are
+   `candidateDeletes`, suggested with their evidence (a deleted file, a symbol gone from a file that had
+   it): confirm in the code, then `acceptDeletes` (by `evidence`, `files`, `ids`) or `model_delete`. Pass `plan: "<plan id or
 name>"` to compare with a plan without activating it: the active changeset is left alone. Then `changeset_verify` with `changeset: <name>` and
    `against: {"changeset": "<name>-as-built"}`. It returns a compact report: the verdict and
    counts; missing, divergent and probable matches one line each; unverifiable items one line per

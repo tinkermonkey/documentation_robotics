@@ -245,7 +245,7 @@ describe("codebase_extract", () => {
     clearModelCache();
     const h = harness();
 
-    const result = ok(await createCodebaseExtractHandler(h.deps)({ rootPath }));
+    const result = ok(await createCodebaseExtractHandler(h.deps)({ acceptLinks: [{ all: true }], acceptDeletes: [{ all: true }], rootPath }));
 
     expect(result.staged.relationships).toBe(2);
     expect(result.declaredSpec.modelVersion).toBe("0.11.0");
@@ -298,7 +298,7 @@ describe("codebase_extract", () => {
     const h = harness();
     const before = await baseModelFiles();
 
-    const result = ok(await createCodebaseExtractHandler(h.deps)({ rootPath }));
+    const result = ok(await createCodebaseExtractHandler(h.deps)({ acceptLinks: [{ all: true }], acceptDeletes: [{ all: true }], rootPath }));
 
     expect(result.changeset.name).toBe(`extract-${HEAD.slice(0, 7)}`);
     expect(result.changeset.created).toBe(true);
@@ -338,10 +338,10 @@ describe("codebase_extract", () => {
     await indexed();
     const h = harness();
     const handler = createCodebaseExtractHandler(h.deps);
-    const first = ok(await handler({ rootPath }));
+    const first = ok(await handler({ acceptLinks: [{ all: true }], acceptDeletes: [{ all: true }], rootPath }));
     const count = (await changesetOf(first.changeset.id)).changes.length;
 
-    const again = ok(await handler({ rootPath }));
+    const again = ok(await handler({ acceptLinks: [{ all: true }], acceptDeletes: [{ all: true }], rootPath }));
     expect(again.changeset).toMatchObject({ id: first.changeset.id, created: false });
     expect(again.staged).toMatchObject({ adds: 0, updates: 0, relationships: 0 });
     expect(again.unchanged).toMatchObject({ elements: 5, relationships: 2 });
@@ -444,7 +444,7 @@ describe("codebase_extract", () => {
     });
     const h = harness();
     h.changes.value = { base: "abc123", changed: new Set([OWNER_FILE]), deleted: new Map([["src/legacy/Importer.java", null]]) };
-    const result = ok(await createCodebaseExtractHandler(h.deps)({ since: "main", rootPath }));
+    const result = ok(await createCodebaseExtractHandler(h.deps)({ acceptLinks: [{ all: true }], acceptDeletes: [{ all: true }], since: "main", rootPath }));
     expect(result.staged.deleted.items).toEqual([
       expect.objectContaining({
         id: "application.applicationcomponent.legacy-importer",
@@ -456,7 +456,7 @@ describe("codebase_extract", () => {
     const changeset = await changesetOf(result.changeset.id);
     const deletes = changeset.changes.filter((c) => c.type === "delete");
     expect(deletes.map((c) => c.elementId)).toEqual(["application.applicationcomponent.legacy-importer"]);
-    expect(deletes[0].origin).toEqual({ by: "tier0", rule: "candidate-delete:file-deleted" });
+    expect(deletes[0].origin).toEqual({ by: "agent", suggestedBy: "candidate-delete:file-deleted" });
 
     // Without since, a missing file is the evidence.
     const all = ok(await createCodebaseExtractHandler(h.deps)({ changeset: "whole", rootPath }));
@@ -734,7 +734,7 @@ describe("codebase_extract review fixes", () => {
       sourceProvenance: "extracted",
     });
     const h = harness();
-    const result = ok(await createCodebaseExtractHandler(h.deps)({ rootPath }));
+    const result = ok(await createCodebaseExtractHandler(h.deps)({ acceptLinks: [{ all: true }], acceptDeletes: [{ all: true }], rootPath }));
     const changes = (await changesetOf(result.changeset.id)).changes;
     expect(changes.some((c) => c.type === "add" && c.elementId.startsWith("api.operation."))).toBe(false);
     // It gains the method and path the code gives, and keeps its own location.
@@ -1014,7 +1014,7 @@ describe("codebase_extract validation fixes (2026-11-10)", () => {
     const h = harness();
     h.project.edges.push({ type: "WRITES", from: qnOf(HELPERS_FILE, "Helpers", "format"), to: qnOf(OWNER_FILE, "Owner") });
     const handler = createCodebaseExtractHandler(h.deps);
-    const first = ok(await handler({ rootPath }));
+    const first = ok(await handler({ acceptLinks: [{ all: true }], acceptDeletes: [{ all: true }], rootPath }));
     const helpers = first.undecided.items.find((c: any) => c.symbol === "Helpers");
     ok(
       await modelAddHandler({
@@ -1029,7 +1029,7 @@ describe("codebase_extract validation fixes (2026-11-10)", () => {
       })
     );
     clearModelCache();
-    const again = ok(await handler({ rootPath }));
+    const again = ok(await handler({ acceptLinks: [{ all: true }], acceptDeletes: [{ all: true }], rootPath }));
     expect(again.staged.relationships).toBe(1);
     expect(await relationshipIds(first.changeset.id)).toContain(`application.applicationcomponent.helpers::accesses::${SCHEMA}`);
   });
@@ -1058,7 +1058,7 @@ describe("codebase_extract validation fixes (2026-11-10)", () => {
       { type: "INHERITS", from: qnOf(OWNER_FILE, "Owner"), to: person },
       { type: "CALLS", from: qnOf(TEST_FILE, "OwnerTests", "testShowOwner"), to: `${qnOf(CONTROLLER_FILE, "OwnerController")}.showOwner` }
     );
-    const result = ok(await createCodebaseExtractHandler(h.deps)({ rootPath }));
+    const result = ok(await createCodebaseExtractHandler(h.deps)({ acceptLinks: [{ all: true }], acceptDeletes: [{ all: true }], rootPath }));
     const rels = await relationshipIds(result.changeset.id);
     expect(rels).toContain(`${SCHEMA}::specializes::data-model.objectschema.person`);
     expect(rels).toContain(`${TEST_SKETCH}::tests::${HANDLER}`);
@@ -1074,25 +1074,25 @@ describe("codebase_extract validation fixes (2026-11-10)", () => {
 
     const unrelated = harness();
     unrelated.project.edges.push(callsName);
-    const withoutRun = ok(await createCodebaseExtractHandler(unrelated.deps)({ rootPath }));
+    const withoutRun = ok(await createCodebaseExtractHandler(unrelated.deps)({ acceptLinks: [{ all: true }], acceptDeletes: [{ all: true }], rootPath }));
     // The member call does not make the link. The test file's name does (#1181), and says so in its origin.
     const testsSchema = async (changesetId: string) =>
       (await changesetOf(changesetId)).changes.find((c) => c.type === "relationship-add" && c.elementId === `${TEST_SKETCH}::tests::${SCHEMA}`);
-    expect((await testsSchema(withoutRun.changeset.id))?.origin).toEqual({ by: "tier0", rule: "edge:TEST_FILE_NAME" });
+    expect((await testsSchema(withoutRun.changeset.id))?.origin).toEqual({ by: "agent", suggestedBy: "edge:TEST_FILE_NAME" });
 
     await indexed();
     const related = harness();
     related.project.edges.push(callsName, { type: "USAGE", from: qnOf(TEST_FILE, "OwnerTests", "testShowOwner"), to: owner });
-    const withUseRun = ok(await createCodebaseExtractHandler(related.deps)({ changeset: "with-use", rootPath }));
+    const withUseRun = ok(await createCodebaseExtractHandler(related.deps)({ acceptLinks: [{ all: true }], acceptDeletes: [{ all: true }], changeset: "with-use", rootPath }));
     // Now the call makes it: not an inference from the name.
-    expect((await testsSchema(withUseRun.changeset.id))?.origin?.rule).not.toBe("edge:TEST_FILE_NAME");
+    expect((await testsSchema(withUseRun.changeset.id))?.origin?.suggestedBy).not.toBe("edge:TEST_FILE_NAME");
 
     // The index records `new Owner()` against the constructor, Owner.Owner: that refers to the class.
     await indexed();
     const constructs = harness();
     constructs.project.edges.push(callsName, { type: "CALLS", from: qnOf(TEST_FILE, "OwnerTests", "testShowOwner"), to: `${owner}.Owner` });
-    const withNewRun = ok(await createCodebaseExtractHandler(constructs.deps)({ changeset: "with-new", rootPath }));
-    expect((await testsSchema(withNewRun.changeset.id))?.origin?.rule).not.toBe("edge:TEST_FILE_NAME");
+    const withNewRun = ok(await createCodebaseExtractHandler(constructs.deps)({ acceptLinks: [{ all: true }], acceptDeletes: [{ all: true }], changeset: "with-new", rootPath }));
+    expect((await testsSchema(withNewRun.changeset.id))?.origin?.suggestedBy).not.toBe("edge:TEST_FILE_NAME");
   });
 
   it("bug 7: since leaves out DR's own files and files that are neither source nor named by the model", async () => {
@@ -1140,8 +1140,8 @@ describe("codebase_extract validation fixes (2026-11-10)", () => {
       deleted: new Map(),
       fileAtBase: (f) => (f === OWNER_FILE ? "class Owner {\n  List<Pet> listPets() {}\n}\n" : null),
     };
-    const result = ok(await createCodebaseExtractHandler(h.deps)({ since: "main", rootPath }));
-    // The symbol the range removed is staged as a delete (#1375); the reference that never matched stays a hint.
+    const result = ok(await createCodebaseExtractHandler(h.deps)({ acceptDeletes: [{ evidence: "symbol-missing" }], since: "main", rootPath }));
+    // The symbol the range removed is accepted as a delete (#1375); the reference that never matched stays a suggestion.
     expect(result.staged.deleted.items.map((d: any) => [d.id, d.evidence])).toEqual([["application.dataobject.owner-pets", "symbol-missing"]]);
     expect(result.staged.deleted.items[0].detail).toContain("had listPets at the start of the range");
     const [never] = result.candidateDeletes.items;
@@ -1297,7 +1297,7 @@ describe("codebase_extract review of PR 1061", () => {
       deleted: new Map([["src/old/Owner.java", OWNER_FILE]]),
       fileAtBase: (f) => (f === "src/old/Owner.java" ? "class Owner {\n  List<Pet> listPets() {}\n}\n" : null),
     };
-    const result = ok(await createCodebaseExtractHandler(h.deps)({ since: "main", rootPath }));
+    const result = ok(await createCodebaseExtractHandler(h.deps)({ acceptLinks: [{ all: true }], acceptDeletes: [{ all: true }], since: "main", rootPath }));
     expect(result.staged.deleted.items.map((d: any) => [d.id, d.evidence])).toEqual([["application.dataobject.owner-pets", "symbol-missing"]]);
     expect(result.candidateDeletes.items).toEqual([]);
   });
@@ -2312,7 +2312,7 @@ describe("codebase_extract: rejecting relationships and files (#1095, #1097)", (
     await indexed();
     const h = harness();
     const handler = createCodebaseExtractHandler(h.deps);
-    const first = ok(await handler({ rootPath }));
+    const first = ok(await handler({ acceptLinks: [{ all: true }], acceptDeletes: [{ all: true }], rootPath }));
     expect(await relationshipIds(first.changeset.id)).toContain(WRONG_KEY);
 
     // A relationship nothing staged and the model doesn't have records nothing.
@@ -2333,25 +2333,25 @@ describe("codebase_extract: rejecting relationships and files (#1095, #1097)", (
     expect(stored.notRelationships[WRONG_KEY]).toMatchObject({ ...WRONG, how: "rejected", reason: "the code never calls it" });
 
     clearModelCache();
-    const again = ok(await handler({ rootPath }));
+    const again = ok(await handler({ acceptLinks: [{ all: true }], acceptDeletes: [{ all: true }], rootPath }));
     expect(again.staged.relationships).toBe(0);
     expect(again.notRelationships).toMatchObject({ total: 1, skipped: 1 });
     expect(await relationshipIds(first.changeset.id)).not.toContain(WRONG_KEY);
     // Kept for the project: a run into another changeset leaves it out too.
-    const other = ok(await handler({ changeset: "as-built-2", rootPath }));
+    const other = ok(await handler({ acceptLinks: [{ all: true }], acceptDeletes: [{ all: true }], changeset: "as-built-2", rootPath }));
     expect((await relationshipIds(other.changeset.id)).sort()).toEqual([`${OPERATION}::realizes::${HANDLER}`, INFERRED_TEST].sort());
 
     // clearRejected forgets it by source::predicate::target.
     expect(ok(await handler({ changeset: "as-built-2", clearRejected: [WRONG_KEY], rootPath })).notRelationships).toMatchObject({ total: 0, cleared: 1 });
     clearModelCache();
-    expect(ok(await handler({ changeset: "as-built-2", rootPath })).staged.relationships).toBe(1);
+    expect(ok(await handler({ acceptLinks: [{ all: true }], acceptDeletes: [{ all: true }], changeset: "as-built-2", rootPath })).staged.relationships).toBe(1);
   }, SLOW);
 
   it("rejects a test file's links as a group: files plus predicate (#1412)", async () => {
     await indexed();
     const h = harness();
     const handler = createCodebaseExtractHandler(h.deps);
-    const first = ok(await handler({ rootPath }));
+    const first = ok(await handler({ acceptLinks: [{ all: true }], acceptDeletes: [{ all: true }], rootPath }));
     expect(await relationshipIds(first.changeset.id)).toContain(INFERRED_TEST);
 
     // Nothing in that folder tests anything with another predicate; a typo records nothing.
@@ -2370,7 +2370,7 @@ describe("codebase_extract: rejecting relationships and files (#1095, #1097)", (
     await indexed();
     const h = harness();
     const handler = createCodebaseExtractHandler(h.deps);
-    const first = ok(await handler({ rootPath }));
+    const first = ok(await handler({ acceptLinks: [{ all: true }], acceptDeletes: [{ all: true }], rootPath }));
     const handlerAdd = (await changesetOf(first.changeset.id)).changes.find((c) => c.type === "add" && c.elementId === HANDLER)!;
     const handlerUuid = (handlerAdd.after as { id?: string }).id!;
     expect(handlerUuid).toBeTruthy();
@@ -2384,7 +2384,7 @@ describe("codebase_extract: rejecting relationships and files (#1095, #1097)", (
     expect(Object.keys(stored.notRelationships)).toEqual([WRONG_KEY]);
 
     clearModelCache();
-    const again = ok(await handler({ rootPath }));
+    const again = ok(await handler({ acceptLinks: [{ all: true }], acceptDeletes: [{ all: true }], rootPath }));
     expect(again.staged.relationships).toBe(0);
     expect(again.notRelationships).toMatchObject({ total: 1, skipped: 1 });
   }, SLOW);
@@ -2393,18 +2393,18 @@ describe("codebase_extract: rejecting relationships and files (#1095, #1097)", (
     await indexed();
     const h = harness();
     const handler = createCodebaseExtractHandler(h.deps);
-    const first = ok(await handler({ rootPath }));
+    const first = ok(await handler({ acceptLinks: [{ all: true }], acceptDeletes: [{ all: true }], rootPath }));
     expect((await storedRecord(first.changeset.id)).stagedRelationships.sort()).toEqual([`${OPERATION}::realizes::${HANDLER}`, WRONG_KEY, INFERRED_TEST].sort());
     ok(await changesetUnstageHandler({ ...WRONG, rootPath }));
     clearModelCache();
 
-    const again = ok(await handler({ rootPath }));
+    const again = ok(await handler({ acceptLinks: [{ all: true }], acceptDeletes: [{ all: true }], rootPath }));
     expect(again.staged.relationships).toBe(0);
     expect(again.notRelationships).toMatchObject({ total: 1, skipped: 1, recorded: { items: [{ ...WRONG, how: "unstaged" }] } });
     expect((await relationshipIds(first.changeset.id)).sort()).toEqual([`${OPERATION}::realizes::${HANDLER}`, INFERRED_TEST].sort());
     expect((await storedRecord(first.changeset.id)).stagedRelationships.sort()).toEqual([`${OPERATION}::realizes::${HANDLER}`, INFERRED_TEST].sort());
 
-    const third = ok(await handler({ rootPath }));
+    const third = ok(await handler({ acceptLinks: [{ all: true }], acceptDeletes: [{ all: true }], rootPath }));
     expect(third.staged.relationships).toBe(0);
     expect(third.notRelationships).toMatchObject({ total: 1, skipped: 1 });
     expect(third.notRelationships.recorded).toBeUndefined();
@@ -2412,7 +2412,7 @@ describe("codebase_extract: rejecting relationships and files (#1095, #1097)", (
     // Unstaging an element drops its relationships with it: that says nothing about them.
     ok(await changesetUnstageHandler({ elementId: OPERATION, rootPath }));
     clearModelCache();
-    const fourth = ok(await handler({ rootPath }));
+    const fourth = ok(await handler({ acceptLinks: [{ all: true }], acceptDeletes: [{ all: true }], rootPath }));
     expect(fourth.notRelationships.total).toBe(1);
   }, SLOW);
 
@@ -2420,13 +2420,13 @@ describe("codebase_extract: rejecting relationships and files (#1095, #1097)", (
     await indexed();
     const h = harness();
     const handler = createCodebaseExtractHandler(h.deps);
-    const first = ok(await handler({ rootPath }));
+    const first = ok(await handler({ acceptLinks: [{ all: true }], acceptDeletes: [{ all: true }], rootPath }));
     ok(await changesetUnstageHandler({ ...WRONG, rootPath }));
     clearModelCache();
-    expect(ok(await handler({ rootPath })).notRelationships.total).toBe(1);
+    expect(ok(await handler({ acceptLinks: [{ all: true }], acceptDeletes: [{ all: true }], rootPath })).notRelationships.total).toBe(1);
     ok(await changesetDiscardHandler({ changesetId: first.changeset.id, confirm: true, rootPath }));
     clearModelCache();
-    const fresh = ok(await handler({ changeset: "as-built-2", rootPath }));
+    const fresh = ok(await handler({ acceptLinks: [{ all: true }], acceptDeletes: [{ all: true }], changeset: "as-built-2", rootPath }));
     expect(fresh.staged.relationships).toBe(3);
     expect(fresh.notRelationships).toBeUndefined();
   }, SLOW);
@@ -2435,19 +2435,19 @@ describe("codebase_extract: rejecting relationships and files (#1095, #1097)", (
     await indexed();
     const h = harness();
     const handler = createCodebaseExtractHandler(h.deps);
-    const first = ok(await handler({ rootPath }));
+    const first = ok(await handler({ acceptLinks: [{ all: true }], acceptDeletes: [{ all: true }], rootPath }));
     // Unstaged and landed with no run in between: the next run still records it.
     ok(await changesetUnstageHandler({ ...WRONG, rootPath }));
     await land(first.changeset.id);
     expect(await stagedChangesets()).toEqual([]);
 
-    const rerun = ok(await handler({ rootPath }));
+    const rerun = ok(await handler({ acceptLinks: [{ all: true }], acceptDeletes: [{ all: true }], rootPath }));
     expect(rerun.changeset).toBeNull();
     expect(rerun.staged).toMatchObject({ adds: 0, updates: 0, relationships: 0 });
     expect(rerun.notRelationships).toMatchObject({ total: 1, skipped: 1, recorded: { items: [{ ...WRONG, how: "unstaged" }] } });
     expect(await stagedChangesets()).toEqual([]);
     // It stays decided once its changeset has landed, and the landed record doesn't record it again.
-    const again = ok(await handler({ rootPath }));
+    const again = ok(await handler({ acceptLinks: [{ all: true }], acceptDeletes: [{ all: true }], rootPath }));
     expect(again.changeset).toBeNull();
     expect(again.notRelationships).toMatchObject({ total: 1, skipped: 1 });
     expect(again.notRelationships.recorded).toBeUndefined();
@@ -2605,7 +2605,7 @@ describe("codebase_extract: rejecting relationships and files (#1095, #1097)", (
     // A preview may carry reject (#1322): checked like any reject, and nothing is recorded.
     expect(fail(await handler({ since: "main", preview: true, reject: [{ card: "x", reason: "y" }], rootPath })).error).toContain("Nothing was recorded");
 
-    const preview = ok(await handler({ since: "main", preview: true, rootPath }));
+    const preview = ok(await handler({ acceptLinks: [{ all: true }], acceptDeletes: [{ all: true }], since: "main", preview: true, rootPath }));
     expect(preview.preview).toBe(true);
     expect(preview.message).toContain("nothing was staged or recorded");
     expect(preview.wouldStage).toMatchObject({ adds: 5, relationships: 3 });
@@ -2626,7 +2626,7 @@ describe("codebase_extract: rejecting relationships and files (#1095, #1097)", (
     expect(existsSync(decisionsFile())).toBe(false);
 
     // The run itself goes ahead, and says how far it reached.
-    const run = ok(await handler({ since: "main", rootPath }));
+    const run = ok(await handler({ acceptLinks: [{ all: true }], acceptDeletes: [{ all: true }], since: "main", rootPath }));
     expect(run.staged.adds).toBe(5);
     expect(run.range).toMatchObject({ commits: 127, long: true });
     expect(run.next[1]).toContain("reaches back 127 commit(s)");
@@ -2638,11 +2638,11 @@ describe("codebase_extract: rejecting relationships and files (#1095, #1097)", (
       wanted = wantSteps?.(3);
       return { commits: 3, steps: [] };
     };
-    const short = ok(await handler({ since: "main", changeset: "short", rootPath }));
+    const short = ok(await handler({ acceptLinks: [{ all: true }], acceptDeletes: [{ all: true }], since: "main", changeset: "short", rootPath }));
     expect(short.range).toBeUndefined();
     expect(wanted).toBe(false);
     // A preview of the same range does want them.
-    ok(await handler({ since: "main", changeset: "short-2", preview: true, rootPath }));
+    ok(await handler({ acceptLinks: [{ all: true }], acceptDeletes: [{ all: true }], since: "main", changeset: "short-2", preview: true, rootPath }));
     expect(wanted).toBe(true);
   }, SLOW);
 
@@ -2815,29 +2815,29 @@ describe("codebase_extract: decisions after landing, orphans, and waiting cards"
   it("keeps an unstaged relationship whose changeset landed outside this process (a stale cached model)", async () => {
     await indexed();
     const handler = createCodebaseExtractHandler(harness().deps);
-    const first = ok(await handler({ rootPath }));
+    const first = ok(await handler({ acceptLinks: [{ all: true }], acceptDeletes: [{ all: true }], rootPath }));
     ok(await changesetUnstageHandler({ ...WRONG, rootPath }));
     clearModelCache();
-    expect(ok(await handler({ rootPath })).notRelationships.recorded.items).toEqual([{ ...WRONG, how: "unstaged" }]);
+    expect(ok(await handler({ acceptLinks: [{ all: true }], acceptDeletes: [{ all: true }], rootPath })).notRelationships.recorded.items).toEqual([{ ...WRONG, how: "unstaged" }]);
     // The viewer or the CLI lands it: the MCP model cache still holds the model from before.
     const elsewhere = await Model.load(rootPath, { lazyLoad: false });
     await new StagingAreaManager(rootPath, elsewhere).commit(elsewhere, first.changeset.id, { validate: false, force: true });
 
-    ok(await handler({ rootPath }));
+    ok(await handler({ acceptLinks: [{ all: true }], acceptDeletes: [{ all: true }], rootPath }));
     expect((await decisions()).notRelationships[WRONG_KEY]).toMatchObject({ how: "unstaged", changesetId: first.changeset.id });
   }, SLOW);
 
   it("records an unstaged relationship whose changeset landed outside this process with no run between", async () => {
     await indexed();
     const handler = createCodebaseExtractHandler(harness().deps);
-    const first = ok(await handler({ rootPath }));
+    const first = ok(await handler({ acceptLinks: [{ all: true }], acceptDeletes: [{ all: true }], rootPath }));
     ok(await changesetUnstageHandler({ ...WRONG, rootPath }));
     // The viewer or the CLI lands it before any run records the unstage. The MCP server's cached
     // model is the one from before the landing: its ends live only in the landed changeset.
     const elsewhere = await Model.load(rootPath, { lazyLoad: false });
     await new StagingAreaManager(rootPath, elsewhere).commit(elsewhere, first.changeset.id, { validate: false, force: true });
 
-    const rerun = ok(await handler({ rootPath }));
+    const rerun = ok(await handler({ acceptLinks: [{ all: true }], acceptDeletes: [{ all: true }], rootPath }));
     expect((await decisions()).notRelationships?.[WRONG_KEY]).toMatchObject({ how: "unstaged", changesetId: first.changeset.id });
     if (rerun.changeset) expect(await relationshipIds(rerun.changeset.id)).not.toContain(WRONG_KEY);
   }, SLOW);
@@ -2845,10 +2845,10 @@ describe("codebase_extract: decisions after landing, orphans, and waiting cards"
   it("drops an unstaged relationship once its changeset has landed and an end is deleted from the model", async () => {
     await indexed();
     const handler = createCodebaseExtractHandler(harness().deps);
-    const first = ok(await handler({ rootPath }));
+    const first = ok(await handler({ acceptLinks: [{ all: true }], acceptDeletes: [{ all: true }], rootPath }));
     ok(await changesetUnstageHandler({ ...WRONG, rootPath }));
     await land(first.changeset.id);
-    expect(ok(await handler({ rootPath })).notRelationships.total).toBe(1);
+    expect(ok(await handler({ acceptLinks: [{ all: true }], acceptDeletes: [{ all: true }], rootPath })).notRelationships.total).toBe(1);
 
     // A later change deletes its target from the model.
     clearModelCache();
@@ -2856,7 +2856,7 @@ describe("codebase_extract: decisions after landing, orphans, and waiting cards"
     ok(await modelDeleteHandler({ id: SCHEMA, force: true, rootPath }));
     await land(drop.id);
 
-    ok(await handler({ rootPath }));
+    ok(await handler({ acceptLinks: [{ all: true }], acceptDeletes: [{ all: true }], rootPath }));
     expect((await decisions()).notRelationships?.[WRONG_KEY]).toBeUndefined();
   }, SLOW);
 
@@ -2946,7 +2946,7 @@ describe("codebase_extract infrastructure (#1081)", () => {
     await indexed();
     const h = harness();
     h.project = infraProject();
-    const result = ok(await createCodebaseExtractHandler(h.deps)({ rootPath }));
+    const result = ok(await createCodebaseExtractHandler(h.deps)({ acceptLinks: [{ all: true }], acceptDeletes: [{ all: true }], rootPath }));
 
     const changeset = await changesetOf(result.changeset.id);
     const adds = new Map(changeset.changes.filter((c) => c.type === "add").map((c) => [c.elementId, c.after as any]));
@@ -2984,7 +2984,7 @@ describe("codebase_extract infrastructure (#1081)", () => {
     const h = harness();
     h.project = infraProject();
     const handler = createCodebaseExtractHandler(h.deps);
-    const first = ok(await handler({ rootPath }));
+    const first = ok(await handler({ acceptLinks: [{ all: true }], acceptDeletes: [{ all: true }], rootPath }));
 
     // The agent stages the Kubernetes Service card with its serviceType.
     ok(
@@ -3001,7 +3001,7 @@ describe("codebase_extract infrastructure (#1081)", () => {
     );
     clearModelCache();
 
-    const again = ok(await handler({ rootPath }));
+    const again = ok(await handler({ acceptLinks: [{ all: true }], acceptDeletes: [{ all: true }], rootPath }));
     expect(again.changeset.id).toBe(first.changeset.id);
     expect(again.staged).toMatchObject({ adds: 0, updates: 0, relationships: 1 });
     const rels = (await changesetOf(first.changeset.id)).changes.filter((c) => c.type === "relationship-add").map((c) => c.elementId);
@@ -3541,7 +3541,7 @@ describe("codebase_extract call-edge evidence and OTEL exporters (#1086)", () =>
     const h = harness();
     h.project.edges.push({ type: "CALLS", from: caller(), to: handlerQn(), ...(evidence ? { evidence } : {}) });
     if (imports) h.project.imports = imports;
-    const result = ok(await createCodebaseExtractHandler(h.deps)({ rootPath }));
+    const result = ok(await createCodebaseExtractHandler(h.deps)({ acceptLinks: [{ all: true }], rootPath }));
     return { result, rels: await relationshipIds(result.changeset.id) };
   }
 
@@ -3585,7 +3585,7 @@ describe("codebase_extract call-edge evidence and OTEL exporters (#1086)", () =>
       })
     );
     clearModelCache();
-    ok(await handler({ changeset: first.changeset.name, rootPath }));
+    ok(await handler({ acceptLinks: [{ all: true }], acceptDeletes: [{ all: true }], changeset: first.changeset.name, rootPath }));
     const rels = await relationshipIds(first.changeset.id);
     const C = "application.applicationcomponent";
     // Rendered as a JSX element: composition. Called as a function: use.
@@ -3890,5 +3890,109 @@ describe("codebase_extract: the purpose of a since run by rule (#1370)", () => {
     await indexed();
     const result = fail(await createCodebaseExtractHandler(harness().deps)({ purpose: "reconcile", rootPath }));
     expect(result.error).toContain("no since");
+  }, SLOW);
+});
+
+describe("codebase_extract: links and deletes are suggestions the agent accepts (#1492)", () => {
+  const SLOW = 120_000;
+  it("stages no relationship without the agent: each is suggested with its evidence", async () => {
+    await indexed();
+    const h = harness();
+    const handler = createCodebaseExtractHandler(h.deps);
+
+    const first = ok(await handler({ rootPath }));
+    expect(first.staged.relationships).toBe(0);
+    expect((await changesetOf(first.changeset.id)).changes.filter((c) => c.type === "relationship-add")).toEqual([]);
+    // Three links, each a suggestion with the edge it rests on, how many call it, and the call sites.
+    expect(first.suggested.links.total).toBe(3);
+    expect(first.suggested.links.byEdge.map((e: any) => e.value)).toContain("TEST_FILE_NAME");
+    expect(first.suggested.links.byEdge.reduce((n: number, e: any) => n + e.count, 0)).toBe(3);
+    const inferred = first.suggested.links.items.find((l: any) => l.key === INFERRED_TEST);
+    expect(inferred).toMatchObject({ suggested: true, by: "edge:TEST_FILE_NAME", evidence: { kind: "edge:TEST_FILE_NAME", edges: 1 } });
+    expect(inferred.evidence.inferredFrom).toContain("is named after");
+    const called = first.suggested.links.items.find((l: any) => l.key === `${HANDLER}::accesses::${SCHEMA}`);
+    expect(called.evidence.sites.length).toBeGreaterThan(0);
+    expect(called.evidence.sites[0]).toMatchObject({ fromFile: expect.any(String), toFile: expect.any(String) });
+    expect(first.next.join(" ")).toContain("acceptLinks");
+
+    // A run that only looks at them changes nothing.
+    clearModelCache();
+    const again = ok(await handler({ changeset: first.changeset.name, rootPath }));
+    expect(again.suggested.links.total).toBe(3);
+    expect((await changesetOf(first.changeset.id)).changes.filter((c) => c.type === "relationship-add")).toEqual([]);
+  }, SLOW);
+
+  it("accepts suggested links in bulk, by evidence, as the agent's own decision", async () => {
+    await indexed();
+    const h = harness();
+    const handler = createCodebaseExtractHandler(h.deps);
+    const first = ok(await handler({ rootPath }));
+
+    clearModelCache();
+    const one = ok(await handler({ changeset: first.changeset.name, acceptLinks: [{ edge: "TEST_FILE_NAME" }], rootPath }));
+    expect(one.staged.relationships).toBe(1);
+    expect(one.suggested.accepted.links.items).toEqual([{ index: 0, matched: 1 }]);
+    expect(await relationshipIds(first.changeset.id)).toEqual([INFERRED_TEST]);
+    const staged = (await changesetOf(first.changeset.id)).changes.find((c) => c.type === "relationship-add")!;
+    expect(staged.origin).toEqual({ by: "agent", suggestedBy: "edge:TEST_FILE_NAME" });
+    expect(one.suggested.links.items.map((l: any) => l.key)).not.toContain(INFERRED_TEST);
+
+    // An item that names nothing, or matches nothing, is said, not guessed at.
+    clearModelCache();
+    const bad = ok(await handler({ changeset: first.changeset.name, acceptLinks: [{}, { predicate: "serves" }], rootPath }));
+    expect(bad.staged.relationships).toBe(0);
+    expect(bad.suggested.accepted.links.problems).toEqual([expect.objectContaining({ index: 0 })]);
+    expect(bad.suggested.accepted.links.matchedNothing).toEqual([1]);
+
+    // The rest in one call.
+    clearModelCache();
+    const rest = ok(await handler({ changeset: first.changeset.name, acceptLinks: [{ all: true }], rootPath }));
+    expect(rest.staged.relationships).toBe(2);
+    expect(await relationshipIds(first.changeset.id)).toHaveLength(3);
+  }, SLOW);
+
+  it("rejecting a suggested link records it, and later runs don't suggest it", async () => {
+    await indexed();
+    const h = harness();
+    const handler = createCodebaseExtractHandler(h.deps);
+    const first = ok(await handler({ rootPath }));
+    expect(first.suggested.links.items.map((l: any) => l.key)).toContain(`${HANDLER}::accesses::${SCHEMA}`);
+
+    clearModelCache();
+    const rejected = ok(await handler({ reject: [{ relationship: { source: HANDLER, predicate: "accesses", target: SCHEMA }, reason: "the code only reads a DTO" }], rootPath }));
+    expect(rejected.notRelationships).toMatchObject({ total: 1 });
+
+    clearModelCache();
+    const again = ok(await handler({ changeset: first.changeset.name, acceptLinks: [{ all: true }], rootPath }));
+    expect(again.staged.relationships).toBe(2);
+    expect(await relationshipIds(first.changeset.id)).not.toContain(`${HANDLER}::accesses::${SCHEMA}`);
+  }, SLOW);
+
+  it("deletes nothing without the agent: the element whose file is gone is a suggested delete", async () => {
+    await indexed();
+    await addToBase({
+      layer: "application",
+      type: "applicationcomponent",
+      name: "Legacy Importer",
+      attributes: { type: "internal" },
+      sourceFile: "src/legacy/Importer.java",
+      sourceSymbol: "Importer",
+      sourceProvenance: "extracted",
+    });
+    const h = harness();
+    h.changes.value = { base: "abc123", changed: new Set([OWNER_FILE]), deleted: new Map([["src/legacy/Importer.java", null]]) };
+    const handler = createCodebaseExtractHandler(h.deps);
+
+    const first = ok(await handler({ since: "main", rootPath }));
+    expect(first.staged.deleted).toBeUndefined();
+    expect(first.candidateDeletes.items).toEqual([expect.objectContaining({ id: "application.applicationcomponent.legacy-importer", evidence: "file-deleted" })]);
+    expect((await changesetOf(first.changeset.id)).changes.filter((c) => c.type === "delete")).toEqual([]);
+    expect(first.next.join(" ")).toContain("acceptDeletes");
+
+    clearModelCache();
+    const accepted = ok(await handler({ since: "main", changeset: first.changeset.name, acceptDeletes: [{ evidence: "file-deleted" }], rootPath }));
+    expect(accepted.staged.deleted.items).toEqual([expect.objectContaining({ id: "application.applicationcomponent.legacy-importer" })]);
+    const del = (await changesetOf(first.changeset.id)).changes.find((c) => c.type === "delete")!;
+    expect(del.origin).toEqual({ by: "agent", suggestedBy: "candidate-delete:file-deleted" });
   }, SLOW);
 });

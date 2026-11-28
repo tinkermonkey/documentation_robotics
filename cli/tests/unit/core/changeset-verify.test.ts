@@ -11,7 +11,7 @@ import {
   builtFromSnapshot,
   normalizeName,
   planFromChangeset,
-  verifyChangeset,
+  verifyChangeset, narrowVerifyReport,
   type BuiltSide,
   type ObservabilityCheck,
   LIFECYCLE_FIELDS,
@@ -457,6 +457,32 @@ describe("relationship matching", () => {
     expect(report.relationships.missing.map((m) => m.planned.predicate)).toEqual(["serves"]);
     expect(report.relationships.testsToCheck?.map((m) => m.planned.predicate)).toEqual(["tests"]);
     expect(report.summary.relationships.testsToCheck).toBe(1);
+  });
+
+  it("lists a planned link or deletion extraction suggested and nobody decided for the agent to check, not as missing or not done (#1492)", async () => {
+    const plan = planFromChangeset(changeset("plan", [addRel(FN, "serves", SVC), delEl(SVC)]));
+    const built = await asBuilt([addEl(FN), addEl(SVC)]);
+    // Without a record of suggestions the link is missing and the deletion not done.
+    const bare = verifyChangeset(plan, built);
+    expect(bare.relationships.missing.map((m) => m.planned.predicate)).toEqual(["serves"]);
+    expect(bare.elements.deletionsNotDone).toEqual([{ planned: SVC, built: SVC }]);
+
+    const report = verifyChangeset(plan, built, { suggested: { links: new Set([`${FN}::serves::${SVC}`]), deletes: new Set([SVC]) } });
+    expect(report.relationships.missing).toEqual([]);
+    expect(report.elements.deletionsNotDone).toEqual([]);
+    expect(report.relationships.suggestedToCheck?.map((m) => m.planned.predicate)).toEqual(["serves"]);
+    expect(report.elements.deletionsToCheck).toEqual([{ planned: SVC, built: SVC }]);
+    expect(report.summary.relationships.suggestedToCheck).toBe(1);
+    expect(report.summary.elements.suggestedToCheck).toBe(1);
+    expect(report.verdict).not.toBe("incomplete");
+    expect(report.verdictText).toContain("suggested by extraction and not yet decided");
+
+    // A layer filter keeps the suggested items in the slice, counted and listed.
+    const slice = narrowVerifyReport(report, { layers: ["application"] });
+    expect(slice.relationships.suggestedToCheck).toHaveLength(1);
+    expect(slice.elements.deletionsToCheck).toHaveLength(1);
+    expect(slice.summary.relationships.suggestedToCheck).toBe(1);
+    expect(slice.verdict).not.toBe("empty-plan");
   });
 
   it("a plan of only tests links to check is not read as an exact match (#1413)", async () => {

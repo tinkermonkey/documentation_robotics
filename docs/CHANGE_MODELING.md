@@ -808,11 +808,18 @@ reconciled commit makes a reconcile, any other `since` a verification record nam
 `planCoverage` pairs the plan's elements with the as-built side by the matcher `changeset_verify`
 uses (`matchPlannedElements`: id, name, then source file and symbol).
 
-A `since` run stages the delete of an element whose code is gone when the evidence is
-unambiguous (`file-deleted`, `symbol-missing`), with the relationships that name it, marked
-`origin: {by: tier0, rule: candidate-delete:<evidence>}` and listed in `staged.deleted`. Weaker
-evidence (`reference-never-matched`, `file-renamed`, `file-missing`), an element other elements
-still reference, and a run with no `since` stay `candidateDeletes`, for the agent to check.
+An element whose code is gone is a suggested deletion (`candidateDeletes`), never staged on its own
+(the founding rule, #1492: agents interpret everything). Each carries its evidence (`file-deleted`,
+`symbol-missing`, `reference-never-matched`, `file-renamed`, `file-missing`). The agent reads the code
+and accepts what is really gone with `acceptDeletes` (by evidence, files or ids), which stages the
+delete with the relationships that name it, marked `origin: {by: agent, suggestedBy:
+candidate-delete:<evidence>}` and listed in `staged.deleted`. An element other elements still
+reference is not staged and says so. Relationships work the same way: the edge mapping's links
+(calls, usages, tests links inferred from a test file's name) are `suggested.links`, each with the
+CBM edge, call sites and resolution confidence, and `acceptLinks` stages the ones the agent accepts
+(origin `{by: agent, suggestedBy: edge:<CBM edge>}`). `changeset_verify` lists a planned link or
+deletion that extraction suggested and nobody decided under `suggestedToCheck`, not as missing or
+not done.
 
 A run creates and activates a changeset only when it stages something. One that stages nothing
 creates nothing, so no empty changeset is left to sit in `project_status` as the next thing to
