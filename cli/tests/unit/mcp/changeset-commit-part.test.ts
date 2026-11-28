@@ -218,6 +218,26 @@ describe("landing part of a plan (#1388)", () => {
     expect(JSON.stringify(parse(await call("changeset_show", { changeset: "roadmap", detail: "full" })))).toContain("EDITED-DURING-LANDING");
   });
 
+  it("leaves a link's removal with the deletion it belongs to when the part does not take the deletion", async () => {
+    expect(parse(await call("changeset_commit", { changeset: "roadmap" })).status).toBe("committed");
+    await changesetCreateHandler({ name: "p2", description: "Reword the exporter, drop the feature", rootPath });
+    await call("model_update", { id: S1, description: "Exports orders as CSV" });
+    await call("model_delete", { id: F1 });
+    const staged = JSON.stringify(parse(await call("changeset_show", { changeset: "p2" })));
+    expect(staged).toContain("relationship-delete");
+
+    const landed = parse(await call("changeset_commit", { changeset: "p2", ids: [S1], crossing: "leave" }));
+    expect(landed.status).toBe("committed");
+    expect(landed.partOf.part.lands.relationships).toBe(0);
+    // The link is still in the base: its removal waits with the deletion of F1, which is still planned.
+    const relationships = await readFile(join(rootPath, "documentation-robotics", "model", "relationships.yaml"), "utf-8");
+    expect(relationships).toContain(S1);
+    expect(relationships).toContain(F1);
+    const plan = JSON.stringify(parse(await call("changeset_show", { changeset: "p2" })));
+    expect(plan).toContain("relationship-delete");
+    expect(plan).toContain(`delete ${F1}`);
+  });
+
   it("refuses a part that names nothing the plan changes", async () => {
     const result = await call("changeset_commit", { changeset: "roadmap", ids: ["product.feature.nope"] });
     expect(result.isError).toBe(true);
