@@ -195,6 +195,29 @@ describe("landing part of a plan (#1388)", () => {
     expect(preview.partial.elements).toEqual([S1]);
   });
 
+  it("refuses an empty part instead of landing the whole plan", async () => {
+    for (const args of [{ ids: [] }, { milestone: [] }, { milestone: " " }]) {
+      const result = await call("changeset_commit", { changeset: "roadmap", ...args });
+      expect(result.isError).toBe(true);
+    }
+    expect((await show("roadmap")).status).toBe("staged");
+  });
+
+  it("keeps an edit staged while the part landed, instead of losing it", async () => {
+    // The part is copied, then the plan's S1 is edited in place (same sequence number), then the plan is trimmed.
+    const { StagingAreaManager } = await import("../../../src/core/staging-area.js");
+    const { planPartialLanding, changesOfPart } = await import("../../../src/core/partial-landing.js");
+    const model = await Model.load(rootPath, { lazyLoad: false });
+    const manager = new StagingAreaManager(rootPath, model);
+    const plan = (await manager.load("roadmap"))!;
+    const part = await planPartialLanding(model, plan, { ids: [S1], crossing: "leave" });
+    const copied = changesOfPart(plan, part);
+    await call("model_update", { id: S1, description: "EDITED-DURING-LANDING" });
+    const kept = await manager.removeLanded(plan.id!, copied, { changeset: "x", id: "x", at: "now", selection: "ids", elements: [S1], relationships: 0 });
+    expect(kept.length).toBe(1);
+    expect(JSON.stringify(parse(await call("changeset_show", { changeset: "roadmap", detail: "full" })))).toContain("EDITED-DURING-LANDING");
+  });
+
   it("refuses a part that names nothing the plan changes", async () => {
     const result = await call("changeset_commit", { changeset: "roadmap", ids: ["product.feature.nope"] });
     expect(result.isError).toBe(true);

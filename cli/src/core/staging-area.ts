@@ -742,11 +742,12 @@ export class StagingAreaManager {
   }
 
   /** Takes the changes of a plan that landed as `part` out of it, and records the part (#1388). */
-  async removeLanded(planId: string, sequences: number[], part: LandedPart): Promise<void> {
+  async removeLanded(planId: string, landed: StagedChange[], part: LandedPart): Promise<number[]> {
     this.validateChangesetId(planId);
-    await this.storage.removeLanded(planId, sequences, part);
+    const kept = await this.storage.removeLanded(planId, landed, part);
     const engine = await this.getProjectionEngine();
     await engine.invalidateOnUnstage(planId);
+    return kept;
   }
 
   /**

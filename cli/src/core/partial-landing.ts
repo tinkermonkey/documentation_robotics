@@ -91,6 +91,7 @@ export async function planPartialLanding(model: Model, changeset: Changeset, sel
   const links: LinkChange[] = [];
   const changedElements = new Set<string>();
   const added = new Set<string>();
+  const deleted = new Set<string>();
   for (const change of changes) {
     if (isRelationship(change)) {
       const rel = (change.type === "relationship-add" ? change.after : change.before) as
@@ -108,6 +109,7 @@ export async function planPartialLanding(model: Model, changeset: Changeset, sel
     } else {
       const id = graph.resolve(change.elementId);
       changedElements.add(id);
+      if (change.type === "delete") deleted.add(id);
       // An add the base already has lands as the base's element (commit skips it): not pending.
       if (change.type === "add" && !graph.getElement(id)?.alreadyInBase) added.add(id);
     }
@@ -139,7 +141,7 @@ export async function planPartialLanding(model: Model, changeset: Changeset, sel
     }
   }
   if (how.length === 0) {
-    throw new CLIError("Choose the part to land: ids, milestone or withSourceReference", ErrorCategory.USER, [
+    throw new CLIError("Choose the part to land: ids, milestone or withSourceReference (the part given is empty)", ErrorCategory.USER, [
       "ids: the elements to land; milestone: a milestone's elements; withSourceReference: every element the plan ties to code",
     ]);
   }
@@ -195,6 +197,9 @@ export async function planPartialLanding(model: Model, changeset: Changeset, sel
     if (!touches) continue;
     const pending = (id: string) => added.has(id) && !chosen.has(id);
     if (pending(link.source) || pending(link.target)) continue;
+    // A link removal that belongs to the deletion of an element the part does not take stays with it.
+    const withDeletion = (id: string) => deleted.has(id) && !chosen.has(id);
+    if (link.op === "relationship-delete" && (withDeletion(link.source) || withDeletion(link.target))) continue;
     sequences.push(link.change.sequenceNumber);
     relationships++;
   }

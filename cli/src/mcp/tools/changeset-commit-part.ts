@@ -67,7 +67,8 @@ export interface PartArgs {
 
 /** Whether a call chooses a part of the plan instead of the whole. */
 export function choosesPart(args: PartArgs): boolean {
-  return !!(args.ids?.length || milestoneArgs(args.milestone).length > 0 || args.withSourceReference);
+  // A field that is given chooses a part even when it is empty: an empty part is refused, never the whole plan.
+  return args.ids !== undefined || args.milestone !== undefined || args.withSourceReference === true;
 }
 
 function selectionOf(args: PartArgs): PartSelection {
@@ -195,7 +196,13 @@ export async function landPart(args: PartArgs & { changeset: string }, forceIgno
   };
   let trimmed = true;
   try {
-    await manager.removeLanded(changeset.id!, plan.sequences, record);
+    const kept = await manager.removeLanded(changeset.id!, changesOfPart(changeset, plan), record);
+    if (kept.length > 0) {
+      warnings.push(
+        `${kept.length} staged change(s) of the plan were edited while the part landed (sequences ${kept.join(", ")}), so they stay staged: ` +
+          "the base has the version that landed, and the plan holds the newer one as an update to apply with the rest."
+      );
+    }
   } catch (error) {
     trimmed = false;
     warnings.push(

@@ -178,6 +178,13 @@ export async function changesetFilesStamp(changesetPath: string): Promise<string
 /**
  * Storage manager for staged changesets using YAML format
  */
+/** JSON with sorted keys, to compare two copies of one change. */
+function stableJson(value: unknown): string {
+  return JSON.stringify(value, (_key, v) =>
+    v && typeof v === "object" && !Array.isArray(v) ? Object.fromEntries(Object.entries(v).sort(([a], [b]) => a.localeCompare(b))) : v
+  );
+}
+
 export class StagedChangesetStorage {
   private changesetsDir: string;
   private rootPath: string;
@@ -777,17 +784,29 @@ export class StagedChangesetStorage {
    * stays. The removal is a revision of its own (it takes the next sequence number) but leaves no
    * tombstones: these changes were not unstaged, they are in the base.
    */
-  async removeLanded(id: string, sequences: number[], part: LandedPart): Promise<void> {
-    const wanted = new Set(sequences);
-    await new FileLock(this.getChangesetPath(id)).withLock(async () => {
+  async removeLanded(id: string, landed: StagedChange[], part: LandedPart): Promise<number[]> {
+    const content = (c: StagedChange) => stableJson({ type: c.type, elementId: c.elementId, layerName: c.layerName, before: c.before, after: c.after });
+    const landedBy = new Map(landed.map((c) => [c.sequenceNumber, content(c)]));
+    return new FileLock(this.getChangesetPath(id)).withLock(async () => {
       const changeset = await this.loadStaged(id);
       const numbered = withSequenceNumbers(changeset.changes);
+      // A change edited since it was copied (a model_update folded into it keeps its number) is not
+      // what landed: it stays, so the edit is not lost.
+      const gone = new Set<number>();
+      const kept: number[] = [];
+      for (const c of numbered) {
+        const was = landedBy.get(c.sequenceNumber);
+        if (was === undefined) continue;
+        if (was === content(c)) gone.add(c.sequenceNumber);
+        else kept.push(c.sequenceNumber);
+      }
       changeset.lastSequence = nextSequenceNumber({ ...changeset, changes: numbered });
-      changeset.changes = numbered.filter((c) => !wanted.has(c.sequenceNumber));
+      changeset.changes = numbered.filter((c) => !gone.has(c.sequenceNumber));
       changeset.landed = [...(changeset.landed ?? []), part];
       changeset.updateModified();
       await this.save(changeset);
       await recordChangesetWrite(this.rootPath, id);
+      return kept;
     });
   }
 
