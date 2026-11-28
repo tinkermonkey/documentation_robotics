@@ -164,6 +164,37 @@ describe("changeset_overlaps (#1209)", () => {
     expect((await manager.load("plan-b"))!.changes).toHaveLength(1);
   });
 
+  it("reads each overlap in the order a landing uses, and names a changeset once whatever it is called by", async () => {
+    await plan("plan-a");
+    await modelUpdateHandler({ id: BASE_FN, description: "A", rootPath });
+    await changesetDeactivateHandler({ rootPath });
+    await plan("plan-b");
+    await modelDeleteHandler({ id: BASE_FN, force: true, rootPath } as any);
+    await changesetDeactivateHandler({ rootPath });
+    const manager = new StagingAreaManager(rootPath);
+    const a = (await manager.load("plan-a"))!;
+    const b = (await manager.load("plan-b"))!;
+    // Landing B first: A's update then has nothing to apply to.
+    const reversed = computeChangesetOverlaps([b, a], { landOrder: ["plan-b", "plan-a"] });
+    expect(reversed.overlaps[0].changesets).toEqual(["plan-b", "plan-a"]);
+    expect(reversed.overlaps[0].reason).toBe("removed-in-base");
+    const suggested = computeChangesetOverlaps([b, a]);
+    expect(suggested.suggestedOrder).toEqual(["plan-a", "plan-b"]);
+    const byIdAndName = parse(await changesetOverlapsHandler({ changesets: ["plan-a", a.id, "plan-b"], rootPath }));
+    expect(byIdAndName.changesets).toHaveLength(2);
+  });
+
+  it("does not call a dependent's delete of what its dependency adds a conflict", async () => {
+    await plan("step-a");
+    await modelAddHandler({ layer: "application", type: "applicationfunction", name: "extra", rootPath });
+    await changesetDeactivateHandler({ rootPath });
+    await changesetCreateHandler({ name: "step-b", description: "B", dependsOn: ["step-a"], rootPath });
+    await modelDeleteHandler({ id: "application.applicationfunction.extra", force: true, rootPath } as any);
+    await changesetDeactivateHandler({ rootPath });
+    const result = parse(await changesetOverlapsHandler({ rootPath }));
+    expect(result.counts.bySeverity.conflict).toBe(0);
+  });
+
   it("is a pure comparison of staged changes", async () => {
     await plan("plan-a");
     await modelUpdateHandler({ id: BASE_FN, description: "A", rootPath });

@@ -18,7 +18,7 @@ async function loadStaged(manager: StagingAreaManager, names: string[]): Promise
   const loaded: Changeset[] = [];
   for (const name of names) {
     const found = await manager.load(name).catch(() => null);
-    if (found && found.status === "staged") loaded.push(found);
+    if (found && found.status === "staged" && !loaded.some((c) => c.id === found.id)) loaded.push(found);
   }
   return loaded;
 }
@@ -59,7 +59,8 @@ export interface LandingOverlaps {
 export async function overlapsForLanding(manager: StagingAreaManager, names: string[]): Promise<LandingOverlaps | undefined> {
   const staged = await loadStaged(manager, names);
   if (staged.length < 2) return undefined;
-  const report = computeChangesetOverlaps(staged);
+  // Read in the order the call lands them: that is what each consequence describes.
+  const report = computeChangesetOverlaps(staged, { landOrder: staged.map((c) => c.name) });
   if (report.counts.total === 0) return undefined;
   const conflicts = report.overlaps.filter((o) => o.severity === "conflict");
   const requestedOrder = staged.map((c) => c.name);

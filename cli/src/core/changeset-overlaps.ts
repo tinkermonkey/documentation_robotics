@@ -111,12 +111,12 @@ function parseRelationship(change: StagedChange): { source: string; predicate: s
     | { source?: string; predicate?: string; target?: string }
     | undefined;
   const [source, predicate, target] =
-    data?.source && data.predicate && data.target ? [data.source, data.predicate, data.target] : change.elementId.split("::");
+    data?.source && data.predicate && data.target ? [data.source, data.predicate, data.target] : (change.elementId ?? "").split("::");
   return source && predicate && target ? { source, predicate, target } : undefined;
 }
 
 /** What a changeset does to each element and relationship, in the order it staged it. */
-function footprintOf(changeset: Changeset): Footprint {
+function footprintOf(changeset: Changeset, resolve: (id: string) => string): Footprint {
   const elements = new Map<string, ElementTouch>();
   const relationships = new Map<string, "add" | "delete">();
   const ordered = (changeset.changes as StagedChange[])
@@ -125,10 +125,17 @@ function footprintOf(changeset: Changeset): Footprint {
   for (const { change } of ordered) {
     if (change.type === "relationship-add" || change.type === "relationship-delete") {
       const rel = parseRelationship(change);
-      if (rel) relationships.set(relationshipKey(rel), change.type === "relationship-add" ? "add" : "delete");
+      if (rel) {
+        const key = relationshipKey({ source: resolve(rel.source), predicate: rel.predicate, target: resolve(rel.target) });
+        const adding = change.type === "relationship-add";
+        // A link added and deleted again here is nothing to land.
+        if (!adding && relationships.get(key) === "add") relationships.delete(key);
+        else relationships.set(key, adding ? "add" : "delete");
+      }
       continue;
     }
-    const id = change.elementId;
+    const id = resolve(change.elementId ?? "");
+    if (!id) continue;
     const known = elements.get(id);
     const record = (value: unknown) =>
       value && typeof value === "object" ? elementFromRecord(value as Record<string, unknown>, change.layerName, id) : undefined;
@@ -301,7 +308,8 @@ function comparePair(fa: Footprint, fb: Footprint): RawOverlap[] {
         const side = (name: string): "a" | "b" => (name === raw.a ? "a" : "b");
         if (touched.op === "add" && op === "add") raw.before = side(otherName);
         if (touched.op === "delete" && op === "add") raw.last = side(otherName);
-        if (touched.op === "delete" && op === "delete") raw.kind = "link-to-changed";
+        // Both removing the link and its end: whichever lands second has nothing to remove.
+        if (touched.op === "delete" && op === "delete") continue;
         out.push(raw);
       }
     }
@@ -374,6 +382,14 @@ function describe(raw: RawOverlap, earlier: "a" | "b", names: { earlier: string;
   };
   switch (raw.kind) {
     case "same-add":
+      if (raw.opA !== "add" || raw.opB !== "add") {
+        return {
+          reason: "changed-in-base",
+          severity: "agrees",
+          consequence: `${prefix}Both stage the same content for this element: '${names.later}' rewrites it unchanged.`,
+          resolve: "Nothing to do; unstage one if the repeat is not wanted.",
+        };
+      }
       return { reason: "already-in-base", severity: "agrees", ...ofDrift("element", "already-in-base", "add") };
     case "both-full-change":
       // The later one's whole-element change replaces what the earlier one landed.
@@ -403,7 +419,14 @@ function describe(raw: RawOverlap, earlier: "a" | "b", names: { earlier: string;
     case "link-same-delete":
       return { reason: "already-removed", severity: "agrees", ...ofDrift("relationship", "already-removed", "delete") };
     case "link-add-delete":
-      return { reason: "already-removed", severity: "conflict", ...ofDrift("relationship", "already-removed", laterOp.startsWith("add") ? "add" : "delete") };
+      return laterOp.startsWith("delete")
+        ? {
+            reason: "already-in-base",
+            severity: "conflict",
+            consequence: `${prefix}'${names.earlier}' adds this link and '${names.later}' deletes it: landing '${names.later}' removes what '${names.earlier}' added.`,
+            resolve: "Unstage one of the two, whichever the link's fate should not follow.",
+          }
+        : { reason: "already-removed", severity: "conflict", ...ofDrift("relationship", "already-removed", "add") };
     case "link-to-deleted":
     case "link-to-added":
     case "link-to-changed":
@@ -461,6 +484,11 @@ export interface OverlapOptions {
   /** The most overlaps listed (default: all). A page size: counts are always whole. */
   limit?: number;
   offset?: number;
+  /**
+   * Read every overlap in this order (changeset names) instead of the suggested one: the order a
+   * landing will actually use, so what is said about each overlap is what that landing does.
+   */
+  landOrder?: string[];
 }
 
 /**
@@ -468,33 +496,76 @@ export interface OverlapOptions {
  * considered (the suggested order starts from it).
  */
 export function computeChangesetOverlaps(changesets: Changeset[], options: OverlapOptions = {}): OverlapReport {
-  const footprints = changesets.map(footprintOf);
+  // Staged links may spell an end by UUID or by dotted path: both map to the path.
+  const uuidToPath = new Map<string, string>();
+  for (const cs of changesets) {
+    for (const change of cs.changes as StagedChange[]) {
+      for (const record of [change.before, change.after]) {
+        const r = record as { id?: unknown; path?: unknown } | undefined;
+        if (r && typeof r.id === "string" && typeof r.path === "string" && r.id !== r.path) uuidToPath.set(r.id, r.path);
+      }
+    }
+  }
+  const resolve = (id: string): string => uuidToPath.get(id) ?? id;
+  const footprints = changesets.map((c) => footprintOf(c, resolve));
   const raws: RawOverlap[] = [];
   for (let i = 0; i < footprints.length; i++) {
     for (let j = i + 1; j < footprints.length; j++) raws.push(...comparePair(footprints[i], footprints[j]));
   }
-  const { order, notes } = orderChangesets(footprints, raws);
-  const position = new Map(order.map((n, i) => [n, i]));
+  const { order: suggested, notes } = orderChangesets(footprints, raws);
+  const landing = options.landOrder?.length ? options.landOrder : suggested;
+  const order = suggested;
+  const position = new Map(landing.map((n, i) => [n, i]));
 
   // A changeset that depends on the other builds on it, so the two are ordered, not in conflict.
   const idByName = new Map(changesets.map((c) => [c.name, c.id]));
-  const dependsOnOther = (x: string, y: string): boolean => !!changesets.find((c) => c.name === x)?.dependsOn?.includes(idByName.get(y) ?? "");
+  const byId = new Map(changesets.map((c) => [c.id, c]));
+  const closure = (c: Changeset): Set<string> => {
+    const seen = new Set<string>();
+    const walk = (cs: Changeset): void => {
+      for (const id of cs.dependsOn ?? []) {
+        if (seen.has(id)) continue;
+        seen.add(id);
+        const next = byId.get(id);
+        if (next) walk(next);
+      }
+    };
+    walk(c);
+    return seen;
+  };
+  const dependsOnOther = (x: string, y: string): boolean => {
+    const cx = changesets.find((c) => c.name === x);
+    return !!cx && closure(cx).has(idByName.get(y) ?? "");
+  };
 
   const overlaps: ChangesetOverlap[] = raws.map((raw) => {
     const earlier: "a" | "b" = (position.get(raw.a) ?? 0) <= (position.get(raw.b) ?? 0) ? "a" : "b";
     const names = earlier === "a" ? { earlier: raw.a, later: raw.b } : { earlier: raw.b, later: raw.a };
     const described = describe(raw, earlier, names);
     const ordered = dependsOnOther(names.later, names.earlier);
+    if (ordered) {
+      // Staged on top of the earlier one (dependsOn, also through others): it saw what the earlier
+      // stages, so nothing is replaced behind its back.
+      return {
+        of: raw.of,
+        id: raw.id,
+        changesets: [names.earlier, names.later],
+        operations: { [raw.a]: raw.opA, [raw.b]: raw.opB },
+        reason: described.reason,
+        severity: "ordered" as const,
+        consequence: `'${names.later}' depends on '${names.earlier}': it was staged on what '${names.earlier}' stages, so it lands after it and builds on it.`,
+        resolve: "Nothing to do; land them in this order.",
+        ...(raw.endpoint ? { endpoint: raw.endpoint } : {}),
+      };
+    }
     return {
       of: raw.of,
       id: raw.id,
       changesets: [names.earlier, names.later],
       operations: { [raw.a]: raw.opA, [raw.b]: raw.opB },
       ...described,
-      // Built on the other: the later one's change was staged on the earlier one's, not over it.
-      ...(ordered && described.severity === "conflict" && raw.kind === "both-full-change" ? { severity: "ordered" as const } : {}),
       ...(raw.endpoint ? { endpoint: raw.endpoint } : {}),
-      ...(raw.combined && !(ordered && raw.kind === "both-full-change") ? { combined: raw.combined } : {}),
+      ...(raw.combined ? { combined: raw.combined } : {}),
     };
   });
 

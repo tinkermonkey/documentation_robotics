@@ -26,6 +26,7 @@ import {
 import { describeDrift } from "../../core/changeset-base-index.js";
 import { computeChangesetOverlaps } from "../../core/changeset-overlaps.js";
 import { StagingAreaManager } from "../../core/staging-area.js";
+import type { Changeset } from "../../core/changeset.js";
 import { CLIError, ErrorCategory } from "../../utils/errors.js";
 import { getErrorMessage } from "../../utils/errors.js";
 import { reviewForAgent } from "../../core/changeset-review.js";
@@ -535,13 +536,13 @@ export async function changesetOverlapsHandler(args: ChangesetOverlapsArgs): Pro
   return runTool(async () => {
     const model = await loadModel(args.rootPath);
     const manager = new StagingAreaManager(model.rootPath, model);
-    const loaded = [];
+    const loaded: Changeset[] = [];
     if (args.changesets?.length) {
       for (const ref of new Set(args.changesets)) {
         const found = await manager.load(ref);
         if (!found) throw new CLIError(`Changeset ${ref} not found`, ErrorCategory.NOT_FOUND, ['Use "changeset_list" to see the staged changesets']);
         if (found.status !== "staged") throw new CLIError(`Changeset '${found.name}' is ${found.status}: only staged changesets can overlap`, ErrorCategory.USER);
-        loaded.push(found);
+        if (!loaded.some((c) => c.id === found.id)) loaded.push(found);
       }
     } else {
       for (const cs of await manager.list()) {
