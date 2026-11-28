@@ -84,6 +84,7 @@ const MODEL_TOOL_NAMES = [
   "relationship_delete",
   "spec_type",
   "changeset_impact",
+  "changeset_overlaps",
   "changeset_brief",
   "chat_status",
   "chat_launch",
