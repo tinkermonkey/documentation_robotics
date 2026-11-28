@@ -44,6 +44,8 @@ async function filesOf(rootPath: string, changeset: Changeset): Promise<string[]
       files.add(path.join(modelDir, "relationships.yaml"));
       continue;
     }
+    // An element delete can purge the relationships that name it, which rewrites relationships.yaml.
+    if (change.type === "delete") files.add(path.join(modelDir, "relationships.yaml"));
     // Named as Model.saveLayer names a type's file: application_function.yaml for applicationfunction.
     const type = change.elementId.split(".")[1];
     const layerDir = layerDirs.find((dir) => dir.replace(/^\d+_/, "") === change.layerName);
@@ -52,6 +54,17 @@ async function filesOf(rootPath: string, changeset: Changeset): Promise<string[]
     }
   }
   if (changeset.id) files.add(path.join("documentation-robotics", "changesets", changeset.id));
+  return [...files].sort();
+}
+
+/**
+ * What a landing puts in the commit (#1367): the model files its changes were written to, the
+ * manifest (the landing records it in the history and counts), and the changeset's own folder,
+ * which git doesn't track yet. Relative to the project root.
+ */
+export async function filesToCommit(rootPath: string, changeset: Changeset): Promise<string[]> {
+  const files = new Set(await filesOf(rootPath, changeset));
+  files.add(path.join("documentation-robotics", "model", "manifest.yaml"));
   return [...files].sort();
 }
 

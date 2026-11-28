@@ -86,8 +86,8 @@ export const changesetCreateTool: McpToolDefinition<typeof createInputSchema> = 
     "Start planning a change: create a changeset carrying the change's intent and (by default) activate it, " +
     "so model_add / model_update / model_delete / relationship_add / relationship_delete stage into it instead " +
     "of writing the model. Before calling it, propose the changeset's name and intent to the user and confirm both " +
-    "with them. The intent is markdown, stored as the changeset's description (description is accepted for it too). Landing it is the user's step: changeset_commit commits only after they confirm " +
-    "it, or they commit it in the viewer. The result lists plans staged in the project's other checkouts (worktrees) and warns when " +
+    "with them. The intent is markdown, stored as the changeset's description (description is accepted for it too). Landing it is the user's call: changeset_commit lands it when they ask " +
+    "(git and the PR are the gate), or they commit it in the viewer. The result lists plans staged in the project's other checkouts (worktrees) and warns when " +
     "one looks like the same work (siblingPlans, siblingWarning); when the farm can't list them it says so.",
   inputSchema: createInputSchema,
   handler: changesetCreateHandler,

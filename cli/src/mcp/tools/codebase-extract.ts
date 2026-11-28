@@ -1590,7 +1590,7 @@ function nextSteps(
       `'${previous.name}' was active before this call. To check it against this build, call changeset_verify with changeset: "${previous.id}" and against: {changeset: "${changeset.id}"}. Call changeset_activate with "${previous.id}" to resume it.`
     );
   } else {
-    steps.push("The user lands the changeset with changeset_commit (they confirm in a dialog) or in the viewer.");
+    steps.push("The user lands the changeset with changeset_commit when they ask, or in the viewer.");
   }
   return steps;
 }

@@ -21,11 +21,11 @@ motivation.requirement.landing-a-change-needs-a-humans-confirmation:
   type: requirement
   layer_id: motivation
   name: Landing a change needs a human's confirmation
-  description: "A changeset reaches the base model only after a person confirms it: in an MCP confirmation dialog (elicitation), in the permission prompt a client forces for changeset_commit (Claude Code, carrying a confirmation token from a preview of the same changeset state), or with the viewer's Apply button. A session where no person can answer (DrBot, a non-interactive run) is refused."
+  description: "A changeset reaches the base model when the user asks for it in the conversation, and a person approves it in the pull request: the landing's files (the model and the changeset's folder) are committed with the code. changeset_commit asks for no dialog and no token. A session where no person can answer (DrBot, changeset-only mode) can't land; verification and upgrade records are never landed; a validation error refuses the landing. The viewer's Apply is the route for those sessions."
   attributes:
     requirementType: functional
     priority: critical
-    documentation: "A changeset reaches the base model only after a person confirms it: in an MCP confirmation dialog (elicitation), in the permission prompt a client forces for changeset_commit (Claude Code, carrying a confirmation token from a preview of the same changeset state), or with the viewer's Apply button. A session where no person can answer (DrBot, a non-interactive run) is refused. Acceptance: a changeset lands from the Claude desktop Code tab after one approval; no client lands one without a person."
+    documentation: "Decided 2026-11-26 (#1419), reversing the 2026-11-09 'always elicit' ruling: git and the pull request are the gate. A changeset lands from changeset_commit when the user asks in the conversation (one or several, in order, stopping at the first refusal), and the result names the files to commit. Acceptance: a plan lands from any client in one call after the user's ask; no one lands from a session where no person can answer; a person reviews the landed model in the PR."
   metadata:
     created_at: 2026-11-09T22:04:38.022Z
     updated_at: 2026-11-09T22:04:38.022Z

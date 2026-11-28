@@ -75,9 +75,9 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
   get no card. A card's `docs` are doc sections that mention its code: write its description from
   them, and use them as evidence for features and requirements. `documentation.describe` lists
   staged elements with no description that the docs describe.
-- You never land or discard the plan on your own. Commit it (`changeset_commit`) only when the
-  human asks you to land it; they confirm it in a dialog. Apply is not an MCP tool. Discard only when
-  they agree.
+- You never land or discard the plan on your own. Land it (`changeset_commit`) only when the
+  human asks you to; git and the PR are the gate, so there is no dialog or token. Apply is not an
+  MCP tool. Discard only when they agree.
 
 ## The loop
 
@@ -270,15 +270,17 @@ name>"` to compare with a plan without activating it: the active changeset is le
    verification record). Until they decide, add only the plan's directory when you commit fixes.
    If an as-built changeset was landed before DR refused it,
    `against: {"base": true, "extracted": true}` compares the plan with the model, with extraction's blind spots applied.
-8. **Land.** The PR carries the code and the staged plan, and the human commits the plan in it, not
-   the as-built changeset. When they ask you to land it, call `changeset_commit` with its name. The server asks them
-   to confirm in a dialog that shows the name, intent, counts by operation, layers and drift, and
-   commits only if they confirm; if they decline, leave it staged. Drift doesn't refuse it: the dialog lists each
-   staged change the base overlaps and what landing does about it (`force` is ignored;
-   `changeset_update` with `rebaseline: true` re-baselines a plan whose base moved). Then add
-   the model's changed files and the changeset's directory to the branch. If it is refused, they land
-   it in the viewer (`review_open`, then Apply on the changeset), or you call it again from an
-   interactive session. Never point them to the `dr` CLI. Once the model has an as-built landing
+8. **Land.** The PR carries the code and the staged plan, and a person approves the plan there, not the
+   as-built changeset. When they ask you to land it, call `changeset_commit` with its name (`changesets:
+[...]` lands several in order and stops at the first refusal). No dialog and no token:
+   `changeset_commit_preview` is the read-only dry run, if you want its `summary` first. Drift doesn't
+   refuse it: the result lists each staged change the base overlapped and what landing did about it, so
+   tell them that (`force` is ignored; `changeset_update` with `rebaseline: true` re-baselines a plan
+   whose base moved). Then commit the result's `filesToCommit`: the model's changed files, the manifest
+   and the changeset's folder, with the code on the branch (`project_status` warns when a landed
+   changeset's folder is untracked). A validation error refuses it, and so does a changeset-only
+   (DrBot) session: there the user lands it in the viewer (`review_open`, then Apply on the changeset).
+   Never point them to the `dr` CLI. Once the model has an as-built landing
    (a bootstrap, or a keep-as-built changeset from `codebase_extract`), landing the plan doesn't
    reconcile the model with the code: `project_status` keeps counting code drift from that landing.
    A model with none yet counts drift from its last commit, so committing the landed plan resets
@@ -301,9 +303,9 @@ Tools report odd input and carry on instead of failing. Read the report each tim
 - `changeset_unstage` reports `not-staged` when there was nothing to drop.
 - In a changeset-only session (DrBot with `--with-changesets`), a write with no active changeset is
   refused. Call `changeset_create` or `changeset_activate` and retry.
-- `changeset_commit` is refused when the human declines or cancels the dialog, when the client
-  can't show one (no MCP elicitation), and in DrBot, which doesn't have it. Nothing is written; the
-  human lands it in the viewer (`review_open`, then Apply), or from an interactive session.
+- `changeset_commit` is refused on a validation error, for a verification or upgrade record, and in
+  DrBot, which doesn't have it. Nothing is written; in DrBot the human lands it in the viewer
+  (`review_open`, then Apply).
 - DrBot cannot write annotations (`annotation_create` and `annotation_reply` are not among its
   tools). There, accept gaps with `gap_accept` and answer the human's comments in the chat.
 - `project_status` reports a leftover `documentation-robotics/changesets/.active`, the marker from

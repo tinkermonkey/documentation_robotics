@@ -8,7 +8,7 @@ _The design for using a DR changeset as the spec for a change. The vision and th
 ```text
 Frame ─▶ Draft ─▶ Pressure-test ─▶ Review ─▶ Build ─▶ Verify ─▶ Land
   │        │            │              │         │        │        │
-  │        │            │              │         │        │        └ changeset_commit, confirmed by the human in a dialog; or the viewer / CLI
+  │        │            │              │         │        │        └ changeset_commit when the human asks (git and the PR are the gate); or the viewer / CLI
   │        │            │              │         │        └ codebase_extract (since), then changeset_verify: plan vs the as-built changeset
   │        │            │              │         └ Claude builds from changeset_brief
   │        │            │              └ review_open (viewer overlay link), annotations, DrBot (on dr mcp)
@@ -92,7 +92,7 @@ gaps (#1026); _tier 1_ is Tier 1 in `codebase_extract` ([TIER1_DESIGN.md](analyz
 | Extract       | `tier1_status`                                               | tier 1   | Whether Tier 1 (the opt-in decision model `codebase_extract` asks) is on for this checkout and why not, its provider and model, where each key comes from (never its value), this month's spend against the cap and by source, and its cache. `probe: true` sends the probe (one synthetic card, no project code) and records its cost. Never writes `tier1.json`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | Verify        | `changeset_verify`                                           | slice 2  | Compare the plan with what was built: an as-built changeset, or the base model. Also `dr changeset verify` on the CLI.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | Abandon       | `changeset_discard`                                          | slice 2  | Abandon a changeset. It deletes the staged changes for good, so it needs the changeset named explicitly (id or name) and `confirm: true`. Only its record stays (`metadata.yaml` with name, description and status `discarded`, and an empty `changes.yaml`); the base index and other side files are removed.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| Land          | `changeset_commit`, `changeset_commit_preview`               | gateway  | Commit a named staged changeset (active or not) to the base model, only after the human confirms it in an MCP elicitation dialog, or (from Claude Code) approves a call carrying the preview's token. Also the viewer's Apply and `dr changeset commit`. See [Landing](#landing).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| Land          | `changeset_commit`, `changeset_commit_preview`               | gateway  | Commit a named staged changeset (active or not) to the base model, when the human asks (git and the PR are the gate: no dialog, no token); `changesets: [...]` lands several in order. Also the viewer's Apply and `dr changeset commit`. See [Landing](#landing).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 
 ### The changeset's intent
 
@@ -255,59 +255,47 @@ cs-177ff609-...`). A staged add the upgrade removed from another changeset is re
 
 ### Landing
 
-`changeset_commit` lands a plan from the conversation, but only once a person confirms it
-(`motivation.requirement.landing-a-change-needs-a-humans-confirmation`):
+`changeset_commit` lands a plan from the conversation when the user asks. Git and the pull request
+are the gate (`motivation.requirement.landing-a-change-needs-a-humans-confirmation`, decided
+2026-11-26 in #1419, reversing the earlier "always elicit" ruling): the landing's files go into the
+PR, and a person approves the landed model there. There is no confirmation dialog, no token and no
+permission-prompt flag. The token's hour ran while the person was still reading the prompt that was
+supposed to confirm it, and git already shows everything that changed.
 
-- It is listed with `_meta: {"anthropic/requiresUserInteraction": true}`, so Claude Code shows a
-  permission prompt on every call, whatever the permission mode.
-- By default the server asks the client to confirm (`elicitation/create`, one boolean `confirm`
-  field). The dialog shows the changeset's name, its intent (description), counts by operation, the
-  layers it touches, any drift, and how validation went. It commits only on `accept` with
-  `confirm: true`.
-- From Claude Code (v2.1.199 or later, by the `clientInfo` it sends), a confirmation token can stand
-  in for the dialog. `changeset_commit_preview` runs the same checks, writes nothing, and returns
-  the dialog's text as `summary` with a `confirmToken`: an HMAC, keyed per server process, over the
-  changeset id, an expiry (one hour: long enough for an answer relayed through another session, too
-  short for a summary read yesterday to land today) and the confirmed state (the staged changes and the base model). The agent shows the person
-  the summary, and `changeset_commit` with the token is the call they approve in the permission
-  prompt. The token is good once, and is refused from any other client, after it expires, or when
-  the changeset or the base changed since the preview. This is how a changeset lands from the
-  Claude desktop app, which runs Claude Code in print mode (print mode declines every elicitation
-  at once while still advertising the capability), and from a session the person follows over
-  Remote Control, where the dialog doesn't reach them.
-- It refuses, and writes nothing, when the person declines or cancels, when the client doesn't
-  support elicitation, and in changeset-only mode (DrBot), where no person can answer. A decline or
-  cancel that comes back within a second is reported as a dialog the client couldn't show, not as
-  the person's answer. A later cancel is reported as no confirmation coming back, and a later
-  decline says it may have been the client's: a client that can't show the dialog answers for the
-  person, so neither claims the person declined. Each refusal points Claude Code at the preview
-  and token, then at the viewer's Apply (`review_open`), then an interactive session; never the
-  CLI.
-- Validation is checked with a dry run before the person is asked; errors the changeset introduces
-  always block. Drift does not refuse a landing: the dialog and the preview's summary give the true
-  count of staged changes the base overlaps and, for every kind of overlap, what landing does about
-  it. A kind with many overlaps names the first ten, says how many it did not name, and names the
-  call that lists them all (`changeset_brief` with `sections: ["drift"]`); the preview repeats that
-  in `overlaps` (`total`, `named`) and `more`. The token is bound to the whole changeset and base,
-  whatever the summary names. The changeset lands when the person confirms, and the result names
-  every overlap it landed over in `drift` (`total`, and `kinds` with their `items`). `force` is accepted and ignored
-  here and on the viewer API, since a person confirms there. The viewer's Apply lands a drifted
-  changeset the same way and reports the same overlaps. The commit is `StagingAreaManager.commit`, the same
-  code `dr changeset commit` and the viewer's `POST /api/changesets/:id/commit` run, on a fresh read
-  of the model. An active changeset is deactivated afterwards.
+- `changeset_commit` takes `changeset`, or `changesets: [...]` to land several in order (#1256). It
+  stops at the first refusal: the ones before it stay landed, and the result's `status` is
+  `stopped`, with `stoppedAt` and `notAttempted`. Each changeset is checked against the base as the
+  ones before it left it, so its drift and overlaps include what the earlier ones landed. Several
+  changesets give one result: a `summary` line for each (its counts and overlaps) and each landing's
+  full result in `landed`. One changeset gives that landing's result alone.
+- The result names the paths to commit (#1367): `filesToCommit` lists the model files the landing
+  wrote, `manifest.yaml`, and each changeset's own folder under `documentation-robotics/changesets/`,
+  which git doesn't track yet. `landedOn` names the branch. `project_status` warns
+  (`changesets.untracked`) when a committed or recorded changeset's folder is untracked.
+- `changeset_commit_preview` is the read-only dry run: validation and the same summary (intent,
+  counts, layers, drift, warnings) and `filesToCommit`, with nothing written and no token.
+- It refuses, and writes nothing, in changeset-only mode (DrBot), where no person is in the
+  conversation (the viewer's Apply is the route there); for a verification record or an upgrade
+  record, which are never landed; and on a validation error the changeset introduces.
+- Drift does not refuse a landing: the result gives the true count of staged changes the base
+  overlapped and, for every kind of overlap, what landing did about it, naming every one in `drift`
+  (`total`, and `kinds` with their `items`). The preview's summary names the first ten of a kind, says
+  how many it did not name, and names the call that lists them all (`changeset_brief` with `sections:
+["drift"]`); it repeats that in `overlaps` (`total`, `named`) and `more`. `force` is accepted and
+  ignored here and on the viewer API. The viewer's Apply lands a drifted changeset the same way and
+  reports the same overlaps. The commit is `StagingAreaManager.commit`, the same code `dr changeset
+commit` and the viewer's `POST /api/changesets/:id/commit` run, on a fresh read of the model, under
+  the project's write lock. An active changeset is deactivated afterwards.
 - The viewer API trusts its token: every `/api` route and the websocket require it (401 without,
   403 with a wrong one), and an authenticated `POST /api/changesets/:id/commit` lands. Nothing
   proves a person clicked Apply; whoever holds the token, the agent holding `review_open`'s link
   included, can commit and discard through the API. The central DR process (`dr serve`) has no
   way to turn auth off: `dr visualize --no-auth` is refused.
-- It commits only what the person saw. After they accept, it re-reads the changeset (its staged
-  changes, modified time and status) and the base model (elements and relationships), and refuses
-  if anything changed while the dialog was open.
 - `dr changeset commit [changeset]` takes the changeset's id or name too. A named changeset that
   isn't active is activated for the commit, with the same validation handling, and the changeset
   active before is active again afterwards (also when the commit fails).
 - On the CLI someone still has to have read what landing does about an overlap, as a person does
-  in the dialog or the viewer. With a terminal attached, `dr changeset commit` lists the overlaps
+  in the viewer. With a terminal attached, `dr changeset commit` lists the overlaps
   (the true count, every one named, with what landing does about each kind) and asks. With no
   terminal (a script, CI) and one or more overlaps it refuses with a non-zero exit and the same
   list, unless `--force` is passed. With no overlap (the base is as it was, or changed elsewhere)
@@ -318,7 +306,7 @@ cs-177ff609-...`). A staged add the upgrade removed from another changeset is re
   `codebase_extract` is the plan's verification record, which is never landed (see
   [What a changeset is for](#what-a-changeset-is-for)): it is discarded or kept as a record. When
   another changeset from `codebase_extract` (a bootstrap or reconcile) is committed while a plan is
-  staged, the dialog warns that the plan should land instead, since landing it first changes the
+  staged, the preview's summary and the result warn that the plan should land instead, since landing it first changes the
   plan's base (the plan's adds of the same elements are then skipped), and the result carries the
   warning in `warnings`.
 - A changeset whose base moved can be re-baselined: `changeset_update` with `rebaseline: true`
@@ -1333,8 +1321,8 @@ Then `/dr-plan <change>` runs the loop:
    when it becomes `recorded` (kept, no longer staged work), and its directory is committed beside
    the plan's directory in the same PR. It is never landed.
 8. The human commits the plan in the PR that ships the code: they ask the agent to land it
-   (`changeset_commit`) and confirm in the dialog (from Claude Code, approve the commit call that
-   carries `changeset_commit_preview`'s token), or commit it in the viewer or the CLI. Once
+   (`changeset_commit`, no dialog or token) and a person approves it in the PR with the files the
+   result names (`filesToCommit`), or they commit it in the viewer or the CLI. Once
    the model has an as-built landing, landing the plan doesn't reconcile code drift; only an
    as-built landing does. A model with none yet keeps the earlier rule, so committing the landed
    plan resets drift (`changeset_commit`'s `codeDrift` says which).
@@ -1468,12 +1456,8 @@ staged changeset adds.
   plan; it says so.
 - `unwired: "full"` is still large for types with many triples (an API operation lists every
   OpenAPI type it may connect to). The default summary leaves out types the model has none of.
-- `changeset_commit` needs a client that supports MCP elicitation, or Claude Code with a token from
-  `changeset_commit_preview`; otherwise the tool refuses and the human commits in the viewer or the
-  CLI. The token path trusts the client's `clientInfo`: the server can't see whether the permission
-  prompt was shown, and relies on Claude Code forcing it for `anthropic/requiresUserInteraction` in
-  every permission mode (bypassPermissions included) and denying the call where no prompt can be
-  shown (dontAsk, `--permission-prompt-tool`, a non-interactive run without a prompt callback). An
-  elicitation alone is not a hard gate either (a Claude Code `Elicitation` hook can answer it),
-  which is why the flag is there too. The dialog waits 10 minutes, then the commit is refused.
+- `changeset_commit` has no gate of its own: it lands when called, and relies on the user asking for
+  it in the conversation (the tool says so, and the server instructions say never to land
+  unasked). Git and the PR are where a person reviews it; the changeset-only (DrBot) refusal is the
+  one place the tool itself refuses a session.
 - The tools have not yet been used on a real change.
