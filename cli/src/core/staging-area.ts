@@ -1648,14 +1648,19 @@ export class StagingAreaManager {
         // The annotations staged in the plan land with it, after the landing is safe: a failure here
         // is a warning, never "not landed", and the staged copies stay in the changeset's folder.
         try {
-          const landed = await AnnotationStore.forChangeset(this.changesetPath(changeset.id!)).landInto(
+          const { landed, problems } = await AnnotationStore.forChangeset(this.changesetPath(changeset.id!)).landInto(
             new AnnotationStore(model.rootPath)
           );
           if (landed > 0) result.annotationsLanded = landed;
+          if (problems.length > 0) {
+            throw new Error(`${problems.length} not landed: ${problems.join("; ")}`);
+          }
         } catch (error) {
           result.annotationsWarning =
-            `The staged annotations could not be written to documentation-robotics/annotations/ (${getErrorMessage(error)}); ` +
+            `Some staged annotations could not be written to documentation-robotics/annotations/ (${getErrorMessage(error)}); ` +
             `they are still in the changeset's folder, under annotations/.`;
+          // The viewer's Apply and the CLI do not read the result's warning: say it on the console too.
+          console.warn(`Warning: changeset '${changeset.name}' landed. ${result.annotationsWarning}`);
           emitLog(SeverityNumber.WARN, "Failed to land the changeset's staged annotations", {
             "changeset.id": changesetId,
             "error.message": getErrorMessage(error),

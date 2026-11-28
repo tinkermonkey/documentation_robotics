@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, afterEach } from "bun:test";
-import { mkdir, readdir, rm } from "node:fs/promises";
+import { mkdir, readdir, rm, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -134,5 +134,23 @@ describe("annotations staged in a changeset", () => {
     expect(listed.annotations.map((a: any) => a.id)).toEqual([created.id]);
     const brief = parse(await changesetBriefHandler({ rootPath, detail: "full" }));
     expect(brief.feedback).toEqual([]);
+  });
+
+  it("says so in the landing summary and the result when a staged annotation can't be read", async () => {
+    await setUp();
+    const plan = parse(await changesetCreateHandler({ name: "plan-e", description: "Plan E", rootPath }));
+    const good = parse(await annotationCreateHandler({ elementId: SERVICE, content: "Fine", rootPath }));
+    const dir = join(rootPath, "documentation-robotics", "changesets", plan.id, "annotations");
+    await writeFile(join(dir, "corrupt.yaml"), "id: corrupt\n");
+    parse(await modelAddHandler({ layer: "business", type: "businessservice", name: "refunds", description: "Refunds", rootPath }));
+
+    const preview = parse(await changesetCommitPreviewHandler({ changeset: "plan-e", rootPath } as any));
+    expect(JSON.stringify(preview)).toContain("Staged annotation not landing: corrupt");
+
+    const landed = parse(await changesetCommitHandler({ changeset: "plan-e", rootPath } as any));
+    expect(landed.status).toBe("committed");
+    expect(landed.annotationsLanded).toBe(1);
+    expect(landed.annotationsWarning).toContain("corrupt");
+    expect(await baseIds()).toEqual([good.id]);
   });
 });

@@ -457,8 +457,12 @@ async function summarizeLanding(target: LandingTarget, toolName: string): Promis
   const { total, named } = overlapSummary(drift, OVERLAPS_NAMED_PER_KIND);
   const landsOn = await landsOnSentence(target.rootPath);
   const emptyLine = await emptyReconcileLine(target);
-  const staged = await AnnotationStore.forChangeset(manager.changesetPath(changeset.id!)).list();
-  const message = landingSummaryText(changeset, drift, hash, preExistingErrors, warnings, emptyLine, staged);
+  const stagedRead = await AnnotationStore.forChangeset(manager.changesetPath(changeset.id!))
+    .listWithProblems()
+    .catch((error) => ({ annotations: [], problems: [`the staged annotations could not be read: ${getErrorMessage(error)}`] }));
+  // A staged annotation that can't be read would not land: the summary says so.
+  warnings.push(...stagedRead.problems.map((p) => `Staged annotation not landing: ${p}`));
+  const message = landingSummaryText(changeset, drift, hash, preExistingErrors, warnings, emptyLine, stagedRead.annotations);
   return {
     warnings,
     // The branch is named in the summary (#1422).

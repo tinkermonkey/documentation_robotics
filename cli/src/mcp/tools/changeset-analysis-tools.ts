@@ -344,7 +344,12 @@ export async function changesetBriefHandler(args: ChangesetBriefArgs): Promise<C
     const { manager, changeset, graph } = await loadChangesetGraph(model, changesetArg(args));
 
     // The base's annotations, and the ones staged in this changeset (they land with it).
-    const stagedAnnotations = await AnnotationStore.forChangeset(manager.changesetPath(changeset.id!)).list();
+    const stagedAnnotations = await AnnotationStore.forChangeset(manager.changesetPath(changeset.id!))
+      .list()
+      .catch((error) => {
+        process.stderr.write(`Warning: the changeset's staged annotations could not be read: ${getErrorMessage(error)}\n`);
+        return [];
+      });
     const annotations = [
       ...(await new AnnotationStore(model.rootPath).list()),
       ...stagedAnnotations.map((a) => ({ ...a, staged: true })),

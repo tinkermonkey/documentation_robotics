@@ -107,14 +107,19 @@ export class AnnotationStore {
    * Lands a changeset's staged annotations: writes each into the base store (an id already there
    * is left alone), keeping the staged copies as the plan's record. Returns how many were written.
    */
-  async landInto(base: AnnotationStore): Promise<number> {
+  async landInto(base: AnnotationStore): Promise<{ landed: number; problems: string[] }> {
     let landed = 0;
-    for (const annotation of await this.list()) {
-      if (await base.get(annotation.id)) continue;
-      await base.put(annotation);
-      landed++;
+    const { annotations, problems } = await this.listWithProblems();
+    for (const annotation of annotations) {
+      try {
+        if (await base.get(annotation.id)) continue;
+        await base.put(annotation);
+        landed++;
+      } catch (error) {
+        problems.push(`${annotation.id}: ${getErrorMessage(error)}`);
+      }
     }
-    return landed;
+    return { landed, problems };
   }
 
   /** Writes an annotation as it is (the id and times it already has). */
@@ -125,8 +130,14 @@ export class AnnotationStore {
 
   /** Lists all annotations, optionally filtered to a single element, oldest first. Skips (and warns on) individual files that fail to load rather than failing the whole list. */
   async list(elementId?: string): Promise<Annotation[]> {
+    return (await this.listWithProblems(elementId)).annotations;
+  }
+
+  /** As list, and with the files it could not load, one line each (list only warns on stderr). */
+  async listWithProblems(elementId?: string): Promise<{ annotations: Annotation[]; problems: string[] }> {
+    const problems: string[] = [];
     if (!(await fileExists(this.annotationsDir))) {
-      return [];
+      return { annotations: [], problems };
     }
 
     const entries = await readdir(this.annotationsDir, { withFileTypes: true });
@@ -141,6 +152,7 @@ export class AnnotationStore {
         annotation = await this.get(id);
       } catch (error) {
         process.stderr.write(`Warning: Skipping annotation '${id}': ${getErrorMessage(error)}\n`);
+        problems.push(`${id}: ${getErrorMessage(error)}`);
         continue;
       }
 
@@ -149,7 +161,7 @@ export class AnnotationStore {
       }
     }
 
-    return annotations.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    return { annotations: annotations.sort((a, b) => a.createdAt.localeCompare(b.createdAt)), problems };
   }
 
   async get(id: string): Promise<Annotation | null> {
