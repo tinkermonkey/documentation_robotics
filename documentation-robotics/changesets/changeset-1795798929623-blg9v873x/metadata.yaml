@@ -1,0 +1,104 @@
+id: changeset-1795798929623-blg9v873x
+name: adopt-reporting-multi-locations-unreferenced
+description: |-
+  Fix #1324, #1393, #1353.
+
+  - adopt reports references written (copied vs passed vs already present), keeps `extracted` provenance for as-built copies, and verify honours an add's own `sourceProvenance: extracted`.
+  - adopt accepts several references per element in one call.
+  - `changeset_brief` sections: ["unreferenced"] lists planned code elements with no source reference, paged, without an as-built changeset.
+
+  **Done when:** the three issues' behaviours are tested and the changelog has an entry.
+created: 2026-11-27T17:02:09.668Z
+modified: 2026-11-28T02:14:29.565Z
+status: committed
+baseSnapshot: v2:sha256:db1ad3fcfa4654d521ec8d78a2b4dd901cf52a13dcadf4c6e6a874a360dad97b
+origin:
+  kind: plan
+purpose: plan
+stats:
+  additions: 3
+  modifications: 1
+  deletions: 0
+lastSequence: 8
+unstaged:
+  - sequence: 0
+    removedAt: 2
+    change:
+      type: add
+      elementId: application.applicationfunction.unreferenced-planned-elements
+      layerName: application
+      after:
+        id: 31acd9d5-f997-4a4f-b94c-ee47aaabb6db
+        path: application.applicationfunction.unreferenced-planned-elements
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: unreferencedPlannedElements
+        description: Lists the plan's code elements (outside motivation, business, product, testing) that carry no source reference; changeset_brief sections ["unreferenced"], paged with a true total, no as-built changeset needed (#1353).
+        metadata:
+          created_at: 2026-11-27T17:02:15.363Z
+          updated_at: 2026-11-27T17:02:15.363Z
+          version: 1
+      timestamp: 2026-11-27T17:02:15.374Z
+  - sequence: 4
+    removedAt: 6
+    change:
+      type: add
+      elementId: application.applicationfunction.flatten-references
+      layerName: application
+      after:
+        id: 608f007b-a425-464b-a201-8a6de93311fa
+        path: application.applicationfunction.flatten-references
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: flattenReferences
+        description: Turns the references items of changeset_adopt_source_references (sourceFile, or a locations list) into one entry per location (#1393).
+        metadata:
+          created_at: 2026-11-27T17:06:47.526Z
+          updated_at: 2026-11-27T17:06:47.526Z
+          version: 1
+      timestamp: 2026-11-27T17:06:47.538Z
+    rewritten: true
+  - sequence: 3
+    removedAt: 7
+    change:
+      type: add
+      elementId: application.applicationfunction.unreferenced-elements
+      layerName: application
+      after:
+        id: 5ba33dfc-85d7-499c-9d76-6787503c76a6
+        path: application.applicationfunction.unreferenced-elements
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: unreferencedElements
+        description: Lists the plan's added and updated code elements (outside motivation, business, product, testing) with no source reference; changeset_brief sections ["unreferenced"], paged with a true total, no as-built changeset needed (#1353).
+        metadata:
+          created_at: 2026-11-27T17:06:47.526Z
+          updated_at: 2026-11-27T17:06:47.526Z
+          version: 1
+      timestamp: 2026-11-27T17:06:47.538Z
+    rewritten: true
+  - sequence: 5
+    removedAt: 8
+    change:
+      type: add
+      elementId: data-model.objectschema.unreferenced-element
+      layerName: data-model
+      after:
+        id: e25fd118-0abe-40c5-ad50-b3d01857fbc4
+        path: data-model.objectschema.unreferenced-element
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: UnreferencedElement
+        description: "A planned code element with no source reference: id and op."
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-27T17:06:47.526Z
+          updated_at: 2026-11-27T17:06:47.526Z
+          version: 1
+      timestamp: 2026-11-27T17:06:47.538Z
+    rewritten: true

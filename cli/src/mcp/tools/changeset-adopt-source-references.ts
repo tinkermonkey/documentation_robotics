@@ -10,7 +10,7 @@
 
 import { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { adoptVerifiedSourceReferences, type VerifiedAdoptionReport } from "../../core/source-reference-adoption.js";
+import { adoptVerifiedSourceReferences, type ConfirmedReference, type VerifiedAdoptionReport } from "../../core/source-reference-adoption.js";
 import { jsonResult, reloadModel, runTool, type McpToolDefinition } from "./shared.js";
 import { runVerify, verifyComparisonInputs } from "./changeset-verify.js";
 import { strictItem } from "../strict-schema.js";
@@ -28,8 +28,17 @@ const inputSchema = {
     .array(
       strictItem("A references[] item", {
         id: z.string().describe("The planned element's id."),
-        sourceFile: z.string().describe("The file that holds its code, relative to the codebase root."),
+        sourceFile: z.string().optional().describe("The file that holds its code, relative to the codebase root. Give this, or locations."),
         sourceSymbol: z.string().optional().describe("The symbol in that file, or the string the code registers it by."),
+        locations: z
+          .array(
+            strictItem("A locations[] item", {
+              file: z.string().describe("A file that holds part of its code, relative to the codebase root."),
+              symbol: z.string().optional().describe("The symbol in that file."),
+            })
+          )
+          .optional()
+          .describe("Several places for one element (a main-process file and a renderer file, say): each is appended to the element's locations."),
       })
     )
     .optional()
@@ -37,7 +46,8 @@ const inputSchema = {
       "Source references you confirmed in the code for planned elements with no as-built match to copy from: the ones " +
         "extraction can't see (a feature, a requirement, a tool the code registers by a name string), which changeset_verify " +
         "lists under sourceReferences.unreferenced with candidate files. Each is staged onto the plan as a file path relative to " +
-        "the codebase root, with provenance manual; a folder or a path outside the root is skipped with the reason."
+        "the codebase root, with provenance manual; a folder or a path outside the root is skipped with the reason. An element may " +
+        "appear in several items, or carry a locations list: every location is appended."
     ),
   limit: z
     .number()
@@ -71,13 +81,27 @@ export async function changesetAdoptSourceReferencesHandler(
       asBuilt,
       report,
       confirmed: args.ids,
-      references: args.references,
+      references: flattenReferences(args.references),
       sameChangesetHint: plannedName
         ? 'Pass the plan as "changeset" and the as-built changeset as "against.changeset"'
         : 'Pass the plan as "changeset": the active changeset is the as-built one codebase_extract left active',
     });
-    if (result.adopted.length > 0 || (result.confirmed?.length ?? 0) > 0) await reloadModel(args.rootPath);
-    return jsonResult(adoptionResult(result, { limit: args.limit, verbose: args.verbose, references: args.references?.length ?? 0 }));
+    if (result.written.copied + result.written.fromReferences > 0) await reloadModel(args.rootPath);
+    return jsonResult(adoptionResult(result, { limit: args.limit, verbose: args.verbose, references: flattenReferences(args.references)?.length ?? 0 }));
+  });
+}
+
+/** The call's references as one location per entry: an item's sourceFile and each of its locations. */
+export function flattenReferences(
+  items: ChangesetAdoptSourceReferencesArgs["references"]
+): ConfirmedReference[] | undefined {
+  if (!items) return undefined;
+  return items.flatMap((item) => {
+    const entries: ConfirmedReference[] = [];
+    if (item.sourceFile) entries.push({ id: item.id, sourceFile: item.sourceFile, ...(item.sourceSymbol ? { sourceSymbol: item.sourceSymbol } : {}) });
+    for (const l of item.locations ?? []) entries.push({ id: item.id, sourceFile: l.file, ...(l.symbol ? { sourceSymbol: l.symbol } : {}) });
+    if (entries.length === 0) throw new Error(`references item for ${item.id} names no file: give sourceFile or locations`);
+    return entries;
   });
 }
 
@@ -106,7 +130,16 @@ export function adoptionResult(
   const totals = {
     // What verify listed to copy, and the references the caller sent.
     total: report.adopted.length + (report.missing?.length ?? 0) + (options.references ?? 0),
-    counts: { adopted: report.adopted.length, confirmed: confirmed.length, skipped: skipped.length, unknownIds: unknownIds.length },
+    // written is what is now on the plan: references copied from the as-built side (adopted) plus
+    // locations set from references; alreadyPresent is what needed no write (#1324).
+    counts: {
+      adopted: report.adopted.length,
+      confirmed: confirmed.length,
+      written: report.written.copied + report.written.fromReferences,
+      alreadyPresent: report.alreadyPresent?.length ?? 0,
+      skipped: skipped.length,
+      unknownIds: unknownIds.length,
+    },
   };
   if (options.verbose) {
     const { plannedChangeset, ...rest } = report;
@@ -148,6 +181,7 @@ export function adoptionResult(
     ...(confirmed.length > limit
       ? { confirmedNotListed: { count: confirmed.length - limit, ids: confirmed.slice(limit).map((c) => c.planned), more: more("Set too, named by element id") } }
       : {}),
+    ...((report.alreadyPresent?.length ?? 0) > 0 ? { alreadyPresent: report.alreadyPresent!.slice(0, limit) } : {}),
     ...(skipped.length > 0 ? { skipped: skipped.slice(0, limit) } : {}),
     ...(skipped.length > limit
       ? {

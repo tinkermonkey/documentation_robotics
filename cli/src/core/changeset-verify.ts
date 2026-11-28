@@ -58,6 +58,7 @@ import { checkPlanAcceptedGaps, type AcceptedGapsCheck } from "./accepted-gaps-v
 import { acceptedGapLine, LIST_LIMIT as BRIEF_LIST_LIMIT } from "./changeset-brief-compact.js";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
+import { readFileSync } from "node:fs";
 
 /**
  * Attribute fields whose expected progress is not a divergence: a plan says `status: planned`, the
@@ -359,6 +360,12 @@ export interface AsBuiltShare {
    * Without it nothing is confirmed.
    */
   record: "found" | "pending" | "not-found";
+  /**
+   * Added elements extraction did not stage that the agent declared `extracted` with a file and symbol of
+   * its own (#1324). They are not called hand-added, so their references can be copied onto the plan, but
+   * only the agent's reading of the code backs them: confirm them there.
+   */
+  declaredExtracted?: string[];
   /** Each element not confirmed from extraction: its declared provenance and why it doesn't count. */
   agentAdded?: Array<{ id: string; declared: string; reason: string }>;
   /**
@@ -1150,6 +1157,7 @@ export function verifySections(
                       ? { editedAfterExtraction: pager.list("extraction.asBuilt.editedAfterExtraction", share.editedAfterExtraction) }
                       : {}),
                     ...(share.copiedFromPlan ? { copiedFromPlan: pager.list("extraction.asBuilt.copiedFromPlan", share.copiedFromPlan) } : {}),
+                    ...(share.declaredExtracted ? { declaredExtracted: pager.list("extraction.asBuilt.declaredExtracted", share.declaredExtracted) } : {}),
                   },
                 }
               : {}),
@@ -1906,7 +1914,7 @@ export async function verifyChangesetInModel(
       const codeFiles = [...new Set((built.changedElements ?? []).flatMap((e) => sourceFiles(e)))];
       const rule = await extractionRule(model, options, codeFiles, "The as-built changeset came from codebase_extract");
       ({ extraction, observability } = rule);
-      const share = asBuiltShare(built, plan, { record, ...(observability ? { observe: (e) => observability!.element(e) } : {}) });
+      const share = asBuiltShare(built, plan, { record, symbolInFile: (file, symbol) => fileHoldsSymbol(model.codebaseRoot, file, symbol), ...(observability ? { observe: (e) => observability!.element(e) } : {}) });
       extraction.asBuilt = share;
       if (record.readAt) {
         notes.push(
@@ -2094,6 +2102,12 @@ export async function verifyChangesetInModel(
     for (const m of onEdited) m.editedAfterExtraction = edits.get(m.built);
     const onAgent = matches.filter((m) => agentIds.has(m.built) || edits.has(m.built));
     for (const m of onAgent) m.builtByAgent = true;
+    if (share.declaredExtracted?.length) {
+      report.notes.push(
+        `${share.declaredExtracted.length} as-built element(s) were staged by the agent with provenance extracted and a source file and symbol, ` +
+          "not by extraction (extraction.asBuilt.declaredExtracted): they are not treated as hand-added, but only the agent's reading of the code backs them: confirm them there."
+      );
+    }
     if (onEdited.length > 0) {
       report.notes.push(
         `${onEdited.length} match(es) are against extracted elements changed after extraction staged them ` +
@@ -2322,6 +2336,18 @@ async function extractionRule(
 /** The description codebase_extract gives the changesets it creates. */
 const EXTRACTION_MARKER = /Staged by codebase_extract/;
 
+/** Whether a source file under the codebase root exists and names the symbol (its last segment). */
+function fileHoldsSymbol(root: string, file: string, symbol: string): boolean {
+  try {
+    const abs = path.resolve(root, file);
+    if (path.relative(root, abs).startsWith("..")) return false;
+    const name = symbol.split(/[.#:/]/).filter(Boolean).pop() ?? symbol;
+    return readFileSync(abs, "utf8").includes(name);
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Where an as-built changeset's elements and relationships came from (see AsBuiltShare).
  *
@@ -2342,6 +2368,8 @@ export function asBuiltShare(
     record?: ExtractionRecord | null;
     /** What extraction can produce, for elements of open cards (file-aware). */
     observe?: (element: VerifyElement) => { observable: boolean; reason?: string };
+    /** Whether the file exists and names the symbol: what an agent's own "extracted" claim is checked against. */
+    symbolInFile?: (file: string, symbol: string) => boolean;
   } = {}
 ): AsBuiltShare {
   const record = context.record ?? null;
@@ -2359,6 +2387,8 @@ export function asBuiltShare(
     offered.set(key, [...(offered.get(key) ?? []), entry]);
   }
 
+  const declaredExtracted: string[] = [];
+  const declaredSet = new Set<string>();
   const notFromExtraction = (e: BuiltElement): string | undefined => {
     if (!record) return "no codebase_extract record of this changeset confirms it";
     if (e.change === "deleted") return candidateDeletes.has(e.id) ? undefined : "a delete that is not one of extraction's candidate deletes";
@@ -2370,6 +2400,15 @@ export function asBuiltShare(
     const located = (e.sourceReference?.locations ?? []).filter((l) => typeof l?.symbol === "string" && l.symbol.length > 0);
     const cards = located.flatMap((l) => offered.get(decisionKey(normalizeFile(l.file), l.symbol!)) ?? []);
     if (!staged && cards.length === 0) {
+      // An add the agent staged with provenance "extracted" and a file and symbol of its own is not
+      // called hand-added (#1324): extraction missed it, the agent read it from the code. It is
+      // listed (declaredExtracted) as work to confirm: the agent's word, not extraction's.
+      // Not for one named after the plan's element: that is a copy of the plan.
+      if (e.change === "added" && e.sourceReference?.provenance === "extracted" && located.length > 0 && !looksPlanned && located.every((l) => context.symbolInFile?.(l.file, l.symbol!))) {
+        declaredExtracted.push(e.id);
+        declaredSet.add(e.id);
+        return undefined;
+      }
       const verdict = context.observe?.(e);
       if (verdict && !verdict.observable) return `extraction can't produce it: ${verdict.reason ?? type}`;
       return located.length === 0
@@ -2422,7 +2461,7 @@ export function asBuiltShare(
     }
     extracted.add(e.id);
     const by = stagedById.get(e.id)?.origin?.by;
-    if (e.change === "added" && by !== "tier0" && by !== "tier1") fromCards++;
+    if (e.change === "added" && by !== "tier0" && by !== "tier1" && !declaredSet.has(e.id)) fromCards++;
     const edits = editsAfterExtraction(e, stagedById.get(e.id), updatedById.get(e.id));
     if (edits.length > 0) edited.push({ id: e.id, edits });
   }
@@ -2438,6 +2477,7 @@ export function asBuiltShare(
     ...(agentAdded.length > 0 ? { agentAdded } : {}),
     ...(edited.length > 0 ? { editedAfterExtraction: edited } : {}),
     ...(copied.length > 0 ? { copiedFromPlan: copied } : {}),
+    ...(declaredExtracted.length > 0 ? { declaredExtracted } : {}),
   };
 }
 

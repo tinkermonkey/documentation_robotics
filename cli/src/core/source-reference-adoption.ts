@@ -162,18 +162,22 @@ export interface ConfirmedReference {
 }
 
 export interface ConfirmedAdoptionResult {
-  /** Each reference staged onto the plan: the element and the reference it now carries. */
-  confirmed: Array<{ planned: string; reference: SourceReference }>;
+  /** Each element that got references from the call: the element, the reference it now carries and how many locations were added. */
+  confirmed: Array<{ planned: string; reference: SourceReference; added: number }>;
+  /** Locations the element already named (the call changed nothing for them): not a failure. */
+  alreadyPresent: Array<{ planned: string; location: string }>;
   skipped: Array<{ planned: string; reason: string }>;
 }
 
 /**
  * Stage onto the plan the references the caller confirmed in the code, for elements the plan adds
  * or updates. Each is added to the element's reference as a path relative to the codebase root,
- * and the reference's provenance becomes `manual`: the caller confirmed it by hand. Skipped, with
- * why: an id the plan doesn't stage, a path that is not a file under the codebase root (a folder,
- * a path outside it, nothing there), a location the element already names, and an element with an
- * as-built match to copy from (`copyable`: its reference comes from extraction, not the caller).
+ * and the reference's provenance becomes `manual`: the caller confirmed it by hand. An element may
+ * be named several times (one entry per location, #1393): its locations are appended, in order, in
+ * one staged change. Skipped, with why: an id the plan doesn't stage, a path that is not a file
+ * under the codebase root (a folder, a path outside it, nothing there), and an element with an
+ * as-built match to copy from (`copyable`: its reference comes from extraction, not the caller). A
+ * location the element already names is reported in `alreadyPresent`, not skipped.
  */
 export async function adoptConfirmedReferences(
   model: Model,
@@ -183,11 +187,13 @@ export async function adoptConfirmedReferences(
   options: { copyable?: ReadonlySet<string> } = {}
 ): Promise<ConfirmedAdoptionResult> {
   const confirmed: ConfirmedAdoptionResult["confirmed"] = [];
+  const alreadyPresent: ConfirmedAdoptionResult["alreadyPresent"] = [];
   const skipped: ConfirmedAdoptionResult["skipped"] = [];
-  if (references.length === 0) return { confirmed, skipped };
+  if (references.length === 0) return { confirmed, alreadyPresent, skipped };
   if (planned.status !== "staged") {
     return {
       confirmed,
+      alreadyPresent,
       skipped: references.map((r) => ({ planned: r.id, reason: `the plan "${planned.name}" is ${planned.status}, so it can't be staged into` })),
     };
   }
@@ -195,24 +201,25 @@ export async function adoptConfirmedReferences(
   const changes = planned.changes as StagedChange[];
   const appended: Array<Omit<StagedChange, "sequenceNumber">> = [];
   const rewrites: Rewrite[] = [];
-  const seen = new Set<string>();
+  // Each element's state as this call leaves it, so several references to one element build on each other.
+  const working = new Map<string, { latest: StagedChange; own: StagedChange[]; after: Record<string, unknown>; added: number }>();
   const root = path.resolve(model.codebaseRoot);
   for (const ref of references) {
     const id = graph.resolve(ref.id);
     const file = ref.sourceFile.trim();
-    const own = changes.filter((c) => (c.type === "add" || c.type === "update") && c.after && graph.resolve(c.elementId) === id);
-    const latest = own[own.length - 1];
-    if (!latest?.after) {
-      skipped.push({ planned: ref.id, reason: "the plan stages no add or update of this element to carry the reference" });
-      continue;
-    }
-    if (seen.has(id)) {
-      skipped.push({ planned: id, reason: "named twice in references: one reference per element in a call" });
-      continue;
-    }
-    if (options.copyable?.has(id)) {
-      skipped.push({ planned: id, reason: "it has an as-built match to copy the reference from (sourceReferences.missing): leave it out of references" });
-      continue;
+    let state = working.get(id);
+    if (!state) {
+      const own = changes.filter((c) => (c.type === "add" || c.type === "update") && c.after && graph.resolve(c.elementId) === id);
+      const latest = own[own.length - 1];
+      if (!latest?.after) {
+        skipped.push({ planned: ref.id, reason: "the plan stages no add or update of this element to carry the reference" });
+        continue;
+      }
+      if (options.copyable?.has(id)) {
+        skipped.push({ planned: id, reason: "it has an as-built match to copy the reference from (sourceReferences.missing): leave it out of references" });
+        continue;
+      }
+      state = { latest, own, after: structuredClone(latest.after), added: 0 };
     }
     // The reference is stored as the model keeps every other one: a file path relative to the
     // codebase root, with forward slashes. An absolute path inside the root and a path with `..`
@@ -248,15 +255,13 @@ export async function adoptConfirmedReferences(
       });
       continue;
     }
-    seen.add(id);
-    // The element's reference as the plan has it now: a later call reads the copies an earlier one
-    // staged, so a location is never added twice.
-    const current = readStagedSourceReference(latest.after).value;
+    const current = readStagedSourceReference(state.after).value;
     const location: SourceLocation = { file: relative, ...(ref.sourceSymbol ? { symbol: ref.sourceSymbol } : {}) };
     const locations = (current?.locations ?? []).filter((l) => typeof l?.file === "string");
     // Already there: the same file and symbol, or this file at all when no symbol is given.
     if (locations.some((l) => l.file === location.file && (!location.symbol || l.symbol === location.symbol))) {
-      skipped.push({ planned: id, reason: `it already names ${location.file}${location.symbol ? `#${location.symbol}` : ""}: nothing to set` });
+      alreadyPresent.push({ planned: id, location: `${location.file}${location.symbol ? `#${location.symbol}` : ""}` });
+      working.set(id, state);
       continue;
     }
     // A location naming only this file is sharpened by one that names its symbol too.
@@ -268,8 +273,13 @@ export async function adoptConfirmedReferences(
       provenance: "manual",
       locations: [...kept, location],
     };
-    const after = structuredClone(latest.after);
-    setStagedSourceReference(after, reference);
+    setStagedSourceReference(state.after, reference);
+    state.added++;
+    working.set(id, state);
+  }
+  for (const [id, state] of working) {
+    if (state.added === 0) continue;
+    const { latest, own, after } = state;
     const firstWithKey = changes.find((c) => c.elementId === latest.elementId);
     if (latest.type === "add" && firstWithKey === latest && own.length === 1) {
       rewrites.push({
@@ -283,12 +293,12 @@ export async function adoptConfirmedReferences(
         },
       });
     } else {
-      appended.push({ type: "update", elementId: latest.elementId, layerName: latest.layerName, before: structuredClone(latest.after), after });
+      appended.push({ type: "update", elementId: latest.elementId, layerName: latest.layerName, before: structuredClone(latest.after!), after });
     }
-    confirmed.push({ planned: id, reference });
+    confirmed.push({ planned: id, reference: readStagedSourceReference(after).value as SourceReference, added: state.added });
   }
   if (appended.length > 0 || rewrites.length > 0) await manager.stageMany(planned.id!, appended, rewrites);
-  return { confirmed, skipped };
+  return { confirmed, alreadyPresent, skipped };
 }
 
 /**
@@ -328,6 +338,10 @@ export interface VerifiedAdoptionReport {
   unknownIdReasons?: Array<{ id: string; reason: string }>;
   /** The references the caller confirmed in the code, staged onto planned elements with no as-built match. */
   confirmed?: ConfirmedAdoptionResult["confirmed"];
+  /** Locations from references the element already named: nothing was written for them. */
+  alreadyPresent?: ConfirmedAdoptionResult["alreadyPresent"];
+  /** What was written (#1324): references copied from the as-built side, and locations set from references. */
+  written: { copied: number; fromReferences: number; elementsFromReferences: number };
   next: string;
 }
 
@@ -378,31 +392,35 @@ export async function adoptVerifiedSourceReferences(
     copyable: new Set(gaps.filter((g) => !g.builtByAgent).map((g) => g.planned)),
   });
   const allSkipped = [...skipped, ...own.skipped];
-  const copiedText =
-    adopted.length > 0
-      ? `Copied the source references of ${adopted.length} element(s) onto the plan "${planned.name}"` +
-        (left.length > 0 ? `; ${left.length} were not copied (skipped says why)` : "") +
-        ". The plan lands with them."
-      : gaps.length === 0
-        ? "No matched plan element lacks its as-built match's source reference: nothing to copy."
-        : "Nothing was copied (skipped says why).";
-  const confirmedText =
-    references.length === 0
-      ? ""
-      : own.confirmed.length > 0
-        ? ` Set the confirmed source reference of ${own.confirmed.length} element(s)` +
-          (own.skipped.length > 0 ? `; ${own.skipped.length} of references were not set (skipped says why)` : "") +
-          "."
-        : " None of references was set (skipped says why).";
+  const fromReferences = own.confirmed.reduce((n, c) => n + c.added, 0);
+  const written = { copied: adopted.length, fromReferences, elementsFromReferences: own.confirmed.length };
+  const total = written.copied + fromReferences;
+  const parts: string[] = [];
+  if (total > 0) {
+    const how = [
+      written.copied > 0 ? `${written.copied} copied from the as-built side (provenance as extraction recorded it)` : "",
+      fromReferences > 0 ? `${fromReferences} location(s) of ${own.confirmed.length} element(s) set from references (provenance manual)` : "",
+    ].filter(Boolean);
+    parts.push(`Wrote ${total} source reference(s) onto the plan "${planned.name}": ${how.join("; ")}. The plan lands with them.`);
+  } else if (gaps.length === 0 && references.length === 0) {
+    parts.push("No matched plan element lacks its as-built match's source reference: nothing to copy.");
+  } else {
+    parts.push("Nothing was written.");
+  }
+  if (own.alreadyPresent.length > 0) parts.push(`${own.alreadyPresent.length} location(s) from references were already on the plan (alreadyPresent).`);
+  if (left.length > 0) parts.push(`${left.length} listed reference(s) were not copied (skipped says why).`);
+  if (own.skipped.length > 0) parts.push(`${own.skipped.length} of references were not set (skipped says why).`);
   return {
     plannedChangeset: { id: planned.id, name: planned.name },
     adopted,
+    written,
     ...(own.confirmed.length > 0 ? { confirmed: own.confirmed } : {}),
+    ...(own.alreadyPresent.length > 0 ? { alreadyPresent: own.alreadyPresent } : {}),
     ...(allSkipped.length > 0 ? { skipped: allSkipped } : {}),
     ...(left.length > 0 ? { missing: left } : {}),
     ...(unknownIds && unknownIds.length > 0
       ? { unknownIds, unknownIdReasons: unknownIds.map((id) => ({ id, reason: explainUnknownId(id, report.elements) })) }
       : {}),
-    next: `${copiedText}${confirmedText}`,
+    next: parts.join(" "),
   };
 }

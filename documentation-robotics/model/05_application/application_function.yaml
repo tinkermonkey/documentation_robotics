@@ -21947,7 +21947,7 @@ application.applicationfunction.adopt-confirmed-references:
   type: applicationfunction
   layer_id: application
   name: adoptConfirmedReferences
-  description: Stage onto the plan the source references the agent confirmed in the code for planned elements with no as-built match, as root-relative file paths with provenance manual.
+  description: Stages the references the agent confirmed in the code onto planned elements; several per element in one call are appended as locations (#1393); reports references written versus already present (#1324).
   source_reference:
     provenance: extracted
     locations:
@@ -28871,4 +28871,38 @@ application.applicationfunction.empty-landing-hold:
   metadata:
     created_at: 2026-11-27T01:28:15.866Z
     updated_at: 2026-11-27T01:28:15.866Z
+    version: 1
+application.applicationfunction.unreferenced-elements:
+  id: 5ba33dfc-85d7-499c-9d76-6787503c76a6
+  path: application.applicationfunction.unreferenced-elements
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: unreferencedElements
+  description: Lists the plan's added and updated code elements (outside motivation, business, product, testing) with no source reference; changeset_brief sections ["unreferenced"], paged with a true total, no as-built changeset needed (#1353).
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/changeset-brief-compact.ts
+        symbol: unreferencedElements
+  metadata:
+    created_at: 2026-11-27T17:06:47.526Z
+    updated_at: 2026-11-27T17:06:47.526Z
+    version: 1
+application.applicationfunction.flatten-references:
+  id: 608f007b-a425-464b-a201-8a6de93311fa
+  path: application.applicationfunction.flatten-references
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: flattenReferences
+  description: Turns the references items of changeset_adopt_source_references (sourceFile, or a locations list) into one entry per location (#1393).
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/changeset-adopt-source-references.ts
+        symbol: flattenReferences
+  metadata:
+    created_at: 2026-11-27T17:06:47.526Z
+    updated_at: 2026-11-27T17:06:47.526Z
     version: 1

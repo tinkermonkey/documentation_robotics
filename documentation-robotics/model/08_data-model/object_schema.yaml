@@ -18986,3 +18986,22 @@ data-model.objectschema.unseen-classification:
     created_at: 2026-11-26T18:41:39.583Z
     updated_at: 2026-11-26T18:41:39.583Z
     version: 1
+data-model.objectschema.unreferenced-element:
+  id: e25fd118-0abe-40c5-ad50-b3d01857fbc4
+  path: data-model.objectschema.unreferenced-element
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: UnreferencedElement
+  description: "A planned code element with no source reference: id and op."
+  attributes:
+    type: object
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/changeset-brief-compact.ts
+        symbol: UnreferencedElement
+  metadata:
+    created_at: 2026-11-27T17:06:47.526Z
+    updated_at: 2026-11-27T17:06:47.526Z
+    version: 1

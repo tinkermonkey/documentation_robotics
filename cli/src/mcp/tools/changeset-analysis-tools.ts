@@ -200,7 +200,7 @@ const briefInputSchema = {
         "once: the changeset section then leaves it out). " +
         "[\"layers\"]: each changed element with the connections the change adds or deletes as lines " +
         "(maxConnections per predicate and layer) and the rest counted. [\"unwired\"]: per element. " +
-        "[\"codeTouched\"]: files with their changed ids. Others: reach, changesByType, neighborFiles, alreadyInBase, " +
+        "[\"codeTouched\"]: files with their changed ids. [\"unreferenced\"]: added and updated code elements (outside motivation, business, product, testing) with no source reference, paged with a true total, no as-built changeset needed. Others: reach, changesByType, neighborFiles, alreadyInBase, " +
         "acceptedGaps, relationshipChanges, feedback, changeset. With since, the delta comes too, its lists paged with the others " +
         "when delta is named. detail: \"full\" returns the named sections as the full brief has them, all at once, " +
         "whatever their size."
