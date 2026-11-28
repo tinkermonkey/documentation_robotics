@@ -18384,24 +18384,6 @@ testing.testcasesketch.compact-verify-report-keeps-the-verdict-and-counts-and-li
     created_at: 2026-11-24T21:39:56.349Z
     updated_at: 2026-11-24T21:39:56.349Z
     version: 1
-testing.testcasesketch.compact-verify-report-notes-that-layers-and-ids-narrow-sections-only:
-  id: 332fe99a-a98d-489d-ae6a-413b3f2db898
-  path: testing.testcasesketch.compact-verify-report-notes-that-layers-and-ids-narrow-sections-only
-  spec_node_id: testing.testcasesketch
-  type: testcasesketch
-  layer_id: testing
-  name: compactVerifyReport > notes that layers and ids narrow sections only
-  attributes:
-    status: automated
-  source_reference:
-    provenance: extracted
-    locations:
-      - file: cli/tests/unit/core/changeset-verify-compact.test.ts
-        symbol: compactVerifyReport > notes that layers and ids narrow sections only
-  metadata:
-    created_at: 2026-11-24T21:39:56.349Z
-    updated_at: 2026-11-24T21:39:56.349Z
-    version: 1
 testing.testcasesketch.compact-verify-report-pages-a-long-list-the-pages-together-are-the-whole-list-and-the-last-has-no-b157a1b5:
   id: fd870b6d-84b3-4163-a14d-b2466f928958
   path: testing.testcasesketch.compact-verify-report-pages-a-long-list-the-pages-together-are-the-whole-list-and-the-last-has-no-b157a1b5

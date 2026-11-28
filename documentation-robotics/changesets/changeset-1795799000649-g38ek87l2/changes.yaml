@@ -1,0 +1,159 @@
+- type: add
+  elementId: application.applicationfunction.check-description-only-plan
+  layerName: application
+  after:
+    id: 7f558168-4305-45ee-bd0a-fae2df41036c
+    path: application.applicationfunction.check-description-only-plan
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: checkDescriptionOnlyPlan
+    description: "For a plan that changes only descriptions, checks what the code can show: that each element's source files changed in the range and its referenced symbols are still in their files. Says plainly that the descriptions themselves are not checked."
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/core/changeset-verify.ts
+          symbol: checkDescriptionOnlyPlan
+    metadata:
+      created_at: 2026-11-27T17:03:25.426Z
+      updated_at: 2026-11-27T17:03:25.426Z
+      version: 1
+  timestamp: 2026-11-27T17:03:25.437Z
+  sequenceNumber: 0
+- type: add
+  elementId: application.applicationfunction.narrow-verify-report
+  layerName: application
+  after:
+    id: d01e1606-ebea-4098-9cb3-2f749da572ea
+    path: application.applicationfunction.narrow-verify-report
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: narrowVerifyReport
+    description: Narrows a verify report to the items ids or layers keep, recomputing the verdict and counts over them and keeping the whole-plan verdict and counts beside them, labelled as such.
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/core/changeset-verify.ts
+          symbol: narrowVerifyReport
+    metadata:
+      created_at: 2026-11-27T17:03:25.426Z
+      updated_at: 2026-11-27T17:03:25.426Z
+      version: 1
+  timestamp: 2026-11-27T17:03:25.437Z
+  sequenceNumber: 1
+- type: add
+  elementId: data-model.objectschema.description-only-check
+  layerName: data-model
+  after:
+    id: 65a19553-8016-4d9d-a7bd-3f330505a905
+    path: data-model.objectschema.description-only-check
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: DescriptionOnlyCheck
+    description: "What verify checked for a plan that changes only descriptions: per element, whether its source files changed and its symbols exist."
+    attributes:
+      type: object
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/core/changeset-verify.ts
+          symbol: DescriptionOnlyCheck
+    metadata:
+      created_at: 2026-11-27T17:03:29.444Z
+      updated_at: 2026-11-27T17:03:29.444Z
+      version: 1
+  timestamp: 2026-11-27T17:03:29.451Z
+  sequenceNumber: 2
+- type: delete
+  elementId: testing.testcasesketch.compact-verify-report-notes-that-layers-and-ids-narrow-sections-only
+  layerName: testing
+  before:
+    id: 332fe99a-a98d-489d-ae6a-413b3f2db898
+    path: testing.testcasesketch.compact-verify-report-notes-that-layers-and-ids-narrow-sections-only
+    spec_node_id: testing.testcasesketch
+    type: testcasesketch
+    layer_id: testing
+    name: compactVerifyReport > notes that layers and ids narrow sections only
+    attributes:
+      status: automated
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/tests/unit/core/changeset-verify-compact.test.ts
+          symbol: compactVerifyReport > notes that layers and ids narrow sections only
+    metadata:
+      created_at: 2026-11-24T21:39:56.349Z
+      updated_at: 2026-11-24T21:39:56.349Z
+      version: 1
+  timestamp: 2026-11-27T17:10:41.579Z
+  sequenceNumber: 6
+- type: relationship-delete
+  elementId: testing.testcasesketch.compact-verify-report-notes-that-layers-and-ids-narrow-sections-only::tests::application.applicationfunction.compact-verify-report
+  layerName: testing
+  before:
+    source: testing.testcasesketch.compact-verify-report-notes-that-layers-and-ids-narrow-sections-only
+    target: application.applicationfunction.compact-verify-report
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:10:41.652Z
+  sequenceNumber: 7
+- type: relationship-add
+  elementId: application.applicationfunction.verify-changeset-in-model::depends-on::application.applicationfunction.check-description-only-plan
+  layerName: application
+  after:
+    source: application.applicationfunction.verify-changeset-in-model
+    target: application.applicationfunction.check-description-only-plan
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-27T17:10:45.202Z
+  sequenceNumber: 8
+- type: relationship-add
+  elementId: application.applicationfunction.compact-verify-report::depends-on::application.applicationfunction.narrow-verify-report
+  layerName: application
+  after:
+    source: application.applicationfunction.compact-verify-report
+    target: application.applicationfunction.narrow-verify-report
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-27T17:10:45.202Z
+  sequenceNumber: 9
+- type: relationship-add
+  elementId: application.applicationfunction.verify-sections::depends-on::application.applicationfunction.narrow-verify-report
+  layerName: application
+  after:
+    source: application.applicationfunction.verify-sections
+    target: application.applicationfunction.narrow-verify-report
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-27T17:10:45.202Z
+  sequenceNumber: 10
+- type: relationship-add
+  elementId: application.applicationfunction.check-description-only-plan::accesses::data-model.objectschema.description-only-check
+  layerName: application
+  after:
+    source: application.applicationfunction.check-description-only-plan
+    target: data-model.objectschema.description-only-check
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-27T17:10:45.202Z
+  sequenceNumber: 11
+- type: relationship-add
+  elementId: application.applicationfunction.narrow-verify-report::accesses::data-model.objectschema.changeset-verify-verify-report
+  layerName: application
+  after:
+    source: application.applicationfunction.narrow-verify-report
+    target: data-model.objectschema.changeset-verify-verify-report
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-27T17:10:45.202Z
+  sequenceNumber: 12

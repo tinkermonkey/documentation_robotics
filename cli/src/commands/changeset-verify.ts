@@ -279,6 +279,19 @@ export function formatVerifyReport(report: VerifyReport): string {
     report.relationships.matched.map((m) => `${ansis.green("✓")} ${rel(m.built)} (${m.op})${probable(m)}`)
   );
 
+  if (report.descriptionOnly) {
+    const d = report.descriptionOnly;
+    section(
+      "Description-only plan: what was checked",
+      [
+        `${d.counts.filesChanged} source file(s) changed in the range, ${d.counts.filesUnchanged} did not` +
+          (d.rangeKnown ? "" : " (range not known: compared with the base)"),
+        `${d.counts.symbolsFound} symbol(s) found in their files, ${d.counts.symbolsNotFound} not found`,
+        ...(d.withoutSourceReference.length > 0 ? [`${d.withoutSourceReference.length} element(s) name no source file: nothing to check`] : []),
+        ...d.attention.map((a) => ansis.yellow(a)),
+      ]
+    );
+  }
   const sourceReferences = report.sourceReferences;
   if (sourceReferences && sourceReferences.missing.length > 0) {
     section(

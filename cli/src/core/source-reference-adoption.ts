@@ -328,6 +328,12 @@ export interface VerifiedAdoptionReport {
   unknownIdReasons?: Array<{ id: string; reason: string }>;
   /** The references the caller confirmed in the code, staged onto planned elements with no as-built match. */
   confirmed?: ConfirmedAdoptionResult["confirmed"];
+  /**
+   * Planned adds with no source reference anywhere: none on the plan, none on an as-built match to
+   * copy (#1307). Counted apart from "nothing to copy", and still unreferenced after this call
+   * unless `references` set them.
+   */
+  unreferenced?: { count: number; ids: string[] };
   next: string;
 }
 
@@ -378,13 +384,22 @@ export async function adoptVerifiedSourceReferences(
     copyable: new Set(gaps.filter((g) => !g.builtByAgent).map((g) => g.planned)),
   });
   const allSkipped = [...skipped, ...own.skipped];
+  // Planned adds that have no source reference anywhere, less the ones this call just set.
+  const setNow = new Set(own.confirmed.map((c) => c.planned));
+  const noReference = (report.sourceReferences?.unreferenced ?? []).map((u) => u.planned).filter((id) => !setNow.has(id));
+  const unreferencedText =
+    noReference.length > 0
+      ? ` ${noReference.length} planned element(s) have no source reference anywhere (not on the plan, and no as-built match has one to copy; ` +
+        "unreferenced lists them): for each one the build has code for, confirm the file in the code and pass it in references " +
+        "({id, sourceFile, sourceSymbol}) before the plan lands, or the landed model can't tie it to the code. Leave the ones with no code of their own (a goal, a requirement) as they are."
+      : "";
   const copiedText =
     adopted.length > 0
       ? `Copied the source references of ${adopted.length} element(s) onto the plan "${planned.name}"` +
         (left.length > 0 ? `; ${left.length} were not copied (skipped says why)` : "") +
         ". The plan lands with them."
       : gaps.length === 0
-        ? "No matched plan element lacks its as-built match's source reference: nothing to copy."
+        ? "No matched plan element lacks a source reference its as-built match has: nothing to copy."
         : "Nothing was copied (skipped says why).";
   const confirmedText =
     references.length === 0
@@ -398,11 +413,12 @@ export async function adoptVerifiedSourceReferences(
     plannedChangeset: { id: planned.id, name: planned.name },
     adopted,
     ...(own.confirmed.length > 0 ? { confirmed: own.confirmed } : {}),
+    ...(noReference.length > 0 ? { unreferenced: { count: noReference.length, ids: noReference } } : {}),
     ...(allSkipped.length > 0 ? { skipped: allSkipped } : {}),
     ...(left.length > 0 ? { missing: left } : {}),
     ...(unknownIds && unknownIds.length > 0
       ? { unknownIds, unknownIdReasons: unknownIds.map((id) => ({ id, reason: explainUnknownId(id, report.elements) })) }
       : {}),
-    next: `${copiedText}${confirmedText}`,
+    next: `${copiedText}${confirmedText}${unreferencedText}`,
   };
 }

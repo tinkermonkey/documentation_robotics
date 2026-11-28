@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`changeset_verify` says what it did not check (#1383, #1307, #1346):** a plan that changes only
+  descriptions is no longer a verdict that reads like a pass: it says "Not checked: the plan changes
+  only descriptions", and `descriptionOnly` lists what could be checked (each element's source files
+  changed in the range, its symbols still in their files). A plan applied before its build (committed,
+  or its adds already in the base) is said first in `verdictText`; those elements are not matched with
+  themselves (`alreadyInBase`) but against the as-built changeset's new elements and source references,
+  and are unverifiable when none names them. `changeset_adopt_source_references` reports planned
+  elements with no source reference anywhere as `unreferenced`, with a `next` step, not "nothing to
+  copy". With `ids` or `layers` the verdict and counts cover that subset, with the whole plan's in
+  `wholePlan`.
+
 - **`codebase_extract` takes `plan`, stages evidenced deletes and pairs plan coverage like verify (#1352, #1375, #1323):**
   - `plan: "<id or name>"` names the staged plan a `since` run is compared with, as `changeset_verify`
     takes `changeset`, so the agent no longer activates the plan and switches back. The active changeset

@@ -28923,37 +28923,37 @@ application.applicationfunction.shared-symbol-owners:
     created_at: 2026-11-27T17:03:03.566Z
     updated_at: 2026-11-27T17:03:03.566Z
     version: 1
-application.applicationfunction.declaration-shapes-of:
-  id: 07204ebd-590c-4d5c-9400-5039ba8ed7ec
-  path: application.applicationfunction.declaration-shapes-of
+application.applicationfunction.check-description-only-plan:
+  id: 7f558168-4305-45ee-bd0a-fae2df41036c
+  path: application.applicationfunction.check-description-only-plan
   spec_node_id: application.applicationfunction
   type: applicationfunction
   layer_id: application
-  name: declarationShapesOf
-  description: Reads a JS/TS declaration's shapes (exported, react-hook, react-component) from its text, for Tier-0 rules' shape condition.
+  name: checkDescriptionOnlyPlan
+  description: "For a plan that changes only descriptions, checks what the code can show: that each element's source files changed in the range and its referenced symbols are still in their files. Says plainly that the descriptions themselves are not checked."
   source_reference:
-    provenance: extracted
+    provenance: manual
     locations:
-      - file: cli/src/analyzers/cards/shapes.ts
-        symbol: declarationShapesOf
+      - file: cli/src/core/changeset-verify.ts
+        symbol: checkDescriptionOnlyPlan
   metadata:
-    created_at: 2026-11-28T12:52:07.951Z
-    updated_at: 2026-11-28T12:52:07.951Z
+    created_at: 2026-11-27T17:03:25.426Z
+    updated_at: 2026-11-27T17:03:25.426Z
     version: 1
-application.applicationfunction.is-declared-variable:
-  id: f8597c2f-5878-49eb-b4ef-f20312ed7c1f
-  path: application.applicationfunction.is-declared-variable
+application.applicationfunction.narrow-verify-report:
+  id: d01e1606-ebea-4098-9cb3-2f749da572ea
+  path: application.applicationfunction.narrow-verify-report
   spec_node_id: application.applicationfunction
   type: applicationfunction
   layer_id: application
-  name: isDeclaredVariable
-  description: "Whether a Variable card is worth a card: an exported, non-primitive JS/TS const."
+  name: narrowVerifyReport
+  description: Narrows a verify report to the items ids or layers keep, recomputing the verdict and counts over them and keeping the whole-plan verdict and counts beside them, labelled as such.
   source_reference:
-    provenance: extracted
+    provenance: manual
     locations:
-      - file: cli/src/analyzers/cards/shapes.ts
-        symbol: isDeclaredVariable
+      - file: cli/src/core/changeset-verify.ts
+        symbol: narrowVerifyReport
   metadata:
-    created_at: 2026-11-28T12:52:07.951Z
-    updated_at: 2026-11-28T12:52:07.951Z
+    created_at: 2026-11-27T17:03:25.426Z
+    updated_at: 2026-11-27T17:03:25.426Z
     version: 1

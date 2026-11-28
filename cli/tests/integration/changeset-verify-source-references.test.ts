@@ -24,6 +24,7 @@ import { StagingAreaManager } from "../../src/core/staging-area.js";
 import { stagedSourceReference } from "../../src/core/staged-source-reference.js";
 import { clearModelCache } from "../../src/mcp/tools/shared.js";
 import { modelAddHandler } from "../../src/mcp/tools/model-add.js";
+import { modelUpdateHandler } from "../../src/mcp/tools/model-update.js";
 import { changesetCreateHandler, changesetDeactivateHandler } from "../../src/mcp/tools/changeset-lifecycle.js";
 import { changesetVerifyHandler } from "../../src/mcp/tools/changeset-verify.js";
 import { changesetAdoptSourceReferencesHandler } from "../../src/mcp/tools/changeset-adopt-source-references.js";
@@ -398,7 +399,7 @@ describe("changeset_verify and the source references extraction found (#1096)", 
       ["product.feature.outside", "../elsewhere/Helpers.java is not a file under the codebase root"],
       ["product.feature.same", `it already names ${HELPERS_FILE}#Helpers`],
     ]);
-    expect(result.counts).toEqual({ adopted: 0, confirmed: 3, skipped: 3, unknownIds: 0 });
+    expect(result.counts).toEqual({ adopted: 0, confirmed: 3, skipped: 3, unknownIds: 0, unreferenced: 2 });
     expect(result.total).toBe(6);
 
     // A second call with the same references adds nothing: no location is listed twice.
@@ -549,6 +550,51 @@ describe("changeset_verify and the source references extraction found (#1096)", 
     expect(report.elements.missing.map((m: any) => m.planned)).toEqual(["application.applicationfunction.not-written"]);
     expect(report.extraction.unindexedFiles).toEqual(["scripts/start.sh"]);
     expect(report.notes.join("\n")).toContain("in a language the code index doesn't read (scripts/start.sh)");
+  }, 120_000);
+
+  it("says a plan that changes only descriptions is not checked, and checks what the code can show (#1383)", async () => {
+    await mkdirAsync(join(rootPath, "src"), { recursive: true });
+    await writeFile(join(rootPath, "src", "kept.ts"), "export function keptFn() {\n  return 1;\n}\n");
+    await writeFile(join(rootPath, "src", "stale.ts"), "export const other = 1;\n");
+    // Two modelled functions land in the base first.
+    ok(await changesetCreateHandler({ name: "base-functions", description: "The functions.", rootPath }));
+    const add = (extra: Record<string, unknown>) => modelAddHandler({ rootPath, sourceProvenance: "manual", layer: "application", type: "applicationfunction", ...extra } as any).then(ok);
+    await add({ name: "keptFn", description: "Old text.", sourceFile: "src/kept.ts", sourceSymbol: "keptFn" });
+    await add({ name: "staleFn", description: "Old text.", sourceFile: "src/stale.ts", sourceSymbol: "staleFn" });
+    const base = (await manager()).manager;
+    const baseId = (await base.list()).find((c: any) => c.name === "base-functions")!.id;
+    {
+      const { model, manager: m } = await manager();
+      await m.commit(model, baseId, { validate: true });
+      await m.clearActive();
+      clearModelCache();
+    }
+    const git = (...args: string[]) => spawnSync("git", args, { cwd: rootPath, stdio: "pipe" });
+    git("init", "-q", "-b", "main");
+    git("config", "user.email", "test@example.com");
+    git("config", "user.name", "Test");
+    git("add", "src");
+    git("commit", "-q", "-m", "base");
+    git("checkout", "-q", "-b", "feature");
+    await writeFile(join(rootPath, "src", "kept.ts"), "export function keptFn() {\n  return 2;\n}\n");
+    git("add", "src");
+    git("commit", "-q", "-m", "build");
+
+    const plan = ok(await changesetCreateHandler({ name: "reword", description: "Reword two descriptions.", rootPath }));
+    ok(await modelUpdateHandler({ id: "application.applicationfunction.kept-fn", description: "New text.", rootPath }));
+    ok(await modelUpdateHandler({ id: "application.applicationfunction.stale-fn", description: "New text.", rootPath }));
+    ok(await changesetDeactivateHandler({ rootPath }));
+    const asBuilt = ok(await extract({ changeset: "reword-as-built", intent: "As built." }));
+    const { manager: m } = await manager();
+    await m.declarePurpose(asBuilt.changeset.id, { purpose: "verification", verifies: plan.id, scope: { since: "main" } });
+    clearModelCache();
+
+    const report = ok(await changesetVerifyHandler({ changeset: "reword", against: { changeset: "reword-as-built" }, rootPath }));
+    expect(report.verdict).toBe("unverifiable");
+    expect(report.verdictText).toContain("Not checked: the plan changes only descriptions");
+    expect(report.descriptionOnly.counts).toMatchObject({ filesChanged: 1, filesUnchanged: 1, symbolsFound: 1, symbolsNotFound: 1 });
+    expect(report.descriptionOnly.attention.join("\n")).toContain("stale-fn");
+    expect(report.verdictText).toContain("stale-fn");
   }, 120_000);
 
   it("never gives a clean match that rests on a by-name element (#1226 review)", async () => {

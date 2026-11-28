@@ -291,10 +291,12 @@ describe("compactVerifyReport", () => {
     expect(one.probable!.elements.map((m) => m.built)).toEqual(["application.applicationfunction.Function7"]);
   });
 
-  it("notes that layers and ids narrow sections only", () => {
+  it("narrows the compact report's verdict and counts to layers and ids, with the whole plan beside them (#1346)", () => {
     const compact = compactVerifyReport(report, { layers: ["api"] }) as CompactVerifyReport;
     expect(compact.detail).toBe("compact");
-    expect(compact.note).toContain("sections");
-    expect(compact.unplanned.elements.total).toBe(129);
+    expect(compact.subset?.planned.elements).toBe(8);
+    expect(compact.summary.elements.planned).toBe(8);
+    expect(compact.wholePlan?.summary.elements.planned).toBe(16);
+    expect(compact.verdictText).toContain("wholePlan");
   });
 });
