@@ -1,0 +1,67 @@
+- type: update
+  elementId: application.applicationfunction.plan-coverage
+  layerName: application
+  before:
+    id: 7ea4edc6-b093-4f7a-a6aa-75757904b952
+    path: application.applicationfunction.plan-coverage
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: planCoverage
+    description: In a verify run, lists each element the plan adds or changes that has no as-built candidate staged, with the cards in its source file.
+    source_reference: &a1
+      provenance: extracted
+      locations:
+        - file: cli/src/analyzers/triage.ts
+          symbol: planCoverage
+    metadata: &a2
+      created_at: 2026-11-20T16:56:25.765Z
+      updated_at: 2026-11-20T16:56:25.765Z
+      version: 1
+  after:
+    id: 7ea4edc6-b093-4f7a-a6aa-75757904b952
+    path: application.applicationfunction.plan-coverage
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: planCoverage
+    description: "In a verify run, lists each element the plan adds that code can show: paired with the as-built side by the matcher changeset_verify uses (id, name, source file and symbol), or with the cards that could be it."
+    source_reference: *a1
+    metadata: *a2
+  timestamp: 2026-11-27T17:08:58.139Z
+  sequenceNumber: 0
+- type: update
+  elementId: data-model.objectschema.plan-coverage-item
+  layerName: data-model
+  before:
+    id: cde36e3f-a2d3-43f9-adcb-ba07ea4a83f9
+    path: data-model.objectschema.plan-coverage-item
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: PlanCoverageItem
+    description: A planned element with no as-built candidate staged, and the cards found in its source file.
+    attributes: &a3
+      type: object
+    source_reference: &a4
+      provenance: extracted
+      locations:
+        - file: cli/src/analyzers/triage.ts
+          symbol: PlanCoverageItem
+    metadata: &a5
+      created_at: 2026-11-20T16:56:25.767Z
+      updated_at: 2026-11-20T16:56:25.767Z
+      version: 1
+  after:
+    id: cde36e3f-a2d3-43f9-adcb-ba07ea4a83f9
+    path: data-model.objectschema.plan-coverage-item
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: PlanCoverageItem
+    description: A planned element, staged (paired with an as-built element, probable pairings with their reason) or with the cards found in its source file.
+    attributes: *a3
+    source_reference: *a4
+    metadata: *a5
+  timestamp: 2026-11-27T17:08:59.569Z
+  sequenceNumber: 1

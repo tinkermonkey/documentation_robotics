@@ -300,6 +300,14 @@ describe("decideExtractionPurpose (#1370)", () => {
   const plan = { id: "cs-plan", name: "the-plan" };
   const base = { since: "main", gitHead: "h", stagedPlans: [] as Array<{ id: string; name: string }> };
 
+  it("a named plan decides nothing by itself: the reconciled commit still makes a reconcile, any other since a verification record of that plan (#1352)", () => {
+    const plan = { id: "cs-plan", name: "the-plan" };
+    const base = { since: "main", gitHead: "head1234", stagedPlans: [plan, { id: "cs-other", name: "other" }], plan };
+    expect(decideExtractionPurpose({ ...base, sinceCommit: "aaaaaaa1", reconciledCommit: "bbbbbbb2" }).declaration).toMatchObject({ purpose: "verification", verifies: "cs-plan" });
+    expect(decideExtractionPurpose({ ...base, sinceCommit: "aaaaaaa1", reconciledCommit: "aaaaaaa1" }).declaration).toEqual({ purpose: "reconcile" });
+    expect(decideExtractionPurpose({ ...base, explicit: "verification", sinceCommit: "aaaaaaa1", reconciledCommit: "aaaaaaa1" }).declaration).toMatchObject({ purpose: "verification", verifies: "cs-plan" });
+  });
+
   it("is a bootstrap with no since", () => {
     expect(decideExtractionPurpose({ ...base, since: null }).declaration).toEqual({ purpose: "bootstrap" });
   });

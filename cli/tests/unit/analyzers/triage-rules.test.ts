@@ -469,13 +469,12 @@ describe("triage views", () => {
       { id: "application.applicationfunction.build-review-model", layer: "application", type: "applicationfunction", name: "buildReviewModel", locations: [] },
       { id: "application.applicationfunction.not-built", layer: "application", type: "applicationfunction", name: "notBuilt", locations: [] },
     ];
-    const asBuilt = [{ id: "application.applicationcomponent.link-chain", layer: "application", type: "applicationcomponent", locations: [{ file: "src/ui/ChangeInspector.tsx", symbol: "LinkChain" }] }];
     const run = [
       undecided("ChangeInspector", "src/ui/ChangeInspector.tsx", "Function", { changedInRange: true }),
       undecided("OpChip", "src/ui/ChangeInspector.tsx"),
       undecided("buildReviewModel", "src/data/changesetReview.ts", "Function", { changedInRange: true }),
     ];
-    const coverage = planCoverage(planned, asBuilt, run);
+    const coverage = planCoverage(planned, new Map(), run);
     // An as-built element named after one symbol of the file does not cover the planned component.
     expect(coverage[0]).toMatchObject({ planned: "application.applicationcomponent.change-inspector", status: "candidates" });
     expect(coverage[0].candidates!.map((c) => c.symbol)).toEqual(["ChangeInspector", "OpChip"]);
@@ -485,7 +484,7 @@ describe("triage views", () => {
     expect(coverage[2]).toMatchObject({ status: "candidates", candidates: [{ symbol: "buildReviewModel", changedInRange: true }] });
     expect(coverage[3]).toEqual({ planned: "application.applicationfunction.not-built", type: "application.applicationfunction", status: "none" });
     // Once staged, by id or by its source location with the planned type.
-    const staged = planCoverage(planned, [...asBuilt, { id: "application.applicationcomponent.change-inspector", layer: "application", type: "applicationcomponent", locations: [] }], run);
+    const staged = planCoverage(planned, new Map([["application.applicationcomponent.change-inspector", { built: "application.applicationcomponent.change-inspector", match: "exact" as const }]]), run);
     expect(staged[0]).toEqual({ planned: "application.applicationcomponent.change-inspector", type: "application.applicationcomponent", status: "staged", asBuilt: "application.applicationcomponent.change-inspector" });
   });
 });

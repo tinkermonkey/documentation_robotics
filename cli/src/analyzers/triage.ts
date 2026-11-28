@@ -272,6 +272,9 @@ export interface PlanCoverageItem {
   status: "staged" | "candidates" | "none";
   /** For `staged`: the as-built element. */
   asBuilt?: string;
+  /** For `staged`: a probable pairing (by name or by a shared file), with why: the agent confirms it. Absent for an exact one. */
+  match?: "probable";
+  reason?: string;
   /** For `candidates`: the cards, each with the type the plan gives the element. */
   candidates?: Array<{ cardId: string; symbol: string; file: string | null; label: string; changedInRange?: true }>;
 }
@@ -295,26 +298,17 @@ function slug(s: string): string {
 
 /**
  * For each element a plan adds: whether the as-built side has it, and if not, which cards could be
- * it. A planned element is `staged` when an as-built element has its id, or names one of its
- * source locations (file and symbol), or (in another layer than any card suggests) shares its
- * source file and type. A card is a candidate when it is in one of the planned element's source
- * files, or its symbol reads as the planned element's name.
- *
- * `asBuilt`: live elements of the as-built side, with their source locations.
+ * it. Whether the as-built side has it is not decided here: `paired` is what the one matcher
+ * (matchPlannedElements, core/changeset-matching.ts) paired, the same pairing changeset_verify
+ * makes, so the two never disagree (#1323): an id, a layer and type with a name, or a source file
+ * and symbol. A card is a candidate for an unpaired element when it is in one of the planned
+ * element's source files, or its symbol reads as the planned element's name.
  */
 export function planCoverage(
   planned: readonly PlannedElementRef[],
-  asBuilt: ReadonlyArray<{ id: string; layer: string; type: string; locations: Array<{ file: string; symbol?: string }> }>,
+  paired: ReadonlyMap<string, { built: string; match: "exact" | "probable"; reason?: string }>,
   cards: readonly UndecidedCard[]
 ): PlanCoverageItem[] {
-  const byId = new Map(asBuilt.map((e) => [e.id, e]));
-  const byLocation = new Map<string, Array<{ id: string; layer: string; type: string }>>();
-  for (const e of asBuilt) {
-    for (const l of e.locations) {
-      const key = `${normFile(l.file)}#${l.symbol ?? ""}`;
-      (byLocation.get(key) ?? byLocation.set(key, []).get(key)!).push(e);
-    }
-  }
   const cardsByFile = new Map<string, UndecidedCard[]>();
   const cardsBySlug = new Map<string, UndecidedCard[]>();
   for (const c of cards) {
@@ -325,11 +319,15 @@ export function planCoverage(
   const out: PlanCoverageItem[] = [];
   for (const p of planned) {
     const type = `${p.layer}.${p.type}`;
-    const same = (e: { layer: string; type: string }) => e.layer === p.layer && e.type === p.type;
-    const direct = byId.get(p.id);
-    const located = p.locations.flatMap((l) => byLocation.get(`${normFile(l.file)}#${l.symbol ?? ""}`) ?? []).find(same);
-    if (direct || located) {
-      out.push({ planned: p.id, type, status: "staged", asBuilt: (direct ?? located)!.id });
+    const pair = paired.get(p.id);
+    if (pair) {
+      out.push({
+        planned: p.id,
+        type,
+        status: "staged",
+        asBuilt: pair.built,
+        ...(pair.match === "probable" ? { match: "probable" as const, ...(pair.reason ? { reason: pair.reason } : {}) } : {}),
+      });
       continue;
     }
     const nameSlug = p.id.split(".").slice(2).join(".");

@@ -65,7 +65,7 @@ interface DeleteOutcome {
 }
 
 /** The elements that depend on others across layers, read once per call (cascade follows cross-layer references only). */
-function dependencyTracker(model: Model): DependencyTracker {
+export function dependencyTracker(model: Model): DependencyTracker {
   // Cascade is scoped to cross-layer references only, matching `dr delete`. This is
   // narrower than "model_trace", which also follows intra-layer relationships.yaml
   // edges — a dependent found by model_trace may not be included in a cascade delete.

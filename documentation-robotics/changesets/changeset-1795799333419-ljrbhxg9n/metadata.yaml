@@ -1,0 +1,20 @@
+id: changeset-1795799333419-ljrbhxg9n
+name: cli010-x1-extract-plan
+description: |-
+  codebase_extract takes `plan` (#1352), stages evidenced candidate deletes (#1375), and pairs plan coverage with changeset_verify's matcher (#1323).
+
+  **In scope:** `application.applicationfunction.plan-coverage`, `codebase_extract` handler.
+
+  **Done when:** plan coverage uses matchPlannedElements; the active changeset is untouched with `plan`; file-deleted and symbol-missing deletes are staged with origin.
+created: 2026-11-27T17:08:53.479Z
+modified: 2026-11-28T02:15:03.833Z
+status: committed
+baseSnapshot: v2:sha256:db1ad3fcfa4654d521ec8d78a2b4dd901cf52a13dcadf4c6e6a874a360dad97b
+origin:
+  kind: plan
+purpose: plan
+stats:
+  additions: 0
+  modifications: 2
+  deletions: 0
+lastSequence: 1

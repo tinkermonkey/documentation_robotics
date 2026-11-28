@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`codebase_extract` takes `plan`, stages evidenced deletes and pairs plan coverage like verify (#1352, #1375, #1323):**
+  - `plan: "<id or name>"` names the staged plan a `since` run is compared with, as `changeset_verify`
+    takes `changeset`, so the agent no longer activates the plan and switches back. The active changeset
+    is left alone and the as-built changeset is not made active. `since` still decides the purpose (the
+    reconciled commit makes a reconcile, any other `since` a verification record that names the plan);
+    `purpose` overrides.
+  - Candidate deletes with unambiguous evidence in a `since` run (`file-deleted`, `symbol-missing`) are
+    staged as deletes into the as-built changeset, with the relationships that name them, marked
+    `origin: tier0, rule: candidate-delete:<evidence>` and listed in `staged.deleted`, so
+    `changeset_verify` sees a planned deletion as done. Weaker evidence (`reference-never-matched`,
+    `file-renamed`, `file-missing`), a candidate other elements still reference, and a bootstrap run's
+    candidates stay `candidateDeletes` hints for the agent to check.
+  - `planCoverage` pairs planned and as-built elements with `matchPlannedElements`, the matcher
+    `changeset_verify` uses (id, name, then source file and symbol), so the two no longer disagree; a
+    probable pairing says why.
 - **Tier 0 on plain CommonJS and Electron code (#1320):** `codebase_extract` decided none of 338
   symbols on a CommonJS and Electron codebase. Tier-0 rules can now go by a symbol's `visibility`
   (read from the declaration and the file's exports, as project rules do), and a rule
@@ -80,6 +95,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`codebase_extract` with `since` stages only the tests the range changed; planned test sketches are
+  not duplicated (#1364, #1255):** a test case of a touched file that the range's lines did not
+  change is left alone (counted as `untouchedTests` in the run's budget), so `changeset_verify` no longer reports every
+  test of the file as an unplanned change. A test whose title is suffixed or prefixed by a planned
+  `testcasesketch`'s name (or the symbol it names in the file) becomes an `ambiguous` card naming that
+  sketch instead of a duplicate add. `changeset_verify` pairs a planned test sketch that names only a
+  test file with the per-test sketches built in it, as a group. Rejecting a staged element by its
+  id unstages that element only when another element names its symbol, and records nothing.
 - **`codebase_extract` no longer stages relationships from name collisions (#1326):** a field write
   or usage the index resolved by name (`WRITES`, `USAGE`, or a `unique_name` / `suffix_match` call)
   onto a member of a class (`Xform.pts`) is staged only when the caller's file imports the class or
