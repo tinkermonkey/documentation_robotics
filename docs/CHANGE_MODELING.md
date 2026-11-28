@@ -805,6 +805,18 @@ only) is created when absent and reused when staged. Everything is
 staged in one write, and the changeset is activated last, so the agent's `model_add` calls stage
 into it. The result's `previousActive` is the changeset active before the first run on it, returned
 on later runs too while it is staged, so a verify run can switch back to the plan.
+With `plan: "<id or name>"` (with `since`) the run compares with that staged plan instead, and the
+active changeset is left alone: the as-built changeset is not made active (`changeset.active:
+false`), `previousActive` is empty, and its purpose follows `since` as it does with no plan (the
+reconciled commit makes a reconcile, any other `since` a verification record naming the plan).
+`planCoverage` pairs the plan's elements with the as-built side by the matcher `changeset_verify`
+uses (`matchPlannedElements`: id, name, then source file and symbol).
+
+A `since` run stages the delete of an element whose code is gone when the evidence is
+unambiguous (`file-deleted`, `symbol-missing`), with the relationships that name it, marked
+`origin: {by: tier0, rule: candidate-delete:<evidence>}` and listed in `staged.deleted`. Weaker
+evidence (`reference-never-matched`, `file-renamed`, `file-missing`), an element other elements
+still reference, and a run with no `since` stay `candidateDeletes`, for the agent to check.
 
 A run creates and activates a changeset only when it stages something. One that stages nothing
 creates nothing, so no empty changeset is left to sit in `project_status` as the next thing to

@@ -431,7 +431,7 @@ describe("codebase_extract", () => {
     expect(changeset.changes.map((c) => c.elementId)).toEqual([SCHEMA]);
   });
 
-  it("lists an element whose file was deleted as a candidate delete, without staging it", async () => {
+  it("stages the delete of an element whose file was deleted in the range, marked with its origin, and keeps weaker evidence as a hint (#1375)", async () => {
     await indexed();
     await addToBase({
       layer: "application",
@@ -445,15 +445,18 @@ describe("codebase_extract", () => {
     const h = harness();
     h.changes.value = { base: "abc123", changed: new Set([OWNER_FILE]), deleted: new Map([["src/legacy/Importer.java", null]]) };
     const result = ok(await createCodebaseExtractHandler(h.deps)({ since: "main", rootPath }));
-    expect(result.candidateDeletes.items).toEqual([
+    expect(result.staged.deleted.items).toEqual([
       expect.objectContaining({
         id: "application.applicationcomponent.legacy-importer",
         evidence: "file-deleted",
         file: "src/legacy/Importer.java",
       }),
     ]);
+    expect(result.candidateDeletes.items).toEqual([]);
     const changeset = await changesetOf(result.changeset.id);
-    expect(changeset.changes.some((c) => c.type === "delete")).toBe(false);
+    const deletes = changeset.changes.filter((c) => c.type === "delete");
+    expect(deletes.map((c) => c.elementId)).toEqual(["application.applicationcomponent.legacy-importer"]);
+    expect(deletes[0].origin).toEqual({ by: "tier0", rule: "candidate-delete:file-deleted" });
 
     // Without since, a missing file is the evidence.
     const all = ok(await createCodebaseExtractHandler(h.deps)({ changeset: "whole", rootPath }));
@@ -1138,9 +1141,11 @@ describe("codebase_extract validation fixes (2026-11-10)", () => {
       fileAtBase: (f) => (f === OWNER_FILE ? "class Owner {\n  List<Pet> listPets() {}\n}\n" : null),
     };
     const result = ok(await createCodebaseExtractHandler(h.deps)({ since: "main", rootPath }));
-    const [removed, never] = result.candidateDeletes.items;
-    expect([removed.id, removed.evidence]).toEqual(["application.dataobject.owner-pets", "symbol-missing"]);
-    expect(removed.detail).toContain("had listPets at the start of the range");
+    // The symbol the range removed is staged as a delete (#1375); the reference that never matched stays a hint.
+    expect(result.staged.deleted.items.map((d: any) => [d.id, d.evidence])).toEqual([["application.dataobject.owner-pets", "symbol-missing"]]);
+    expect(result.staged.deleted.items[0].detail).toContain("had listPets at the start of the range");
+    const [never] = result.candidateDeletes.items;
+    expect(result.candidateDeletes.items).toHaveLength(1);
     expect([never.id, never.evidence]).toEqual(["application.dataobject.owner-visits", "reference-never-matched"]);
     expect(never.detail).not.toContain("no longer");
     expect(result.next.join(" ")).toContain("reference-never-matched");
@@ -1293,7 +1298,8 @@ describe("codebase_extract review of PR 1061", () => {
       fileAtBase: (f) => (f === "src/old/Owner.java" ? "class Owner {\n  List<Pet> listPets() {}\n}\n" : null),
     };
     const result = ok(await createCodebaseExtractHandler(h.deps)({ since: "main", rootPath }));
-    expect(result.candidateDeletes.items.map((d: any) => [d.id, d.evidence])).toEqual([["application.dataobject.owner-pets", "symbol-missing"]]);
+    expect(result.staged.deleted.items.map((d: any) => [d.id, d.evidence])).toEqual([["application.dataobject.owner-pets", "symbol-missing"]]);
+    expect(result.candidateDeletes.items).toEqual([]);
   });
 
   it("says so when the range's changed lines can't be read", async () => {
@@ -2128,8 +2134,9 @@ describe("codebase_extract round-2 fixes (wave 3)", () => {
     await addToBase({ layer: "application", type: "applicationcomponent", name: "Legacy Importer", attributes: { type: "internal" }, sourceFile: "src/legacy/Importer.java", sourceSymbol: "Importer", sourceProvenance: "extracted" });
     const h = harness();
     const handler = createCodebaseExtractHandler(h.deps);
-    // An edits-only range that stages nothing: the candidate delete waits with the cards.
-    h.changes.value = { base: HEAD, changed: new Set([SERVICE_FILE]), deleted: new Map([["src/legacy/Importer.java", null]]) };
+    // An edits-only range that stages nothing: the candidate delete waits with the cards. A renamed file is
+    // weak evidence (file-renamed), so it is listed, not staged as a delete (#1375).
+    h.changes.value = { base: HEAD, changed: new Set([SERVICE_FILE]), deleted: new Map([["src/legacy/Importer.java", "src/legacy/Importer2.java"]]) };
     const waiting = ok(await handler({ since: "HEAD", rootPath }));
     expect(waiting.changeset).toBeNull();
     expect(JSON.parse(await readFile(PENDING(), "utf-8")).candidateDeletes).toEqual(["application.applicationcomponent.legacy-importer"]);

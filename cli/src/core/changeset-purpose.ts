@@ -283,8 +283,8 @@ export function resolveCommit(dir: string, ref: string): string | undefined {
  * The purpose of a `since` run (#1370). An explicit `purpose` overrides the rule. Otherwise: with a
  * plan active the run is its verification record; with no plan active, a `since` that is the
  * manifest's reconciled code commit is a reconcile (the catch-up project_status asks for), and any
- * other `since` is a verification record (a branch's build, compared with its plan), naming the one
- * staged plan it verifies, or none when there is no plan or several (the note says so). A run with
+ * other `since` is a verification record (a branch's build, compared with its plan), naming the plan
+ * the caller named (`plan`) or else the one staged plan it verifies, or none when there is no plan or several (the note says so). A run with
  * no `since` is a bootstrap.
  *
  * `sinceCommit` is what `since` resolves to; `reconciledCommit` the manifest's `reconciled.code_commit`.
@@ -295,6 +295,13 @@ export function decideExtractionPurpose(run: {
   gitHead?: string | null;
   explicit?: ExtractionPurposeArg;
   previousActive?: { id: string; name: string } | null;
+  /**
+   * The plan the caller named (codebase_extract's `plan`, #1352). It does not make the run a
+   * verification record by itself, as an active plan does: the rule is the same as with no plan
+   * (a `since` that is the reconciled commit makes a reconcile, any other a verification record),
+   * and a verification record names this plan.
+   */
+  plan?: { id: string; name: string } | null;
   sinceCommit?: string;
   reconciledCommit?: string;
   stagedPlans: Array<{ id: string; name: string }>;
@@ -302,9 +309,10 @@ export function decideExtractionPurpose(run: {
   if (!run.since) return { declaration: { purpose: "bootstrap" }, note: "A bootstrap: it reads the whole code and reconciles the model with it when landed." };
   const scope = { since: run.since, ...(run.gitHead ? { codeCommit: run.gitHead } : {}) };
   const verification = (why: string): ExtractionPurposeDecision => {
-    const plan = run.previousActive ?? (run.stagedPlans.length === 1 ? run.stagedPlans[0] : undefined);
+    const named = run.plan ?? run.previousActive;
+    const plan = named ?? (run.stagedPlans.length === 1 ? run.stagedPlans[0] : undefined);
     const planNote = plan
-      ? `It verifies the plan '${plan.name}'${run.previousActive ? "" : " (the one plan staged; if this build is for another, call again with that plan active)"}.`
+      ? `It verifies the plan '${plan.name}'${named ? "" : " (the one plan staged; if this build is for another, call again with that plan active)"}.`
       : run.stagedPlans.length > 1
         ? `It found no one plan to verify (${run.stagedPlans.length} are staged: ${run.stagedPlans.map((p) => `'${p.name}'`).join(", ")}); it records what was built and verifies none.`
         : "It found no staged plan to verify; it records what was built and verifies none.";

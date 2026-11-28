@@ -10,7 +10,7 @@ description: |-
 
   **Done when:** the three behaviours are covered by tests and the verify docs and tool descriptions say so.
 created: 2026-11-27T17:03:20.691Z
-modified: 2026-11-28T12:50:22.135Z
+modified: 2026-11-28T12:51:24.937Z
 status: committed
 baseSnapshot: v2:sha256:db1ad3fcfa4654d521ec8d78a2b4dd901cf52a13dcadf4c6e6a874a360dad97b
 origin:

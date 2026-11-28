@@ -147,6 +147,8 @@ export interface CandidateDelete {
    * `reference-never-matched`: with `since`, the file didn't have it at the base either, so the
    * range didn't remove it; the model's reference was wrong before the range.
    */
+  /** `symbol-missing` only: the file had the symbol at the start of the range, so the range removed it (not a reference that was wrong before). */
+  baseChecked?: boolean;
   evidence: "file-deleted" | "file-renamed" | "file-missing" | "symbol-missing" | "reference-never-matched" | "decision-superseded";
   detail: string;
   /** The element this run stages for the same symbol at the file's new path, after a rename. */
@@ -1483,7 +1485,7 @@ function judgeLocation(
         } at the start of the range: the range didn't remove it, the reference was wrong before it`,
       };
     }
-    return { ...base, evidence: "symbol-missing", detail: `${loc.file} had ${loc.symbol} at the start of the range and doesn't now (not among its symbols, and the name is not in the file)` };
+    return { ...base, evidence: "symbol-missing", baseChecked: true, detail: `${loc.file} had ${loc.symbol} at the start of the range and doesn't now (not among its symbols, and the name is not in the file)` };
   }
   return { ...base, evidence: "symbol-missing", detail: `${loc.file} has no ${loc.symbol} (not among its symbols, and the name is not in the file)` };
 }

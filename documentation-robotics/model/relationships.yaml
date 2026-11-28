@@ -1,6 +1,6 @@
 # Intra-layer relationships
 # Format: source_id -> predicate -> target_id
-# Last updated: 2026-11-28T12:50:21.949Z
+# Last updated: 2026-11-28T12:51:24.743Z
 
 - source: motivation.outcome.changes-are-planned-as-changesets
   target: motivation.goal.dr-is-the-spec-for-software-changes

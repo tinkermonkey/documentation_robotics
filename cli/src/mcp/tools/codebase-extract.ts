@@ -92,6 +92,7 @@ import {
   type ElementPlan,
   type PlannedElement,
   type PlannedRelationship,
+  type CandidateDelete,
   type PlannedUpdate,
   type UndecidedCard,
   type UndecidedKind,
@@ -107,6 +108,12 @@ import { Element } from "../../core/element.js";
 import type { Model } from "../../core/model.js";
 import { setStagedSourceReference, stagedSourceReference } from "../../core/staged-source-reference.js";
 import { StagingAreaManager } from "../../core/staging-area.js";
+import { builtFromGraph, planFromModel, type BuiltElement, type Plan } from "../../core/changeset-verify.js";
+import { matchPlannedElements } from "../../core/changeset-matching.js";
+import { tryReadBaseIndex } from "../../core/changeset-base-index.js";
+import { TraceDirection } from "../../core/dependency-tracker.js";
+import { elementIdentifiers } from "../../core/relationships.js";
+import { dependencyTracker } from "./model-delete.js";
 import { hashFiles, UNREAD_EDIT } from "../../core/reconciliation.js";
 import {
   decideExtractionPurpose,
@@ -220,6 +227,20 @@ const RESPONSE_BUDGET_BYTES = 28 * 1024;
 const MAX_LISTED = 100;
 /** Groups of cards a response lists by default. */
 const DEFAULT_GROUPS = 50;
+/** The evidence that a candidate delete's code is gone, sure enough to stage the delete (#1375). */
+const STAGED_DELETE_EVIDENCE: ReadonlySet<CandidateDelete["evidence"]> = new Set(["file-deleted", "symbol-missing"]);
+
+/** A candidate delete this run staged as a delete. */
+interface StagedDelete {
+  id: string;
+  layer: string;
+  type: string;
+  evidence: CandidateDelete["evidence"];
+  file: string;
+  symbol?: string;
+  detail: string;
+}
+
 /** Layers that hold intent, not code: a planned element there has no declaration for extraction to find. */
 const INTENT_LAYERS: ReadonlySet<string> = new Set(["motivation", "business", "product"]);
 
@@ -271,6 +292,7 @@ const rejectItemSchema = strictItem("A reject[] item", {
 const RUN_LISTS = [
   "groups",
   "candidateDeletes",
+  "deleted",
   "updated",
   "retyped",
   "impacted",
@@ -315,6 +337,16 @@ const inputSchema = {
         "no plan active, a since that is the model's last reconciled code commit (project_status codeDrift.reconciledBy.codeCommit) makes a reconcile " +
         "(landing it reconciles the model with the code), and any other since makes a verification record (never landed; it names the staged plan it " +
         "verifies, or says it found none). Use reconcile or verification to say otherwise."
+    ),
+  plan: z
+    .string()
+    .min(1)
+    .optional()
+    .describe(
+      "With since: the plan (a staged changeset's id or name) to compare the build against, as changeset_verify takes changeset. planCoverage compares with it " +
+        "and the as-built changeset names it as the plan it verifies, whichever changeset is active; the active changeset is left alone (without plan, the plan is " +
+        "the changeset that was active, and the run replaces it as the active one). since decides the purpose as it does with no plan: the reconciled commit " +
+        "makes a reconcile, any other since a verification record of this plan; purpose overrides."
     ),
   layers: z.array(z.string()).optional().describe("Only these layers (canonical names). Default: every layer."),
   pageSize: z
@@ -497,6 +529,8 @@ interface StoredCards {
   /** The base model's manifest timestamp when the cards were read. */
   baseModified?: string;
   previousActive?: { id: string; name: string } | null;
+  /** The run named its plan (`plan`), so previousActive is that plan and the run left the active changeset alone (#1352). */
+  planNamed?: boolean;
   /** The purpose the run declared, and for a verification record the plan it verifies (core/changeset-purpose.ts). */
   purpose?: ChangesetPurpose;
   verifies?: string;
@@ -1234,10 +1268,11 @@ function verifyCardStep(undecidedPages: number, readOn?: string, grouped = false
 }
 
 /** Verify mode, after verify: the plan lands, not the as-built changeset. */
-function verifyLandStep(plan: { id: string; name: string }, why = ""): string {
+function verifyLandStep(plan: { id: string; name: string }, why = "", resume = true): string {
   return (
     `After verify, the plan '${plan.name}' lands (changeset_commit when the user asks), not this changeset: discard this one or keep it as a record. ` +
-    `Landing it first drifts the plan's base, so the plan would need force. Call changeset_activate with "${plan.id}" to resume the plan${why}.`
+    `Landing it first drifts the plan's base, so the plan would need force.` +
+    (resume ? ` Call changeset_activate with "${plan.id}" to resume the plan${why}.` : "")
   );
 }
 
@@ -1501,10 +1536,15 @@ function nextSteps(
   changedCards = 0,
   since?: string,
   readOn?: string,
-  grouped = false
+  grouped = false,
+  /** A plan was named in the call, so the as-built changeset was not made active (#1352). */
+  leftActive = false
 ): string[] {
   const steps = [
-    `The as-built changeset '${changeset.name}' is active: model_add, model_update, model_delete and relationship_add stage into it. Nothing reaches the base model until the user lands it.`,
+    leftActive
+      ? `The as-built changeset '${changeset.name}' was staged into without becoming active: the plan was named, so the active changeset is as you left it. ` +
+        `model_add, model_update, model_delete and relationship_add stage into the active changeset: call changeset_activate with "${changeset.id}" to stage by hand into this one, and activate yours again after. Nothing reaches the base model until the user lands it.`
+      : `The as-built changeset '${changeset.name}' is active: model_add, model_update, model_delete and relationship_add stage into it. Nothing reaches the base model until the user lands it.`,
   ];
   if (changedCards > 0) {
     steps.push(
@@ -1540,7 +1580,7 @@ function nextSteps(
   if (verify) {
     steps.push(
       `Then call changeset_verify with changeset: "${previous!.id}" and against: {changeset: "${changeset.id}"}.`,
-      verifyLandStep(previous!)
+      verifyLandStep(previous!, "", !leftActive)
     );
     return steps;
   }
@@ -1567,13 +1607,18 @@ function pendingSteps(
   changedCards: number,
   since?: string,
   readOn?: string,
-  grouped = false
+  grouped = false,
+  /** The plan was named in the call: it need not be active, and the as-built changeset is staged into by name. */
+  planNamed = false
 ): string[] {
   // A since run with a plan active is the verify workflow: the changeset to create is the
   // as-built side, and creating it deactivates the plan.
   const verify = !!since && !!active;
   const steps = [
-    verify
+    verify && planNamed
+      ? `Nothing was staged, so no as-built changeset was created. Before you stage a card or delete a candidate, call codebase_extract again with changeset: "${name}", since: "${since}", plan: "${active!.name}" and intent ` +
+        `(what the user confirmed it is for): it creates the as-built changeset for the plan, and the active changeset stays as it is.`
+      : verify
       ? `Nothing was staged, so no as-built changeset was created and '${active!.name}' is still active. Before you stage a card or delete a candidate, call changeset_create with name: "${name}" ` +
         `(it becomes active, so model_add and model_delete stage into it and not into the plan).`
       : `Nothing was staged, so no changeset was created or activated. Before you model a card or delete a candidate, call codebase_extract again with ` +
@@ -1604,7 +1649,7 @@ function pendingSteps(
   if (verify) {
     steps.push(
       `Then call changeset_verify with changeset: "${active!.id}" and against: {changeset: "${name}"}.`,
-      verifyLandStep(active!, " (changeset_create deactivated it)"),
+      verifyLandStep(active!, " (changeset_create deactivated it)", !planNamed),
       `If no card is an element and nothing is deleted, there is no as-built changeset to verify against: call changeset_verify with changeset: "${active!.id}" and against: {base: true, extracted: true} instead.`
     );
     return steps;
@@ -2635,6 +2680,35 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         ]);
       }
 
+      // The plan to compare against, when named (#1352): the active changeset is not touched.
+      let namedPlan: { id: string; name: string } | null = null;
+      if (args.plan) {
+        if (!since) {
+          throw new CLIError("codebase_extract: plan is what a since run is compared with; this run has no since", ErrorCategory.USER, [
+            "Pass since (the ref the work started from), or leave plan out",
+          ]);
+        }
+        const found = await manager.load(args.plan);
+        if (!found) {
+          throw new CLIError(`codebase_extract: plan '${args.plan}' is not a changeset`, ErrorCategory.NOT_FOUND, ["changeset_list shows the staged changesets, by id and name"]);
+        }
+        if (found.status !== "staged") {
+          throw new CLIError(`codebase_extract: plan '${found.name}' is ${found.status}, not staged: there is nothing left to compare the build with`, ErrorCategory.USER, [
+            "Name a staged plan, or leave plan out",
+          ]);
+        }
+        if (changeset?.id === found.id || (!changeset && args.changeset === found.name)) {
+          throw new CLIError(`codebase_extract: '${found.name}' is both the plan and the changeset to stage into`, ErrorCategory.USER, [
+            "Name another changeset to stage the as-built side into, or leave changeset out for the default name",
+          ]);
+        }
+        namedPlan = { id: found.id!, name: found.name };
+      }
+      // A later run into a changeset made with a named plan keeps that plan, and leaves the active changeset alone too.
+      if (!namedPlan && stored?.planNamed && stored.previousActive) {
+        const kept = await manager.load(stored.previousActive.id);
+        if (kept?.status === "staged") namedPlan = { id: kept.id!, name: kept.name };
+      }
       // The scope: every file, or the files changed since a ref (a run, or a default name to find).
       let changes: CodeChangesResult | null = null;
       if (since && (!(paging || decisionsOnly) || (!changeset && !stored))) changes = await (deps.codeChanges ?? codeChangesSince)(codebaseRoot, since);
@@ -3712,7 +3786,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         // A since run with a plan active (verify mode): a card whose symbol an element of the plan
         // names is that planned element as built, and says so (#1394).
         const activeNow = await manager.getActiveId();
-        const planForCards = since ? (activeNow && activeNow !== changeset?.id ? activeNow : storedBefore?.previousActive?.id) : undefined;
+        const planForCards = since ? (namedPlan?.id ?? (activeNow && activeNow !== changeset?.id ? activeNow : storedBefore?.previousActive?.id)) : undefined;
         const plannedAt = planForCards ? plannedKeys(await manager.load(planForCards)) : new Map<string, string>();
         if (plannedAt.size) {
           undecided = undecided.map((c) => {
@@ -3979,6 +4053,78 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         for (const st of stillStaged) if (st.origin && st.origin.by !== "agent" && !endOrigins.has(st.id)) endOrigins.set(st.id, st.origin);
         for (const r of relationships) batch.push(relationshipChange(r, relationshipOrigin(r, endOrigins)));
 
+        // Candidate deletes with unambiguous evidence (the file was deleted in the range, or the
+        // symbol is gone from a file that had it) are staged as deletes, marked with their origin
+        // (#1375), so changeset_verify sees a planned deletion as done. Weaker evidence (a reference
+        // that never matched, a renamed file, a file or symbol missing with no range to say what
+        // changed) stays a hint for the agent to check, as does a candidate this changeset adds, or
+        // one other elements still reference.
+        const stagedDeletes: StagedDelete[] = [];
+        if (since && plan.candidateDeletes.some((d) => STAGED_DELETE_EVIDENCE.has(d.evidence))) {
+          const tracker = dependencyTracker(model);
+          const sure = (d: CandidateDelete) => d.evidence === "file-deleted" || (d.evidence === "symbol-missing" && d.baseChecked === true);
+          // What each sure candidate cannot go with: it is the as-built changeset's own add, or elements outside the
+          // candidates still reference it. A candidate that stays blocks the ones that reference it, so repeat until stable.
+          const going = new Set(plan.candidateDeletes.filter(sure).map((d) => d.id));
+          const why = new Map<string, string>();
+          const ready = new Map<string, { snapshot: Record<string, unknown>; base: { id?: unknown; path?: unknown } }>();
+          for (const d of plan.candidateDeletes.filter(sure)) {
+            const current = await currentSnapshot(model, before, changeset ?? emptyChangeset(), d.id, d.layer);
+            const base = (await model.getBaseLayer(d.layer))?.getElement(d.id);
+            if (!current || current.stagedAdd || !base) {
+              why.set(d.id, "the as-built changeset adds this element, or the base model does not have it");
+              going.delete(d.id);
+            } else ready.set(d.id, { snapshot: current.snapshot, base });
+          }
+          for (let changed = true; changed; ) {
+            changed = false;
+            for (const id of [...going]) {
+              const dependents = tracker.traceDependencies(id, TraceDirection.DOWN, null).filter((dep) => !going.has(dep));
+              if (dependents.length === 0) continue;
+              why.set(id, `${dependents.length} element(s) still reference it (${dependents.slice(0, 3).join(", ")})`);
+              going.delete(id);
+              changed = true;
+            }
+          }
+          const hints: CandidateDelete[] = [];
+          for (const d of plan.candidateDeletes) {
+            if (!going.has(d.id)) {
+              hints.push(why.has(d.id) ? { ...d, detail: `${d.detail}. Not staged: ${why.get(d.id)}` } : d);
+              continue;
+            }
+            const { snapshot, base } = ready.get(d.id)!;
+            batch.push({
+              type: "delete",
+              elementId: d.id,
+              layerName: d.layer,
+              before: snapshot,
+              origin: { by: "tier0", rule: `candidate-delete:${d.evidence}` },
+            });
+            // The relationships that name it go with it, as model_delete stages them, so a landing leaves none dangling.
+            const names = new Set(elementIdentifiers(base, d.id));
+            for (const rel of model.relationships.getAll().filter((r) => names.has(r.source) || names.has(r.target))) {
+              const key = `${rel.source}::${rel.predicate}::${rel.target}`;
+              if (batch.some((c) => c.type === "relationship-delete" && c.elementId === key)) continue;
+              batch.push({
+                type: "relationship-delete",
+                elementId: key,
+                layerName: rel.layer,
+                before: {
+                  source: rel.source,
+                  target: rel.target,
+                  predicate: rel.predicate,
+                  layer: rel.layer,
+                  ...(rel.targetLayer ? { targetLayer: rel.targetLayer } : {}),
+                  ...(rel.properties ? { properties: rel.properties } : {}),
+                },
+                origin: { by: "tier0", rule: `candidate-delete:${d.evidence}` },
+              });
+            }
+            stagedDeletes.push({ id: d.id, layer: d.layer, type: d.type, evidence: d.evidence, file: d.file, ...(d.symbol ? { symbol: d.symbol } : {}), detail: d.detail });
+          }
+          plan.candidateDeletes = hints;
+        }
+
         // Existing elements whose code calls what the range changed, though their own code didn't
         // change: hints for the agent to review, never staged.
         let impactHints: ImpactHint[] = [];
@@ -4032,6 +4178,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
           updates: stagedUpdates.length,
           relationships: relationships.length,
           cards: shown.length,
+          deletes: stagedDeletes.length,
           candidateDeletes: plan.candidateDeletes.length,
         };
         // Tier 1's time is left out: it stops asking at its own deadline, and a run that would have
@@ -4265,6 +4412,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
           if (items.length) runLists[listName] = items;
         };
         keepList("candidateDeletes", plan.candidateDeletes);
+        keepList("deleted", stagedDeletes);
         keepList("retyped", plan.retyped);
         keepList("updated", updatedList);
         keepList("impacted", impactedList);
@@ -4308,7 +4456,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
             await writeFile(path.join(extractDir(projectRoot), PREVIEW_FILE), JSON.stringify(record), "utf-8");
           }
           const would =
-            `A run with these arguments would stage ${summary.adds} add(s), ${summary.updates} update(s) ` +
+            `A run with these arguments would stage ${summary.adds} add(s), ${summary.updates} update(s)${summary.deletes ? `, ${summary.deletes} delete(s)` : ""} ` +
             `and ${summary.relationships} relationship(s) into '${target}', and leave ${summary.cards} card(s) and ${summary.candidateDeletes} candidate delete(s).`;
           return jsonResult(
             asPreviewReads(preview, {
@@ -4336,6 +4484,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
               wouldStage: {
                 adds: summary.adds,
                 updates: summary.updates,
+                ...(summary.deletes ? { deletes: summary.deletes } : {}),
                 relationships: summary.relationships,
                 ...(crossModel?.staged.length ? { references: crossModel.staged.length } : {}),
                 byLayer: byLayer(adds, stagedUpdates, relationships),
@@ -4404,7 +4553,11 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         // verifies, even when a later run happens while another changeset is active. The next
         // steps verify against it too; the result's previousActive still says what this run replaced.
         let recordedPrevious = previousActive;
-        if (storedBefore?.previousActive && storedBefore.previousActive.id !== previousActive?.id) {
+        // A plan named in the call is the plan, and nothing was replaced as the active changeset.
+        if (namedPlan) {
+          previousActive = null;
+          recordedPrevious = namedPlan;
+        } else if (storedBefore?.previousActive && storedBefore.previousActive.id !== previousActive?.id) {
           const first = await manager.load(storedBefore.previousActive.id);
           if (first?.status === "staged") recordedPrevious = { id: first.id!, name: first.name };
         }
@@ -4437,7 +4590,8 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
                 since,
                 gitHead: head,
                 explicit: args.purpose,
-                previousActive: recordedPrevious,
+                previousActive: namedPlan ? null : recordedPrevious,
+                plan: namedPlan,
                 sinceCommit: (deps.resolveCommit ?? resolveCommit)(codebaseRoot, since),
                 reconciledCommit: model.manifest.reconciled?.code_commit,
                 stagedPlans,
@@ -4478,8 +4632,9 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
             throw error;
           }
           // Activate last, once staging has succeeded.
-          if (activeId !== changeset.id) await manager.setActive(changeset.id!);
-          active = true;
+          // With a plan named, the active changeset is left as it was (#1352).
+          if (!namedPlan && activeId !== changeset.id) await manager.setActive(changeset.id!);
+          active = !namedPlan || activeId === changeset.id;
           await reloadModel(args.rootPath);
           if (Object.keys(plan.descriptions).length) {
             await writeFile(descriptionsFile, JSON.stringify({ ...extractedDescriptions, ...plan.descriptions }), "utf-8");
@@ -4526,40 +4681,36 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         let coverage: PlanCoverageItem[] = [];
         if (since && recordedPrevious) {
           const planChangeset = await manager.load(recordedPrevious.id);
-          const plannedRefs: PlannedElementRef[] = [];
-          for (const c of (planChangeset?.changes ?? []) as StagedChange[]) {
-            // Only what code can show: an intent-layer element has no declaration to stage.
-            if (c.type !== "add" || !c.after || INTENT_LAYERS.has(c.layerName) || (layers && !layers.includes(c.layerName))) continue;
-            const after = c.after as Record<string, unknown>;
-            const id = typeof after.path === "string" && after.path ? after.path : c.elementId;
-            plannedRefs.push({
-              id,
-              layer: c.layerName,
-              type: typeof after.type === "string" ? after.type : (id.split(".")[1] ?? ""),
-              name: typeof after.name === "string" ? after.name : id,
-              locations: (stagedSourceReference(after)?.locations ?? [])
-                .filter((l) => !!l.file)
-                .map((l) => ({ file: normFile(l.file)!, ...(l.symbol ? { symbol: l.symbol } : {}) })),
-            });
-          }
-          const asBuilt = [...before.elements.values()]
-            .filter((e) => e.status !== "deleted")
-            .map((e) => ({
-              id: e.id,
-              layer: e.layer,
-              type: e.type,
-              locations: (e.sourceReference?.locations ?? []).filter((l) => !!l.file).map((l) => ({ file: normFile(l.file)!, ...(l.symbol ? { symbol: l.symbol } : {}) })),
-            }));
-          for (const a of adds) {
-            asBuilt.push({
-              id: a.id,
-              layer: a.layer,
-              type: a.type,
-              locations: (a.sourceReference?.locations ?? []).map((l) => ({ file: normFile(l.file)!, ...(l.symbol ? { symbol: l.symbol } : {}) })),
-            });
-          }
+          // The plan's adds that code can show, paired with the as-built side by the matcher
+          // changeset_verify uses (#1323): id, name, then source file and symbol.
+          const fullPlan = planChangeset ? await planFromModel(model, planChangeset) : null;
+          const plannedAdds = (fullPlan?.elements ?? []).filter((e) => e.op === "add" && !INTENT_LAYERS.has(e.layer) && !(layers && !layers.includes(e.layer)));
+          const plannedRefs: PlannedElementRef[] = plannedAdds.map((e) => ({
+            id: e.id,
+            layer: e.layer,
+            type: e.type,
+            name: e.name,
+            locations: (e.sourceReference?.locations ?? []).filter((l) => !!l.file).map((l) => ({ file: normFile(l.file)!, ...(l.symbol ? { symbol: l.symbol } : {}) })),
+          }));
+          const built = builtFromGraph(before);
+          const staging: BuiltElement[] = adds.map((a) => ({
+            id: a.id,
+            layer: a.layer,
+            type: a.type,
+            name: a.name,
+            ...(a.description ? { description: a.description } : {}),
+            attributes: a.attributes,
+            ...(a.sourceReference ? { sourceReference: a.sourceReference } : {}),
+            change: "added" as const,
+          }));
+          built.elements.push(...staging);
+          built.changedElements = [...(built.changedElements ?? []), ...staging];
+          const matchPlan: Plan = { label: recordedPrevious.name, elements: plannedAdds, relationships: fullPlan?.relationships ?? [], notes: [] };
+          const baseIndex = planChangeset ? await tryReadBaseIndex(model.rootPath, planChangeset.id) : undefined;
+          if (baseIndex?.index) matchPlan.baseElementIds = Object.keys(baseIndex.index.elements);
+          const matching = matchPlannedElements(matchPlan, built);
           const rank = { candidates: 0, none: 1, staged: 2 } as const;
-          coverage = planCoverage(plannedRefs, asBuilt, undecided).sort((a, b) => rank[a.status] - rank[b.status] || a.planned.localeCompare(b.planned));
+          coverage = planCoverage(plannedRefs, matching.pairs, undecided).sort((a, b) => rank[a.status] - rank[b.status] || a.planned.localeCompare(b.planned));
         }
         const coverageCounts = {
           total: coverage.length,
@@ -4600,6 +4751,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
             layers: layers ?? null,
             baseModified,
             previousActive: recordedPrevious,
+            ...(namedPlan ? { planNamed: true } : {}),
             ...recordedPurpose(purposeDecision),
             ...uncommittedRecord,
             createdAt: now,
@@ -4625,6 +4777,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
             layers: layers ?? null,
             baseModified,
             previousActive,
+            ...(namedPlan ? { planNamed: true } : {}),
             ...recordedPurpose(purposeDecision),
             ...uncommittedRecord,
             createdAt: now,
@@ -4705,7 +4858,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
               ? `Nothing staged, but the code disagrees with the model: ${contradiction} No as-built changeset was created; ${previousActive ? `'${previousActive.name}' is still active.` : `the plan is '${recordedPrevious!.name}'.`}`
               : `Nothing to stage: nothing in the range is observable to extraction or differs from the model. No as-built changeset was created; ${previousActive ? `'${previousActive.name}' is still active.` : `the plan is '${recordedPrevious!.name}'.`}`
             : changeset && created
-              ? `Nothing to stage: the model already says what this code says${contradiction ? `, except that ${contradiction}` : ""}. '${changeset.name}' was created and made active, empty, as asked: ` +
+              ? `Nothing to stage: the model already says what this code says${contradiction ? `, except that ${contradiction}` : ""}. '${changeset.name}' was created${active ? " and made active" : ""}, empty, as asked: ` +
                 `landing it as it is records that the model matches the code at ${head.slice(0, 7)} (changeset_commit_preview says so) and moves the drift baseline there.`
               : changeset
               ? contradiction
@@ -4774,6 +4927,14 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
               relationships: relationships.length,
               byLayer: byLayer(adds, stagedUpdates, relationships),
               ...(stagedUpdates.length ? { updated: capped(updatedList, fit.listLimit, "updated") } : {}),
+              ...(stagedDeletes.length
+                ? {
+                    deleted: capped(stagedDeletes, fit.listLimit, "deleted"),
+                    deletedNote:
+                      "Candidate deletes whose evidence is unambiguous (file-deleted, symbol-missing), staged as deletes with origin tier0, rule candidate-delete:<evidence>, " +
+                      "together with the relationships that name them. changeset_unstage takes one back if the code is not really gone.",
+                  }
+                : {}),
             },
             ...(crossModel || crossWarnings.length
               ? {
@@ -4855,7 +5016,9 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
               : {}),
             candidateDeletes: {
               ...capped(plan.candidateDeletes, fit.listLimit, "candidateDeletes"),
-              note: "Not staged: deleting is left to you. Each has its evidence.",
+              note:
+                "Not staged: the evidence is weaker than a deleted file or a symbol gone from a file that had it (a reference that never matched, a renamed file, nothing to say what the range changed), " +
+                "or other elements still reference it, so check the code and call model_delete only when it is really gone. Each has its evidence. staged.deleted lists the ones staged.",
             },
             ...(plan.retyped.length ? { retyped: capped(plan.retyped, fit.listLimit, "retyped") } : {}),
             ...notElementsResult(decisions, plan.skipped, recordedNow, cleared, fit.listLimit, args.verbose),
@@ -4946,13 +5109,13 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
               ...(!hasWork
                 ? verifyMode
                   ? changesetRef
-                    ? nextSteps(changesetRef, recordedPrevious, 0, plan, 0, since)
+                    ? nextSteps(changesetRef, recordedPrevious, 0, plan, 0, since, undefined, false, !!namedPlan)
                     : verifyNothingSteps(recordedPrevious!, since!)
                   : []
                 : withCardHints(
                     changesetRef
-                      ? nextSteps(changesetRef, recordedPrevious, cards.pages, plan, changedCards, since, fit.readOn, grouped)
-                      : pendingSteps(name, recordedPrevious, cards.pages, plan, changedCards, since, fit.readOn, grouped),
+                      ? nextSteps(changesetRef, recordedPrevious, cards.pages, plan, changedCards, since, fit.readOn, grouped, !!namedPlan)
+                      : pendingSteps(name, recordedPrevious, cards.pages, plan, changedCards, since, fit.readOn, grouped, !!namedPlan),
                     [
                       ...(range?.long && shown.length ? [rangeStep(range, since!)] : []),
                       ...(grouped ? [triageStep(shown.length, allGroups.some((g) => g.noElement))] : []),
@@ -5006,9 +5169,9 @@ export const codebaseExtractTool: McpToolDefinition<typeof inputSchema> = {
     "Read cards with view (a filter; {} for all) and page; read any shortened list in full with list, limit and offset. Every list gives its true total " +
     "and, when shortened, the call for the rest. " +
     "Stages only what differs from the model (matched by source file and symbol): new symbols are adds, changed ones " +
-    "updates; elements whose code is gone are listed as candidateDeletes, not staged. since (a git ref) limits it to " +
+    "updates; elements whose code is gone are staged as deletes when the evidence is unambiguous (with since: the file was deleted in the range, or the symbol is gone from a file that had it; staged.deleted, origin tier0) and the rest are listed as candidateDeletes for you to check. since (a git ref) limits it to " +
     "files changed since then, for verifying a branch: its cards are the symbols the range changed, and the symbols it did not touch are counted " +
-    "(undecided.untouched; view: {changed: false} lists them). With a plan active before a since run, planCoverage lists the plan's elements that have " +
+    "(undecided.untouched; view: {changed: false} lists them). With a plan active before a since run, or named with plan (a staged changeset's id or name; the active changeset is then left alone, the as-built changeset is not made active and verifies that plan), planCoverage pairs the plan's elements with the as-built side as changeset_verify does (id, name, source file and symbol; a probable pairing says why) and lists those with " +
     "no as-built element yet, with the cards that could be them. " +
     "With since, scope.changedSymbols says how changed symbols were found (the analyzer's detect_changes, or git's changed " +
     "lines, with why), and impacted lists existing elements whose code calls changed code: review hints, never staged. " +

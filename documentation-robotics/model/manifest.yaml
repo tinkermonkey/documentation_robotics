@@ -3,7 +3,7 @@ schema: documentation-robotics-v1
 cli_version: 0.9.0
 spec_version: 0.16.0
 created: 2026-02-20T15:28:17.945Z
-updated: 2026-11-28T12:50:22.137Z
+updated: 2026-11-28T12:51:24.939Z
 project:
   name: dr-codebase
   description: ""
@@ -258,8 +258,11 @@ changeset_history:
   - name: cli010-t3-test-since
     committed_at: 2026-11-28T02:14:59.477Z
     action: committed
+  - name: cli010-x1-extract-plan
+    committed_at: 2026-11-28T02:15:03.778Z
+    action: committed
   - name: cli010-v2b-verdicts
-    committed_at: 2026-11-28T12:50:22.134Z
+    committed_at: 2026-11-28T12:51:24.936Z
     action: committed
 reconciled:
   changeset: extract-723c609..5b32f88
