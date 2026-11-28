@@ -426,7 +426,9 @@ describe("changeset_verify review fixes (PR 1057)", () => {
     expect(report.elements.missing.map((m: any) => m.planned).sort()).toEqual(
       [COMPONENT, DATA, FUNCTION, OPERATION, REQUIREMENT, TEST_CASE].sort()
     );
-    expect(report.relationships.missing).toHaveLength(5);
+    // The planned tests link is for the agent to check, not missing (#1413).
+    expect(report.relationships.missing).toHaveLength(4);
+    expect(report.relationships.testsToCheck).toHaveLength(1);
     expect(report.verdict).toBe("incomplete");
   });
 

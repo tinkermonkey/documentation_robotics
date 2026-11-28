@@ -29076,3 +29076,20 @@ application.applicationfunction.find-annotation:
     created_at: 2026-11-28T13:28:28.302Z
     updated_at: 2026-11-28T13:28:28.302Z
     version: 1
+application.applicationfunction.tests-link-reason:
+  id: 7b384ebe-fc69-44e3-ad98-4d2d69f43e05
+  path: application.applicationfunction.tests-link-reason
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: testsLinkReason
+  description: Says why the code graph can't confirm a model tests link (target type unreachable from code, no mapped edge, a spec driving a page, or an indirect call), for the testing layer's tests_to_check list.
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/analyzers/layer-verify.ts
+        symbol: testsLinkReason
+  metadata:
+    created_at: 2026-11-26T18:43:05.715Z
+    updated_at: 2026-11-26T18:43:05.715Z
+    version: 1

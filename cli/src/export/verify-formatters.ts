@@ -244,10 +244,11 @@ function formatLayersMarkdown(lines: string[], report: VerifyReport): void {
     table("Ignored", buckets.ignored);
     if (layer.relationships) {
       const r = layer.relationships;
-      lines.push(`**tests relationships:** matched ${r.matched.length}, in code only ${r.in_graph_only.length}, in model only ${r.in_model_only.length}`);
+      lines.push(`**tests relationships:** matched ${r.matched.length}, in code only ${r.in_graph_only.length}, to check ${r.tests_to_check.length}`);
       lines.push("");
-      for (const rel of r.in_model_only) lines.push(`- ${escapeMarkdown(`${rel.source} ${rel.predicate} ${rel.target}`)} (in model only)`);
-      if (r.in_model_only.length) lines.push("");
+      if (r.tests_to_check.length && layer.tests_to_check_note) lines.push(escapeMarkdown(layer.tests_to_check_note), "");
+      for (const rel of r.tests_to_check) lines.push(`- ${escapeMarkdown(`${rel.source} ${rel.predicate} ${rel.target}`)} (to check${rel.reason ? `: ${escapeMarkdown(rel.reason)}` : ""})`);
+      if (r.tests_to_check.length) lines.push("");
     }
   }
   if (report.layers_not_verified?.length) {
@@ -528,8 +529,9 @@ function formatLayersText(lines: string[], report: VerifyReport): void {
     list("Ignored", buckets.ignored ?? []);
     if (layer.relationships) {
       const r = layer.relationships;
-      lines.push(`tests relationships: matched ${r.matched.length}, in code only ${r.in_graph_only.length}, in model only ${r.in_model_only.length}`);
-      for (const rel of r.in_model_only) lines.push(`  ${rel.source} ${rel.predicate} ${rel.target} (in model only)`);
+      lines.push(`tests relationships: matched ${r.matched.length}, in code only ${r.in_graph_only.length}, to check ${r.tests_to_check.length}`);
+      if (r.tests_to_check.length && layer.tests_to_check_note) lines.push(`  ${layer.tests_to_check_note}`);
+      for (const rel of r.tests_to_check) lines.push(`  ${rel.source} ${rel.predicate} ${rel.target} (to check${rel.reason ? `: ${rel.reason}` : ""})`);
     }
     lines.push("");
   }

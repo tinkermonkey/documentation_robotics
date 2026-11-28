@@ -21,7 +21,7 @@ function layer(inCode: number, notChecked: number, relationships: number): Layer
     relationships: {
       matched: [],
       in_graph_only: Array.from({ length: relationships }, (_, i) => ({ source: `testing.testcasesketch.case-${i}`, predicate: "tests", target: "application.applicationfunction.f" })),
-      in_model_only: [],
+      tests_to_check: [],
     },
     summary: {
       matched_count: 3,
@@ -55,7 +55,7 @@ describe("pageLayerReport", () => {
         "not_checked[0].ids": 75,
         "relationships.matched": 0,
         "relationships.in_graph_only": 60,
-        "relationships.in_model_only": 0,
+        "relationships.tests_to_check": 0,
       },
       nextOffset: VERIFY_PAGE_SIZE,
     });

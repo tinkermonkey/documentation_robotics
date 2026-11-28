@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **`tests` links the code graph can't confirm are for you to check, not drift (#1413):** `codebase_verify`
+  lists the testing layer's model `tests` links that extraction can't confirm under
+  `relationships.tests_to_check` (replacing `relationships.in_model_only`), each with a reason (target type
+  unreachable from code, such as a product feature; a spec that drives a page; an indirect call), and a
+  `tests_to_check_note` saying what checking means: is the link accurate or an extraction miss, and once
+  it is, is a test missing or was it not needed. They don't count against the layer's `in_step` status, the
+  list stays until the model changes, and there is no `gap_accept` for them. `changeset_verify` does the same
+  for planned `tests` links the build doesn't show (`testsToCheck`, not `missing`).
+
 ### Added
 
 - **Annotations made during a plan are staged in it (#1447):** while a changeset is active,

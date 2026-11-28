@@ -55,6 +55,8 @@ export interface LayerFindings {
   ignoredInModel?: number;
   /** Relationships in the code only or the model only (the testing layer's `tests`). */
   relationshipDifferences?: number;
+  /** `tests` links the code graph can't confirm: for the agent to check, never counted as differences (#1413). */
+  testsToCheck?: number;
 }
 
 /** How a layer's check names what it compares, for its status sentence. */
@@ -83,6 +85,8 @@ export function layerStatus(
     not_checked: notChecked,
     code_entries: findings.matched + findings.inCodeOnly,
   };
+  const toCheck = findings.testsToCheck ?? 0;
+  const checkLinks = toCheck > 0 ? ` ${count(toCheck)} tests link(s) the code graph can't confirm are listed under relationships.tests_to_check for you to check (not drift; tests_to_check_note says how).` : "";
   const differences = findings.inCodeOnly + findings.inModelOnly + (findings.relationshipDifferences ?? 0);
   const unchecked =
     notChecked > 0
@@ -99,7 +103,7 @@ export function layerStatus(
       coverage.model_elements === 0
         ? `Drifted: the model has no ${nouns.model}, and the analyzer found ${parts.join(", ")}.`
         : `Checked ${count(checked)} of the model's ${count(coverage.model_elements)} ${nouns.model}: drifted, ${parts.join(", ")}.`;
-    return { status: "drifted", status_text: `${text}${unchecked}`, coverage };
+    return { status: "drifted", status_text: `${text}${unchecked}${checkLinks}`, coverage };
   }
   if (checked > 0) {
     // An element in the model only that an ignore rule covers was compared and did not match: the
@@ -112,7 +116,7 @@ export function layerStatus(
           : `in step with the code, apart from ${count(ignored)} in the model only that an ignore rule covers.`;
     return {
       status: "in_step",
-      status_text: `Checked ${count(checked)} of the model's ${count(coverage.model_elements)} ${nouns.model}: ${byRule}${unchecked}`,
+      status_text: `Checked ${count(checked)} of the model's ${count(coverage.model_elements)} ${nouns.model}: ${byRule}${unchecked}${checkLinks}`,
       coverage,
     };
   }

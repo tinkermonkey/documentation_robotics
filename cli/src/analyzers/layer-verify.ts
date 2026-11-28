@@ -653,7 +653,7 @@ async function verifyLayer(
   const inModelOnly = unlessIgnored(inModel, "element");
 
   // The testing layer also compares the matched test cases' tests relationships.
-  const rels = layer === "testing" && planned ? testsRelationships(planned, new Set(matched.keys()), input) : null;
+  const rels = layer === "testing" && planned ? testsRelationships(planned, matched, input) : null;
   const notCheckedGroups = groupNotChecked(uncompared);
   const report: LayerVerifyReport = {
     layer,
@@ -665,7 +665,9 @@ async function verifyLayer(
         notIndexed: notIndexed.length,
         notChecked: uncompared.length,
         ignoredInModel: inModel.length - inModelOnly.length,
-        ...(rels ? { relationshipDifferences: rels.in_graph_only.length + rels.in_model_only.length } : {}),
+        // The model's `tests` links the code graph can't confirm are not differences: they are for
+        // the agent to check (#1413), listed under relationships.tests_to_check.
+        ...(rels ? { relationshipDifferences: rels.in_graph_only.length, testsToCheck: rels.tests_to_check.length } : {}),
       },
       check.nouns
     ),
@@ -691,10 +693,41 @@ async function verifyLayer(
 
   if (rels) {
     report.relationships = rels;
-    report.summary.relationships = { matched_count: rels.matched.length, gap_count: rels.in_graph_only.length, drift_count: rels.in_model_only.length };
+    report.summary.relationships = {
+      matched_count: rels.matched.length,
+      gap_count: rels.in_graph_only.length,
+      drift_count: 0,
+      tests_to_check_count: rels.tests_to_check.length,
+    };
+    if (rels.tests_to_check.length) report.tests_to_check_note = TESTS_TO_CHECK_NOTE;
   }
 
   return report;
+}
+
+/** What checking a `tests` link means (#1413), said once in the report that lists any. */
+export const TESTS_TO_CHECK_NOTE =
+  "tests_to_check lists the model's tests links the code graph can't confirm: not drift, and not accepted away. " +
+  "Check each in the code: is the link accurate, or did extraction miss it? Fix the model if it is wrong. " +
+  "Once it is accurate, decide whether a test is missing and needs writing, or the plan specified a test that isn't needed (remove the link). " +
+  "The list stays until the model changes.";
+
+/** Why the code graph can't confirm a model `tests` link, as far as is known. */
+function testsLinkReason(
+  input: LayerVerifyInput,
+  source: { layer: string; type: string },
+  predicate: string,
+  target: { layer: string; type: string },
+  files: string[]
+): string {
+  const targetVerdict = input.coverage?.element(target as never);
+  if (targetVerdict && !targetVerdict.observable) return `target type unreachable from code: ${targetVerdict.reason ?? `${target.layer}.${target.type}`}`;
+  const edge = input.coverage?.relationship(source as never, predicate, target as never);
+  if (edge && !edge.observable) return `the code graph has no edge for this link: ${edge.reason ?? "no mapped edge"}`;
+  if (files.some((f) => /\.(spec|e2e)\.[cm]?[jt]sx?$|(^|\/)(e2e|playwright)\//.test(f))) {
+    return "a spec that drives a page or UI: it makes no call into the target, and its file name doesn't match the target's file";
+  }
+  return "no call from the test reaches the target directly; it may reach it indirectly, through other calls";
 }
 
 /**
@@ -705,7 +738,7 @@ async function verifyLayer(
  */
 function testsRelationships(
   planned: Planned,
-  matchedTests: Set<string>,
+  matchedEntries: Map<string, LayerVerifyEntry>,
   input: LayerVerifyInput
 ): NonNullable<LayerVerifyReport["relationships"]> {
   const elements = new Map<string, { layer: string; type: string }>();
@@ -714,6 +747,7 @@ function testsRelationships(
   const { relationships, present = [] } = planRelationships(planned.extraction, input.model, own, elements, input.hasTriple, undefined, {
     includePresent: true,
   });
+  const matchedTests = new Set(matchedEntries.keys());
   const key = (r: { source: string; predicate: string; target: string }) => `${r.source}|${r.predicate}|${r.target}`;
   const fromTests = (r: { source: string; predicate: string }) => r.predicate === "tests" && matchedTests.has(r.source);
   const shape = ({ source, predicate, target, edge }: { source: string; predicate: string; target: string; edge?: string }): LayerVerifyRelationship => ({
@@ -726,14 +760,13 @@ function testsRelationships(
   // A relationship recorded as not one (codebase_extract reject) is not in the code only.
   const inCode = relationships.filter((r) => fromTests(r) && !input.notRelationships?.has(`${r.source}::${r.predicate}::${r.target}`)).map(shape);
   const found = new Set(matched.map(key));
-  const inModel: LayerVerifyRelationship[] = [];
+  const toCheck: LayerVerifyRelationship[] = [];
   for (const r of input.model.relationships()) {
     if (r.status === "deleted" || r.predicate !== "tests" || !matchedTests.has(r.source) || found.has(key(r))) continue;
     const source = input.model.getElement(r.source);
     const target = input.model.getElement(r.target);
     if (!source || !target) continue;
-    if (input.coverage && !input.coverage.relationship(source, r.predicate, target).observable) continue;
-    inModel.push(shape(r));
+    toCheck.push({ ...shape(r), reason: testsLinkReason(input, source, r.predicate, target, matchedEntries.get(r.source)?.files ?? []) });
   }
-  return { matched, in_graph_only: inCode, in_model_only: inModel };
+  return { matched, in_graph_only: inCode, tests_to_check: toCheck };
 }

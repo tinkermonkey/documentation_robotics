@@ -310,6 +310,8 @@ export interface CategoryCounts {
   deletionsNotDone: number;
   /** Planned changes extraction can't see; not part of the verdict. */
   unverifiable: number;
+  /** Relationships only: planned `tests` links to check (#1413), counted in none of the other categories. */
+  testsToCheck?: number;
   /**
    * Of `unverifiable`, the planned elements a code file may register by name: missing unless it
    * does. Present only when there are some; the verdict text leads with them.
@@ -553,6 +555,11 @@ export interface VerifyReport {
     unverifiable: UnverifiableRelationship[];
     unplanned: UnplannedRelationship[];
     deletionsNotDone: RelationshipDeletionNotDone[];
+    /**
+     * Planned `tests` links the build doesn't show (#1413): not missing, not part of the verdict, and
+     * not accepted away. For the agent to check (see TESTS_LINKS_TO_CHECK_NOTE). Absent when none.
+     */
+    testsToCheck?: MissingRelationship[];
   };
   /** Whether extraction's blind spots were taken into account, and where the as-built side came from. */
   extraction?: VerifyExtraction;
@@ -694,6 +701,7 @@ export const VERIFY_SECTIONS = [
   "probable",
   "matched",
   "unverifiable",
+  "testsToCheck",
   "unplanned",
   "deletionsNotDone",
   "sourceReferences",
@@ -776,6 +784,12 @@ export interface VerifyHeader {
   wholePlan?: VerifyReport["wholePlan"];
 }
 
+/** What checking a planned `tests` link means (#1413). */
+export const TESTS_LINKS_TO_CHECK_NOTE =
+  "testsToCheck lists planned tests links the build doesn't show: not missing, and not accepted away. Check each in the code: " +
+  "is the link accurate, or did extraction miss it? Fix the model if it is wrong. Once it is accurate, decide whether a test is " +
+  "missing and needs writing, or the plan specified a test that isn't needed (unstage the link).";
+
 export interface CompactVerifyReport extends VerifyHeader {
   detail: "compact";
   warning?: string;
@@ -789,6 +803,9 @@ export interface CompactVerifyReport extends VerifyHeader {
   deletionsNotDone?: string[];
   /** Planned changes extraction can't see, one line per reason (not part of the verdict; no plan edit needed). */
   unverifiable: string[];
+  /** Planned tests links the build doesn't show, for the agent to check (testsToCheckNote says how). Absent when none. */
+  testsToCheck?: string[];
+  testsToCheckNote?: string;
   unplanned: CompactUnplanned;
   sourceReferences?: CompactSourceReferences;
   extraction?: CompactExtraction;
@@ -829,6 +846,8 @@ export interface VerifySectionsReport extends VerifyHeader {
   probable?: Pair<ElementMatch | DivergentElement, RelationshipMatch | DivergentRelationship>;
   matched?: Pair<ElementMatch, RelationshipMatch>;
   unverifiable?: Pair<UnverifiableElement, UnverifiableRelationship>;
+  /** Planned tests links to check (see TESTS_LINKS_TO_CHECK_NOTE). */
+  testsToCheck?: { note: string; relationships: MissingRelationship[] };
   unplanned?: Pair<UnplannedElement, UnplannedRelationship>;
   deletionsNotDone?: Pair<DeletionNotDone, RelationshipDeletionNotDone>;
   sourceReferences?: SourceReferenceGaps;
@@ -1226,6 +1245,17 @@ export function compactVerifyReport<R extends VerifyReport & { plannedChangeset?
     probable: cappedList(probable, "probable", counts, pager),
     ...(deletionsNotDone.length > 0 ? { deletionsNotDone: cappedList(deletionsNotDone, "deletionsNotDone", counts, pager) } : {}),
     unverifiable: cappedList(unverifiable, "unverifiable", counts, pager),
+    ...(report.relationships.testsToCheck?.length
+      ? {
+          testsToCheck: cappedList(
+            report.relationships.testsToCheck.map((m) => `${relLine(m.planned)}: ${m.reason}`),
+            "testsToCheck",
+            counts,
+            pager
+          ),
+          testsToCheckNote: TESTS_LINKS_TO_CHECK_NOTE,
+        }
+      : {}),
     unplanned,
     ...(sourceReferences ? { sourceReferences } : {}),
     ...(report.extraction ? { extraction: compactExtraction(report.extraction) } : {}),
@@ -1255,6 +1285,7 @@ export function compactVerifyReport<R extends VerifyReport & { plannedChangeset?
     (unverifiable.some((line) => line.includes(" more)")) || missing.some((line) => line.includes(" more]"))
       ? `A line that groups several items shows its first ${IDS_PER_LINE} ids (sections: ["unverifiable"] or ["missing"] lists every one). `
       : "") +
+    (report.relationships.testsToCheck?.length ? 'sections: ["testsToCheck"] lists the planned tests links to check, with the note on what checking means. ' : "") +
     `Pass detail: "full" for the whole report, or sections: [...] for only some sections, in full (${VERIFY_SECTIONS.join(", ")}).`;
   return out;
 }
@@ -1321,6 +1352,15 @@ export function verifySections(
         break;
       case "unverifiable":
         out.unverifiable = paged("unverifiable", pick(e.unverifiable, r.unverifiable, (u) => [u.planned], (u) => [u.planned]));
+        break;
+      case "testsToCheck":
+        out.testsToCheck = {
+          note: TESTS_LINKS_TO_CHECK_NOTE,
+          relationships: pager.list(
+            "testsToCheck",
+            (r.testsToCheck ?? []).filter((m) => keepRel(m.planned))
+          ),
+        };
         break;
       case "unplanned":
         out.unplanned = paged("unplanned", pick(e.unplanned, r.unplanned, (u) => [u.id], (u) => [u]));
@@ -2134,7 +2174,7 @@ export function verifyChangeset(plan: Plan, built: BuiltSide, options: VerifyOpt
             unplaced.length > 1 ? "they have" : "it has"
           } code, set sourceFile and sourceSymbol with model_update, then verify again.`
         : "";
-    report.relationships.missing.push({
+    const lacking = {
       planned: plannedRef,
       reason:
         (absent.length > 0
@@ -2144,7 +2184,10 @@ export function verifyChangeset(plan: Plan, built: BuiltSide, options: VerifyOpt
             : "not found in the build"
       ) + sourceHint,
       ...(candidates.length > 0 ? { candidates } : {}),
-    });
+    };
+    // A tests link the build doesn't show is for the agent to check, not a missing relationship.
+    if (planned.predicate === "tests") (report.relationships.testsToCheck ??= []).push(lacking);
+    else report.relationships.missing.push(lacking);
   }
 
   if (built.changedRelationships) {
@@ -2163,7 +2206,10 @@ export function verifyChangeset(plan: Plan, built: BuiltSide, options: VerifyOpt
   }
 
   report.summary.elements = countCategories(plan.elements.length, report.elements);
-  report.summary.relationships = countCategories(plan.relationships.length, report.relationships);
+  report.summary.relationships = {
+    ...countCategories(plan.relationships.length, report.relationships),
+    ...(report.relationships.testsToCheck?.length ? { testsToCheck: report.relationships.testsToCheck.length } : {}),
+  };
   const baseElements = report.elements.unverifiable.filter((u) => u.reason === ALREADY_IN_BASE_REASON).length;
   if (baseElements > 0 || alreadyInBaseRelationships > 0) {
     report.alreadyInBase = { elements: baseElements, relationships: alreadyInBaseRelationships, planCommitted: false };
@@ -2943,7 +2989,8 @@ export function thinAsBuiltWarning(report: VerifyReport, built: BuiltSide, share
   if (share && handStagedFromCards(share)) return undefined;
   const found = new Set([...report.elements.matched, ...report.elements.divergent].map((m) => m.planned));
   const builtIds = new Set(built.elements.map((e) => e.id));
-  const missing = report.relationships.missing;
+  // A tests link to check with an end that has no as-built element is as unanchored as a missing one.
+  const missing = [...report.relationships.missing, ...(report.relationships.testsToCheck ?? [])];
   const unanchored = missing.filter(({ planned }) =>
     [planned.source, planned.target].some((id) => !found.has(id) && !builtIds.has(id))
   ).length;
@@ -3266,25 +3313,30 @@ function decideVerdict(report: VerifyReport): { verdict: Verdict; text: string }
           .join(" and ")} can't be seen by extraction (unverifiable, not counted): check them in the code or the review.`
       : "";
 
-  if (e.planned + r.planned === unverifiable && e.unplanned + r.unplanned === 0) {
+  const toCheck = r.testsToCheck ?? 0;
+  const toCheckText = toCheck > 0 ? ` ${toCheck} planned tests ${plural(toCheck, "link", "links")} the build doesn't show to check (testsToCheck says how): not counted as missing.` : "";
+
+  if (e.planned + r.planned === unverifiable + toCheck && e.unplanned + r.unplanned === 0 && unverifiable > 0) {
     return {
       verdict: "unverifiable",
-      text: `Nothing in the plan can be checked against extracted code.${unverifiableText}`,
+      text: `Nothing in the plan can be checked against extracted code.${unverifiableText}${toCheckText}`,
     };
   }
   if (e.missing + r.missing + e.deletionsNotDone + r.deletionsNotDone > 0) {
-    return { verdict: "incomplete", text: `The build is incomplete: ${parts.join(", ")}.${probableText}${unverifiableText}` };
+    return { verdict: "incomplete", text: `The build is incomplete: ${parts.join(", ")}.${probableText}${unverifiableText}${toCheckText}` };
   }
   if (e.divergent + r.divergent + e.unplanned + r.unplanned > 0) {
-    return { verdict: "diverges", text: `The build diverges from the plan: ${parts.join(", ")}.${probableText}${unverifiableText}` };
+    return { verdict: "diverges", text: `The build diverges from the plan: ${parts.join(", ")}.${probableText}${unverifiableText}${toCheckText}` };
   }
   const scope = unverifiable > 0 ? "Everything extraction can see was found." : "Everything planned was found.";
   if (probable > 0) {
-    return { verdict: "probable-match", text: `${scope}${probableText}${unverifiableText}` };
+    return { verdict: "probable-match", text: `${scope}${probableText}${unverifiableText}${toCheckText}` };
   }
   return {
     verdict: "match",
-    text: unverifiable > 0 ? `The build matches what extraction can see of the plan.${unverifiableText}` : "The build matches the plan.",
+    text:
+      (unverifiable > 0 || toCheck > 0 ? `The build matches what extraction can see of the plan.${unverifiableText}` : "The build matches the plan.") +
+      toCheckText,
   };
 }
 
