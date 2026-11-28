@@ -199,6 +199,10 @@ describe("verifyChangeset against an as-built changeset", () => {
     expect(report.elements.divergent[0].notes).toEqual([
       { field: "description", planned: "Export orders as CSV", built: "Export orders as JSON" },
     ]);
+    // #1325: a ready call takes the built value; the description note is never offered.
+    expect(report.elements.divergent[0].takeBuilt).toEqual([
+      { field: "attributes.kind", tool: "model_update", arguments: { id: FN, attributePatch: { kind: "stream" } } },
+    ]);
     expect(report.verdictText).toContain("1 planned element missing");
   });
 
@@ -225,6 +229,10 @@ describe("verifyChangeset against an as-built changeset", () => {
     expect(report.elements.divergent[0].fields).toEqual([{ field: "attributes.documentation", planned: "Counts degrees.", built: null }]);
     // JSON keeps the key: "absent" reads differently from "same".
     expect(JSON.stringify(report.elements.divergent[0].fields[0])).toContain('"built":null');
+    // The build has no value: taking it removes the attribute (a null in attributePatch).
+    expect(report.elements.divergent[0].takeBuilt).toEqual([
+      { field: "attributes.documentation", tool: "model_update", arguments: { id: FN, attributePatch: { documentation: null } } },
+    ]);
   });
 
   it("reports a planned deletion the build did not do, and accepts one it did", async () => {
@@ -434,6 +442,16 @@ describe("relationship matching", () => {
     ]);
     const report = verifyChangeset(plan, built);
     expect(report.relationships.divergent.map((d) => d.fields[0].field).sort()).toEqual(["direction", "predicate"]);
+    // #1325: delete the planned relationship, add the built one.
+    const byField = Object.fromEntries(report.relationships.divergent.map((d) => [d.fields[0].field, d.takeBuilt]));
+    expect(byField.predicate).toEqual([
+      { field: "predicate", tool: "relationship_delete", arguments: { source: OP, target: FN, predicate: "realizes" } },
+      { field: "predicate", tool: "relationship_add", arguments: { source: OP, target: FN, predicate: "serves" } },
+    ]);
+    expect(byField.direction).toEqual([
+      { field: "direction", tool: "relationship_delete", arguments: { source: FN, target: SVC, predicate: "serves" } },
+      { field: "direction", tool: "relationship_add", arguments: { source: SVC, target: FN, predicate: "serves" } },
+    ]);
     expect(report.relationships.unplanned).toHaveLength(0);
     expect(report.verdict).toBe("diverges");
   });

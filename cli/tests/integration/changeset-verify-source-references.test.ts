@@ -705,7 +705,7 @@ describe("changeset_verify and the source references extraction found (#1096)", 
     expect((again.undecided?.items ?? []).map((c: any) => c.symbol)).not.toContain("Helpers");
   }, 120_000);
 
-  it("adds the reference with an update when the plan updates an existing element", async () => {
+  it("amends the plan's update in place when the plan updates an existing element", async () => {
     // The element exists in the base without a reference; the plan updates its description.
     ok(
       await modelAddHandler({
@@ -771,9 +771,10 @@ describe("changeset_verify and the source references extraction found (#1096)", 
     const { manager: m } = await manager();
     const staged = (await m.load(plan.id))!;
     const updates = staged.changes.filter((c) => c.type === "update");
-    expect(updates).toHaveLength(2);
-    expect(stagedSourceReference(updates[1].after as any)?.locations).toEqual([{ file: HELPERS_FILE, symbol: "Helpers" }]);
-    expect((updates[1].after as any).description).toBe("String formatting helpers.");
+    // Amended in place: no new change, no renumbering (#1382).
+    expect(updates).toHaveLength(1);
+    expect(stagedSourceReference(updates[0].after as any)?.locations).toEqual([{ file: HELPERS_FILE, symbol: "Helpers" }]);
+    expect((updates[0].after as any).description).toBe("String formatting helpers.");
   }, 120_000);
 
   it("doesn't copy a reference from an as-built element extraction didn't stage", async () => {

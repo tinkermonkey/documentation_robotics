@@ -1,0 +1,20 @@
+id: changeset-1795876012224-gx1ntd0x4
+name: cli010-r2-adopt-shared
+description: |-
+  Adopting source references amends the plan's change entries in place (no renumbering), so branches adopting into one staged plan merge cleanly (#1382). `changeset_verify` offers ready calls that take the built value for each divergence (#1325).
+
+  **In scope:** `amendChangesInPlace`, `amendInPlace`, the adoption functions, and `takeBuilt` on divergent elements and relationships.
+
+  **Done when:** a three-way git merge of two adoptions has no conflict; divergences carry takeBuilt calls; description notes never do.
+created: 2026-11-28T14:26:52.278Z
+modified: 2026-11-28T14:27:25.709Z
+status: committed
+baseSnapshot: v2:sha256:0cb5350041be5840194cb6e6775ae5d9733719db7c03aedabf185e06a5f2562a
+origin:
+  kind: plan
+purpose: plan
+stats:
+  additions: 4
+  modifications: 0
+  deletions: 13
+lastSequence: 16

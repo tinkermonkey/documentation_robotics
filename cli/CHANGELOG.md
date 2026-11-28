@@ -34,6 +34,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `staged`; `changeset_brief` lists it in `feedback` and the landing summary has an `Annotations:` line.
   It lands with the plan and is discarded with it. With no changeset active nothing changes, and a
   changeset made before reads as having no staged annotations. Format in `docs/CHANGE_MODELING.md`.
+
+- **Adopting source references no longer conflicts across branches (#1382):**
+  `changeset_adopt_source_references` amends the plan's existing change entries in place: no new
+  change, no renumbering, no `lastSequence` or `modified` bump, no tombstone. Two branches adopting
+  different elements into copies of one staged plan merge in git without a conflict (tested with a
+  three-way merge); no side file was needed.
+
+- **`changeset_verify` offers the built value for each divergence (#1325):** a divergent element or
+  relationship (`sections: ["divergent"]`) carries `takeBuilt`: ready `model_update`,
+  `relationship_delete` and `relationship_add` calls that take the built value. They are offered, not
+  applied: the agent judges each divergence, activates the plan and makes the call. Description notes
+  are never offered.
+
 - **`changeset_verify` says what it did not check (#1383, #1307, #1346):** a plan that changes only
   descriptions is no longer a verdict that reads like a pass: it says "Not checked: the plan changes
   only descriptions", and `descriptionOnly` lists what could be checked (each element's source files

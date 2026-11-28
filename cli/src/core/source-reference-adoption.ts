@@ -7,16 +7,16 @@
  * without copying those references leaves the model unable to tie the elements to the code: the next
  * codebase_extract offers their symbols again, and adding them fails because the ids exist.
  *
- * Each copy is staged into the plan in one write: an element the plan adds has its add rewritten in
- * place (the same fold model_update does); an element the plan updates gets one more update, from
- * its latest staged state with the reference added. Matches against elements extraction didn't
+ * Each copy amends the element's latest staged change in place, in one write: no new change, no
+ * renumbering, no `lastSequence` bump, so two branches adopting different elements into one staged
+ * plan merge cleanly in git (#1382). Matches against elements extraction didn't
  * stage (`builtByAgent`) are not copied: their reference is the agent's, not evidence. Only exact
  * matches are copied by default: a probable match (same name or source file, different id) may be
  * the wrong element, so it is copied only when the caller confirms it by its planned id.
  *
  * A planned element extraction can't see (a feature, a requirement, a tool the code registers by a
  * name string) never has an as-built match to copy from. For those the caller passes the reference
- * it confirmed in the code (`references`: id, file, symbol), and it is staged the same way, with
+ * it confirmed in the code (`references`: id, file, symbol), and it is amended the same way, with
  * provenance `manual` (#1159). The file must exist, so a mistyped path records nothing.
  *
  * `adoptVerifiedSourceReferences` is the whole flow from a verify report, shared by
@@ -42,7 +42,7 @@ export interface AdoptionResult {
   unknownIds?: string[];
 }
 
-type Rewrite = { elementId: string; change: Omit<StagedChange, "sequenceNumber"> };
+type Amendment = { index: number; elementId: string; layerName: string; after: Record<string, unknown> };
 
 export interface AdoptionOptions {
   /** Planned element ids (dotted id, path or UUID) whose probable matches the caller confirmed. */
@@ -89,8 +89,7 @@ export async function adoptSourceReferences(
   const listed = new Set(gaps.map((g) => g.planned));
   const unknownIds = (options.confirmed ?? []).filter((id) => !listed.has(graph.resolve(id)));
 
-  const appended: Array<Omit<StagedChange, "sequenceNumber">> = [];
-  const rewrites: Rewrite[] = [];
+  const amendments: Amendment[] = [];
   for (const gap of gaps) {
     if (gap.builtByAgent) {
       skipped.push({
@@ -119,34 +118,17 @@ export async function adoptSourceReferences(
       setStagedSourceReference(copy, structuredClone(gap.adopt));
       return copy;
     };
-    // The add is the element's only change (model_update folds edits into it): rewrite it in place.
-    // The storage rewrites the first change with this key, so only when that is this add.
-    const firstWithKey = (planned.changes as StagedChange[]).find((c) => c.elementId === latest.elementId);
-    if (latest.type === "add" && firstWithKey === latest && changes.length === 1) {
-      rewrites.push({
-        elementId: latest.elementId,
-        change: {
-          type: "add",
-          elementId: latest.elementId,
-          layerName: latest.layerName,
-          ...(latest.before !== undefined ? { before: latest.before } : {}),
-          after: withReference(latest.after),
-        },
-      });
-    } else {
-      appended.push({
-        type: "update",
-        elementId: latest.elementId,
-        layerName: latest.layerName,
-        before: structuredClone(latest.after),
-        after: withReference(latest.after),
-      });
-    }
+    // Amended in place (no new change, no renumbering), so two branches adopting different
+    // elements into one plan merge cleanly in git (#1382).
+    amendments.push({ index: (planned.changes as StagedChange[]).indexOf(latest), elementId: latest.elementId, layerName: latest.layerName, after: withReference(latest.after) });
     adopted.push(gap);
   }
 
-  if (appended.length > 0 || rewrites.length > 0) {
-    await manager.stageMany(planned.id!, appended, rewrites);
+  const amended = new Set(await manager.amendInPlace(planned.id!, amendments));
+  const notAmended = adopted.filter((_, i) => !amended.has(amendments[i].index));
+  for (const gap of notAmended) {
+    adopted.splice(adopted.indexOf(gap), 1);
+    skipped.push({ planned: gap.planned, reason: "the change that carries it is no longer staged in the plan" });
   }
   return { adopted, skipped, ...(unknownIds.length > 0 ? { unknownIds } : {}) };
 }
@@ -193,8 +175,8 @@ export async function adoptConfirmedReferences(
   }
   const graph = await ChangesetGraph.build(model, planned);
   const changes = planned.changes as StagedChange[];
-  const appended: Array<Omit<StagedChange, "sequenceNumber">> = [];
-  const rewrites: Rewrite[] = [];
+  const amendments: Amendment[] = [];
+  const confirmedNow: ConfirmedAdoptionResult["confirmed"] = [];
   const seen = new Set<string>();
   const root = path.resolve(model.codebaseRoot);
   for (const ref of references) {
@@ -270,24 +252,14 @@ export async function adoptConfirmedReferences(
     };
     const after = structuredClone(latest.after);
     setStagedSourceReference(after, reference);
-    const firstWithKey = changes.find((c) => c.elementId === latest.elementId);
-    if (latest.type === "add" && firstWithKey === latest && own.length === 1) {
-      rewrites.push({
-        elementId: latest.elementId,
-        change: {
-          type: "add",
-          elementId: latest.elementId,
-          layerName: latest.layerName,
-          ...(latest.before !== undefined ? { before: latest.before } : {}),
-          after,
-        },
-      });
-    } else {
-      appended.push({ type: "update", elementId: latest.elementId, layerName: latest.layerName, before: structuredClone(latest.after), after });
-    }
-    confirmed.push({ planned: id, reference });
+    amendments.push({ index: changes.indexOf(latest), elementId: latest.elementId, layerName: latest.layerName, after });
+    confirmedNow.push({ planned: id, reference });
   }
-  if (appended.length > 0 || rewrites.length > 0) await manager.stageMany(planned.id!, appended, rewrites);
+  const amended = new Set(await manager.amendInPlace(planned.id!, amendments));
+  confirmedNow.forEach((c, i) => {
+    if (amended.has(amendments[i].index)) confirmed.push(c);
+    else skipped.push({ planned: c.planned, reason: "the change that carries it is no longer staged in the plan" });
+  });
   return { confirmed, skipped };
 }
 

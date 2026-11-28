@@ -2280,24 +2280,6 @@ data-model.objectschema.adoption-result:
     created_at: 2026-11-20T15:04:41.103Z
     updated_at: 2026-11-20T15:04:41.103Z
     version: 1
-data-model.objectschema.rewrite:
-  id: bbb4bd56-afb0-4f63-8165-37e35768e290
-  path: data-model.objectschema.rewrite
-  spec_node_id: data-model.objectschema
-  type: objectschema
-  layer_id: data-model
-  name: Rewrite
-  attributes:
-    type: object
-  source_reference:
-    provenance: extracted
-    locations:
-      - file: cli/src/core/source-reference-adoption.ts
-        symbol: Rewrite
-  metadata:
-    created_at: 2026-11-20T15:04:41.103Z
-    updated_at: 2026-11-20T15:04:41.103Z
-    version: 1
 data-model.objectschema.adoption-options:
   id: 38ccc648-a58e-4e93-a131-9fd9d93cca11
   path: data-model.objectschema.adoption-options

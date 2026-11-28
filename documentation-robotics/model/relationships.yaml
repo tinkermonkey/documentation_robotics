@@ -1,6 +1,6 @@
 # Intra-layer relationships
 # Format: source_id -> predicate -> target_id
-# Last updated: 2026-11-28T14:22:34.590Z
+# Last updated: 2026-11-28T14:27:25.529Z
 
 - source: motivation.outcome.changes-are-planned-as-changesets
   target: motivation.goal.dr-is-the-spec-for-software-changes
@@ -5754,12 +5754,6 @@
   category: structural
 - source: application.applicationfunction.adopt-source-references
   target: data-model.objectschema.adoption-result
-  predicate: accesses
-  layer: application
-  targetLayer: data-model
-  category: structural
-- source: application.applicationfunction.adopt-source-references
-  target: data-model.objectschema.rewrite
   predicate: accesses
   layer: application
   targetLayer: data-model
@@ -23883,12 +23877,6 @@
   targetLayer: data-model
   category: structural
 - source: application.applicationfunction.adopt-confirmed-references
-  target: data-model.objectschema.rewrite
-  predicate: accesses
-  layer: application
-  targetLayer: data-model
-  category: structural
-- source: application.applicationfunction.adopt-confirmed-references
   target: data-model.objectschema.source-location
   predicate: accesses
   layer: application
@@ -37937,60 +37925,6 @@
   category: structural
 - source: testing.testcasesketch.changeset-verification-api-returns-changeset-verifys-report-matched-missing-and-unplanned-by-1b82e0ee
   target: application.applicationfunction.model-load
-  predicate: tests
-  layer: testing
-  targetLayer: application
-  category: structural
-- source: testing.testcasesketch.changeset-verify-and-the-source-references-extraction-found-1096-adds-the-reference-with-an-update-3665f5a5
-  target: application.applicationcomponent.staging-area-manager
-  predicate: tests
-  layer: testing
-  targetLayer: application
-  category: structural
-- source: testing.testcasesketch.changeset-verify-and-the-source-references-extraction-found-1096-adds-the-reference-with-an-update-3665f5a5
-  target: application.applicationfunction.clear-model-cache
-  predicate: tests
-  layer: testing
-  targetLayer: application
-  category: structural
-- source: testing.testcasesketch.changeset-verify-and-the-source-references-extraction-found-1096-adds-the-reference-with-an-update-3665f5a5
-  target: application.applicationfunction.model-load
-  predicate: tests
-  layer: testing
-  targetLayer: application
-  category: structural
-- source: testing.testcasesketch.changeset-verify-and-the-source-references-extraction-found-1096-adds-the-reference-with-an-update-3665f5a5
-  target: application.applicationfunction.staged-source-reference
-  predicate: tests
-  layer: testing
-  targetLayer: application
-  category: structural
-- source: testing.testcasesketch.changeset-verify-and-the-source-references-extraction-found-1096-adds-the-reference-with-an-update-3665f5a5
-  target: application.applicationservice.changeset-adopt-source-references-handler
-  predicate: tests
-  layer: testing
-  targetLayer: application
-  category: structural
-- source: testing.testcasesketch.changeset-verify-and-the-source-references-extraction-found-1096-adds-the-reference-with-an-update-3665f5a5
-  target: application.applicationservice.changeset-create-handler
-  predicate: tests
-  layer: testing
-  targetLayer: application
-  category: structural
-- source: testing.testcasesketch.changeset-verify-and-the-source-references-extraction-found-1096-adds-the-reference-with-an-update-3665f5a5
-  target: application.applicationservice.changeset-deactivate-handler
-  predicate: tests
-  layer: testing
-  targetLayer: application
-  category: structural
-- source: testing.testcasesketch.changeset-verify-and-the-source-references-extraction-found-1096-adds-the-reference-with-an-update-3665f5a5
-  target: application.applicationservice.changeset-verify-handler
-  predicate: tests
-  layer: testing
-  targetLayer: application
-  category: structural
-- source: testing.testcasesketch.changeset-verify-and-the-source-references-extraction-found-1096-adds-the-reference-with-an-update-3665f5a5
-  target: application.applicationservice.model-add-handler
   predicate: tests
   layer: testing
   targetLayer: application

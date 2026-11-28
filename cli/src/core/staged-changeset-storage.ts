@@ -706,6 +706,40 @@ export class StagedChangesetStorage {
   }
 
   /**
+   * Replace the `after` of staged changes in place, matched by position (a plan from before sequence numbers has none): no new change, no
+   * tombstone, no `lastSequence` bump and no `modified` update. The plan's bookkeeping is left as it
+   * is, so two branches that amend different changes of one staged plan merge in git without a
+   * conflict (#1382). For edits that add nothing to the plan's history, such as copying a source
+   * reference onto an element; a change to what the plan says goes through {@link addChanges}.
+   *
+   * @returns The indexes whose change (same element) was found and amended
+   */
+  async amendChangesInPlace(
+    id: string,
+    amendments: Array<{ index: number; elementId: string; after: Record<string, unknown> }>
+  ): Promise<number[]> {
+    if (amendments.length === 0) return [];
+    const changesetPath = this.getChangesetPath(id);
+    const lock = new FileLock(changesetPath);
+    return await lock.withLock(async () => {
+      const changeset = await this.loadStaged(id);
+      changeset.changes = withSequenceNumbers(changeset.changes, nextSequenceNumber(changeset));
+      const amended: number[] = [];
+      for (const { index, elementId, after } of amendments) {
+        const existing = changeset.changes[index] as StagedChange | undefined;
+        if (!existing || existing.elementId !== elementId) continue;
+        changeset.changes[index] = { ...existing, after } as StagedChange;
+        amended.push(index);
+      }
+      if (amended.length > 0) {
+        await this.save(changeset);
+        await recordChangesetWrite(this.rootPath, id);
+      }
+      return amended;
+    }, { refuseWhenHeldBy: refuseWhileLanding(id) });
+  }
+
+  /**
    * Remove a change by element ID
    *
    * Uses file locking to prevent concurrent modification race conditions

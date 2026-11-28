@@ -1,0 +1,255 @@
+- type: add
+  elementId: application.applicationfunction.staged-changeset-storage-amend-changes-in-place
+  layerName: application
+  after:
+    id: 53e1352f-78e0-4b4f-a524-f92ec0bf16be
+    path: application.applicationfunction.staged-changeset-storage-amend-changes-in-place
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: StagedChangesetStorage amendChangesInPlace
+    description: Replace the after of staged changes by position, with no new change, tombstone, lastSequence bump or modified update, so branches amending different changes of one plan merge in git.
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/staged-changeset-storage.ts
+          symbol: StagedChangesetStorage.amendChangesInPlace
+    metadata:
+      created_at: 2026-11-28T14:26:59.629Z
+      updated_at: 2026-11-28T14:26:59.629Z
+      version: 1
+  timestamp: 2026-11-28T14:26:59.656Z
+  sequenceNumber: 0
+- type: add
+  elementId: application.applicationfunction.staging-area-manager-amend-in-place
+  layerName: application
+  after:
+    id: 36fcad9c-23a8-4146-acf2-0173c56f7131
+    path: application.applicationfunction.staging-area-manager-amend-in-place
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: StagingAreaManager amendInPlace
+    description: Amend staged changes in place by position and refresh the projection; the manager's side of amendChangesInPlace.
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/staging-area.ts
+          symbol: StagingAreaManager.amendInPlace
+    metadata:
+      created_at: 2026-11-28T14:26:59.629Z
+      updated_at: 2026-11-28T14:26:59.629Z
+      version: 1
+  timestamp: 2026-11-28T14:26:59.656Z
+  sequenceNumber: 1
+- type: add
+  elementId: application.applicationfunction.take-built-for-element
+  layerName: application
+  after:
+    id: d08c3dfc-8f02-437e-8a77-4635beef88ba
+    path: application.applicationfunction.take-built-for-element
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: takeBuiltForElement
+    description: The model_update calls that take the built value for each divergent field of a planned element; offered by changeset_verify, never applied.
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/changeset-verify.ts
+          symbol: takeBuiltForElement
+    metadata:
+      created_at: 2026-11-28T14:26:59.629Z
+      updated_at: 2026-11-28T14:26:59.629Z
+      version: 1
+  timestamp: 2026-11-28T14:26:59.656Z
+  sequenceNumber: 2
+- type: add
+  elementId: application.applicationfunction.take-built-for-relationship
+  layerName: application
+  after:
+    id: af99d0d3-11e2-4ee6-b401-bcead0e128da
+    path: application.applicationfunction.take-built-for-relationship
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: takeBuiltForRelationship
+    description: The relationship_delete and relationship_add calls that take the built predicate or direction for a divergent relationship.
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/changeset-verify.ts
+          symbol: takeBuiltForRelationship
+    metadata:
+      created_at: 2026-11-28T14:26:59.629Z
+      updated_at: 2026-11-28T14:26:59.629Z
+      version: 1
+  timestamp: 2026-11-28T14:26:59.656Z
+  sequenceNumber: 3
+- type: delete
+  elementId: data-model.objectschema.rewrite
+  layerName: data-model
+  before:
+    id: bbb4bd56-afb0-4f63-8165-37e35768e290
+    path: data-model.objectschema.rewrite
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: Rewrite
+    attributes:
+      type: object
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/source-reference-adoption.ts
+          symbol: Rewrite
+    metadata:
+      created_at: 2026-11-20T15:04:41.103Z
+      updated_at: 2026-11-20T15:04:41.103Z
+      version: 1
+  timestamp: 2026-11-28T14:27:00.753Z
+  sequenceNumber: 4
+- type: relationship-delete
+  elementId: application.applicationfunction.adopt-source-references::accesses::data-model.objectschema.rewrite
+  layerName: application
+  before:
+    source: application.applicationfunction.adopt-source-references
+    target: data-model.objectschema.rewrite
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+  timestamp: 2026-11-28T14:27:00.758Z
+  sequenceNumber: 5
+- type: relationship-delete
+  elementId: application.applicationfunction.adopt-confirmed-references::accesses::data-model.objectschema.rewrite
+  layerName: application
+  before:
+    source: application.applicationfunction.adopt-confirmed-references
+    target: data-model.objectschema.rewrite
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+  timestamp: 2026-11-28T14:27:00.767Z
+  sequenceNumber: 6
+- type: delete
+  elementId: testing.testcasesketch.changeset-verify-and-the-source-references-extraction-found-1096-adds-the-reference-with-an-update-3665f5a5
+  layerName: testing
+  before:
+    id: ecbae0c6-9006-476d-9944-2306107f1628
+    path: testing.testcasesketch.changeset-verify-and-the-source-references-extraction-found-1096-adds-the-reference-with-an-update-3665f5a5
+    spec_node_id: testing.testcasesketch
+    type: testcasesketch
+    layer_id: testing
+    name: changeset_verify and the source references extraction found (#1096) > adds the reference with an update when the plan updates an existing element
+    attributes:
+      status: automated
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/tests/integration/changeset-verify-source-references.test.ts
+          symbol: changeset_verify and the source references extraction found (#1096) > adds the reference with an update when the plan updates an existing element
+    metadata:
+      created_at: 2026-11-24T21:39:56.349Z
+      updated_at: 2026-11-24T21:39:56.349Z
+      version: 1
+  timestamp: 2026-11-28T14:27:02.058Z
+  sequenceNumber: 7
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-verify-and-the-source-references-extraction-found-1096-adds-the-reference-with-an-update-3665f5a5::tests::application.applicationcomponent.staging-area-manager
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-verify-and-the-source-references-extraction-found-1096-adds-the-reference-with-an-update-3665f5a5
+    target: application.applicationcomponent.staging-area-manager
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-28T14:27:02.064Z
+  sequenceNumber: 8
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-verify-and-the-source-references-extraction-found-1096-adds-the-reference-with-an-update-3665f5a5::tests::application.applicationfunction.clear-model-cache
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-verify-and-the-source-references-extraction-found-1096-adds-the-reference-with-an-update-3665f5a5
+    target: application.applicationfunction.clear-model-cache
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-28T14:27:02.067Z
+  sequenceNumber: 9
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-verify-and-the-source-references-extraction-found-1096-adds-the-reference-with-an-update-3665f5a5::tests::application.applicationfunction.model-load
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-verify-and-the-source-references-extraction-found-1096-adds-the-reference-with-an-update-3665f5a5
+    target: application.applicationfunction.model-load
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-28T14:27:02.070Z
+  sequenceNumber: 10
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-verify-and-the-source-references-extraction-found-1096-adds-the-reference-with-an-update-3665f5a5::tests::application.applicationfunction.staged-source-reference
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-verify-and-the-source-references-extraction-found-1096-adds-the-reference-with-an-update-3665f5a5
+    target: application.applicationfunction.staged-source-reference
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-28T14:27:02.074Z
+  sequenceNumber: 11
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-verify-and-the-source-references-extraction-found-1096-adds-the-reference-with-an-update-3665f5a5::tests::application.applicationservice.changeset-adopt-source-references-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-verify-and-the-source-references-extraction-found-1096-adds-the-reference-with-an-update-3665f5a5
+    target: application.applicationservice.changeset-adopt-source-references-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-28T14:27:02.077Z
+  sequenceNumber: 12
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-verify-and-the-source-references-extraction-found-1096-adds-the-reference-with-an-update-3665f5a5::tests::application.applicationservice.changeset-create-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-verify-and-the-source-references-extraction-found-1096-adds-the-reference-with-an-update-3665f5a5
+    target: application.applicationservice.changeset-create-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-28T14:27:02.081Z
+  sequenceNumber: 13
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-verify-and-the-source-references-extraction-found-1096-adds-the-reference-with-an-update-3665f5a5::tests::application.applicationservice.changeset-deactivate-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-verify-and-the-source-references-extraction-found-1096-adds-the-reference-with-an-update-3665f5a5
+    target: application.applicationservice.changeset-deactivate-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-28T14:27:02.087Z
+  sequenceNumber: 14
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-verify-and-the-source-references-extraction-found-1096-adds-the-reference-with-an-update-3665f5a5::tests::application.applicationservice.changeset-verify-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-verify-and-the-source-references-extraction-found-1096-adds-the-reference-with-an-update-3665f5a5
+    target: application.applicationservice.changeset-verify-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-28T14:27:02.091Z
+  sequenceNumber: 15
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-verify-and-the-source-references-extraction-found-1096-adds-the-reference-with-an-update-3665f5a5::tests::application.applicationservice.model-add-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-verify-and-the-source-references-extraction-found-1096-adds-the-reference-with-an-update-3665f5a5
+    target: application.applicationservice.model-add-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-28T14:27:02.095Z
+  sequenceNumber: 16
