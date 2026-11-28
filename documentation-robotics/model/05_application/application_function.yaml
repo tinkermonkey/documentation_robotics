@@ -28923,3 +28923,37 @@ application.applicationfunction.shared-symbol-owners:
     created_at: 2026-11-27T17:03:03.566Z
     updated_at: 2026-11-27T17:03:03.566Z
     version: 1
+application.applicationfunction.declaration-shapes-of:
+  id: 07204ebd-590c-4d5c-9400-5039ba8ed7ec
+  path: application.applicationfunction.declaration-shapes-of
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: declarationShapesOf
+  description: Reads a JS/TS declaration's shapes (exported, react-hook, react-component) from its text, for Tier-0 rules' shape condition.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/cards/shapes.ts
+        symbol: declarationShapesOf
+  metadata:
+    created_at: 2026-11-28T12:52:07.951Z
+    updated_at: 2026-11-28T12:52:07.951Z
+    version: 1
+application.applicationfunction.is-declared-variable:
+  id: f8597c2f-5878-49eb-b4ef-f20312ed7c1f
+  path: application.applicationfunction.is-declared-variable
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: isDeclaredVariable
+  description: "Whether a Variable card is worth a card: an exported, non-primitive JS/TS const."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/cards/shapes.ts
+        symbol: isDeclaredVariable
+  metadata:
+    created_at: 2026-11-28T12:52:07.951Z
+    updated_at: 2026-11-28T12:52:07.951Z
+    version: 1
