@@ -1007,7 +1007,7 @@ export function narrowVerifyReport<R extends VerifyReport>(report: R, filter: Ve
   ].filter(Boolean);
   const scope = parts.join(" and ");
   let { verdict, text } = decideVerdict({ summary } as VerifyReport);
-  if (report.descriptionOnly && verdict === "unverifiable") {
+  if (report.descriptionOnly && report.summary.elements.unverifiable === report.summary.elements.planned && elements.unverifiable.length === planned.elements && planned.elements > 0) {
     text = descriptionOnlyText(narrowDescriptionOnly(report.descriptionOnly, keep, planned.elements));
   } else if (verdict === "empty-plan") {
     text = `No planned change touches the ${scope} given: check the ids and layers.`;
@@ -1015,8 +1015,27 @@ export function narrowVerifyReport<R extends VerifyReport>(report: R, filter: Ve
     if (verdict === "match") verdict = "probable-match";
     text = `${elements.unverifiable.filter((u) => u.reason === ALREADY_IN_BASE_REASON).length} of these planned element(s) are already in the base unchanged by the build and are not matched with themselves. ${text}`;
   }
+  // A downgrade made after the comparison (a committed plan, a text-found symbol, an element the agent
+  // staged, an accepted gap) lives in the whole verdict, not in the lists: a slice is never cleaner
+  // than the whole plan was made by one.
+  const wholeSays = decideVerdict({ summary: report.summary } as VerifyReport).verdict;
+  const downgraded = report.verdict !== wholeSays && ["probable-match", "unverifiable", "diverges"].includes(report.verdict);
+  if (downgraded && (verdict === "match" || (verdict === "probable-match" && report.verdict !== "probable-match"))) {
+    verdict = report.verdict;
+    text += ` The whole plan's verdict was lowered after the comparison (${report.verdict}): it may rest on items in this slice (see wholePlan.verdictText).`;
+  }
+  const keptBase = {
+    elements: elements.unverifiable.filter((u) => u.reason === ALREADY_IN_BASE_REASON).length,
+    relationships: relationships.unverifiable.filter((u) => u.reason === REL_ALREADY_IN_BASE_REASON).length,
+  };
+  if (verdict === "empty-plan" && (elements.unplanned.length > 0 || relationships.unplanned.length > 0)) {
+    text = `No planned change touches the ${scope} given, but ${elements.unplanned.length} unplanned element change(s) and ${relationships.unplanned.length} unplanned relationship(s) do.`;
+  }
   const kept = {
     ...report,
+    ...(report.alreadyInBase
+      ? { alreadyInBase: { ...keptBase, planCommitted: report.alreadyInBase.planCommitted } }
+      : {}),
     verdict,
     verdictText: `For the ${scope} given (${planned.elements} planned elements, ${planned.relationships} planned relationships): ${text} The whole plan's verdict and counts are in wholePlan.`,
     summary,
@@ -1034,6 +1053,7 @@ export function narrowVerifyReport<R extends VerifyReport>(report: R, filter: Ve
       ? {
           sourceReferences: {
             ...report.sourceReferences,
+            ...(report.sourceReferences.next ? { next: `(whole plan) ${report.sourceReferences.next}` } : {}),
             missing: report.sourceReferences.missing.filter((g) => keep(g.planned, g.built)),
             ...(report.sourceReferences.unreferenced
               ? { unreferenced: report.sourceReferences.unreferenced.filter((u) => keep(u.planned)) }
@@ -1677,6 +1697,8 @@ function descriptionOnlyText(check: DescriptionOnlyCheck): string {
   );
 }
 
+const REL_ALREADY_IN_BASE_REASON =
+  "it is already in the base model, unchanged by the build (the plan was applied before it was built): a match would be the plan matching itself";
 const ALREADY_IN_BASE_REASON =
   "it is already in the base model, unchanged by the build (the plan was applied before it was built), so an id match would " +
   "be the plan matching itself, and none of the as-built changeset's new elements or source references names it: check it in the code";
@@ -2018,7 +2040,7 @@ export function verifyChangeset(plan: Plan, built: BuiltSide, options: VerifyOpt
       report.relationships.unverifiable.push({
         planned: plannedRef,
         op: "add",
-        reason: "it is already in the base model, unchanged by the build (the plan was applied before it was built): a match would be the plan matching itself",
+        reason: REL_ALREADY_IN_BASE_REASON,
       });
       alreadyInBaseRelationships++;
       continue;
@@ -2335,7 +2357,7 @@ export async function verifyChangesetInModel(
     ...(observability ? { declaredSymbol: (planned: VerifyElement) => declaredSymbol(planned, buildFiles, changedBuildFiles) } : {}),
   });
   report.extraction = extraction;
-  if (descriptionOnly && report.verdict === "unverifiable") {
+  if (descriptionOnly && observability && report.summary.elements.unverifiable === report.summary.elements.planned) {
     // Nothing the plan changes can be read from the code: say that, and what could be checked, never a verdict that reads like a pass.
     const check = checkDescriptionOnlyPlan(plan, {
       buildFiles,
@@ -2343,7 +2365,8 @@ export async function verifyChangesetInModel(
       rangeKnown: "changeset" in options.against && !!options.against.changeset.scope?.since && !unsearched,
     });
     report.descriptionOnly = check;
-    report.verdictText = descriptionOnlyText(check);
+    report.verdictText =
+      report.verdict === "unverifiable" ? descriptionOnlyText(check) : `${descriptionOnlyText(check)} Also: ${report.verdictText}`;
   }
   // A plan applied before its build is in the base the build is read against (#1307): said first, and never a clean match.
   const committed = planned.status === "committed";
@@ -2364,7 +2387,20 @@ export async function verifyChangesetInModel(
         `${what} ${total === 1 ? "is" : "are"} already in the base unchanged by the build, so ${total === 1 ? "it is" : "they are"} not matched with ${total === 1 ? "itself" : "themselves"}: ` +
           "unverifiable unless the as-built changeset's new elements or source references name them (check them in the code)."
       );
-    } else if (committed && !("changeset" in options.against)) {
+    }
+    const asBuiltChanged = new Set((built.changedElements ?? []).map((e) => e.id));
+    const trivial =
+      "changeset" in options.against
+        ? [...report.elements.matched, ...report.elements.divergent].filter((m) => m.op !== "delete" ? !asBuiltChanged.has(m.built) : true).length
+        : 0;
+    const totalMatches = report.elements.matched.length + report.elements.divergent.length;
+    if (committed && trivial > 0) {
+      bits.push(
+        `${trivial} of ${totalMatches} matches are against elements the as-built changeset didn't change (updates and deletes already in the base) and say nothing about the build.`
+      );
+      if (trivial === totalMatches && report.verdict === "probable-match") report.verdict = "unverifiable";
+    }
+    if (committed && !("changeset" in options.against)) {
       bits.push("Compared with the base, the plan is compared with itself: its matches say nothing about the build.");
       if (report.verdict === "match" || report.verdict === "probable-match") report.verdict = "unverifiable";
     }

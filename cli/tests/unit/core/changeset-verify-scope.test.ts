@@ -87,6 +87,25 @@ describe("a subset's verdict (#1346)", () => {
     expect(narrowed.verdictText).toContain("wholePlan");
   });
 
+  it("a slice never reads cleaner than a downgrade the whole plan got after the comparison (review)", () => {
+    const clean = verifyChangeset({ ...plan, elements: [planned("api.operation.a")] }, changesetSide([built("api.operation.a", { change: "added" })]));
+    expect(clean.verdict).toBe("match");
+    // verifyChangesetInModel lowers the verdict for items the lists don't show (e.g. an element the agent staged).
+    const lowered = { ...clean, verdict: "probable-match" as const };
+    const narrowed = narrowVerifyReport(lowered, { ids: ["api.operation.a"] });
+    expect(narrowed.verdict).toBe("probable-match");
+    expect(narrowed.verdictText).toContain("lowered after the comparison");
+    // A report that is a plain match stays a match in its slice.
+    expect(narrowVerifyReport(clean, { ids: ["api.operation.a"] }).verdict).toBe("match");
+  });
+
+  it("ids that match only unplanned changes say so, not that the plan is empty (review)", () => {
+    const extra = changesetSide([built("api.operation.a", { change: "added" }), built("api.operation.z", { change: "added" })]);
+    const rep = verifyChangeset({ ...plan, elements: [planned("api.operation.a")] }, extra);
+    const narrowed = narrowVerifyReport(rep, { ids: ["api.operation.z"] });
+    expect(narrowed.verdictText).toContain("1 unplanned element change(s)");
+  });
+
   it("both entry points narrow: the compact report and sections", () => {
     const compact = compactVerifyReport(report, { ids: ["api.operation.a"] }) as CompactVerifyReport;
     expect(compact.verdict).toBe("match");
