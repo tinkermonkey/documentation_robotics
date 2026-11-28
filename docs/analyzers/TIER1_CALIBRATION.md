@@ -26,6 +26,8 @@ would count as asked and escalate (these runs have none). Everything here is **i
 thresholds are fitted and scored on the same three corpora, so Tier 1 stays in suggest mode until B5
 (the held-out viewer corpus).
 
+> **2026-11-28: Tier 1 is suggestions only.** The decision model's answers are suggestions with their confidence; it never hides or stages. The House gate "Tier 1 accept band staged" is decided as never, so the held-out gates below measure how good a suggestion is, not whether it may act alone ([#1492](https://github.com/tinkermonkey/documentation_robotics/issues/1492)). Hide and stage modes still exist in the code; #1492 removes them in CLI 0.10.0. Read the "suggest mode until B5" and stage-mode passages below as history, not as a path Tier 1 will take.
+
 ## Decisions
 
 - **Clef's defaults are T_layer 0.6, T_type 0.4, T_none 0.6** for both `dr-qset-1` and `dr-qset-2`

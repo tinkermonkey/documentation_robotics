@@ -20,6 +20,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Founding rule written down (#1463, #1492):** DR interprets every input through the configured
+  coding agents, and deterministic CBM-to-spec mappings are suggestions, never rules. It is a section
+  in `CLAUDE.md`, the opening of `docs/EXTRACTION_STRATEGY.md`, `docs/analyzers/CASCADE_DESIGN.md` and
+  `docs/CHANGE_MODELING.md` (Tier 0 and Tier 1 described as suggestions and evidence on cards), and a
+  principle in DR's own model (`motivation.principle.agents-interpret-everything`). The docs say where
+  the code does not follow it yet; #1492 changes that in 0.10.0. No code changed.
+
 - **Annotations made during a plan are staged in it (#1447):** while a changeset is active,
   `annotation_create` writes the annotation into the changeset's folder (`annotations/`) instead of
   `documentation-robotics/annotations/`, or takes `changeset` to name one. Replies, updates and

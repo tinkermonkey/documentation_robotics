@@ -11,6 +11,21 @@
 
 **Current Versions:** CLI v0.9.0, Spec v0.16.0
 
+## Founding rule: agents interpret everything
+
+_The maintainer's rule, 2026-11-28 ([#1492](https://github.com/tinkermonkey/documentation_robotics/issues/1492), [#1463](https://github.com/tinkermonkey/documentation_robotics/issues/1463)). Read it before designing anything that touches extraction, verification or the model._
+
+DR always interprets everything it uses as input through the configured coding agents (Claude Code, GitHub Copilot). The purpose of extraction, and of DR, is to engage those agents and use their power to interpret raw data: the codebase-memory (CBM) graph, how the code is used, and which spec patterns it fits.
+
+- **Deterministic mappings from CBM to the DR spec are suggestions, never rules.** They are a starting point, a convenience and an efficiency for bootstrapping a model, and they can't be more. Tier 0 rules and the Tier 1 decision model produce suggestions and evidence on a card; the agent interprets the card and decides.
+- **No DR code may say "this has to be modelled this way because this code says how to interpret it".** There is no rule for how to read a CommonJS module, an Electron `ipcMain` handler, or any other framework. Nothing is staged, rejected, hidden, deleted or linked until the agent decides. The agent may accept suggestions in bulk, as its own decision.
+- **What a tool can't see or confirm is listed for the agent to check.** It is never counted as missing or as drift, and never accepted away.
+- **Everything an agent could read as direction must say the same.** Skills, server instructions, tool descriptions, CLI output and error messages reinforce the rule and, where useful, prompt the agent on how to start interpreting.
+
+The rule is the principle `motivation.principle.agents-interpret-everything` in DR's own model. Some code predates it (Tier 0 `decide`/`reject`/`narrow`, Tier 1 hide and stage modes, links and deletes staged from evidence); #1492 changes it in 0.10.0. Where the code and this rule disagree, the rule is the intent and the code is the bug.
+
+When designing, ask first: who interprets this, and what does the agent see on the card that lets it decide?
+
 ## Repository Structure
 
 ```

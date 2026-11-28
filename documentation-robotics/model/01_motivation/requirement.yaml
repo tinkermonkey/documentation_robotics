@@ -531,3 +531,18 @@ motivation.requirement.a-rule-never-silently-overrides-what-tier-0-decided:
     created_at: 2026-11-25T16:10:29.153Z
     updated_at: 2026-11-25T16:10:29.153Z
     version: 1
+motivation.requirement.extraction-stages-only-what-an-agent-decided:
+  id: 15885f3d-de50-45a4-8258-853648e3b272
+  path: motivation.requirement.extraction-stages-only-what-an-agent-decided
+  spec_node_id: motivation.requirement
+  type: requirement
+  layer_id: motivation
+  name: Extraction stages only what an agent decided
+  description: A bootstrap or since extraction stages, rejects, hides, links or deletes nothing that an agent did not decide; every card carries its evidence and suggestions with where each came from.
+  attributes:
+    priority: high
+    requirementType: functional
+  metadata:
+    created_at: 2026-11-28T14:18:12.390Z
+    updated_at: 2026-11-28T14:18:12.390Z
+    version: 1

@@ -1,0 +1,96 @@
+- type: add
+  elementId: motivation.principle.agents-interpret-everything
+  layerName: motivation
+  after:
+    id: 86c50d7e-eb75-4136-bf46-7a53be8d2094
+    path: motivation.principle.agents-interpret-everything
+    spec_node_id: motivation.principle
+    type: principle
+    layer_id: motivation
+    name: Agents interpret everything
+    description: DR interprets every input it uses through the configured coding agents. Deterministic mappings from the code graph to the spec are suggestions, never rules.
+    attributes:
+      category: architecture
+      documentation: "DR always interprets everything it uses as input through the configured coding agents (Claude Code, GitHub Copilot). Deterministic mappings from the CBM graph to the DR spec are suggestions: a starting point, a convenience and an efficiency for bootstrapping a model, never rules. Maintainer ruling, 2026-11-28 (#1492, #1463): there can never be a rule on how to interpret a CBM element such as a CommonJS module, or anything to do with Electron; no DR code says 'this has to be modelled this way because this code says how to interpret it'. Tier 0 rules and the Tier 1 decision model give the agent evidence and suggestions on a card; the agent decides, and may accept suggestions in bulk as its own decision. What a tool cannot see or confirm is listed for the agent to check, never counted as missing or drift and never accepted away. Every skill, tool description, CLI output and error message an agent could read as direction reinforces this, and where useful prompts the agent on how to start interpreting. It is a mixed-initiative, suggestion-and-confirm design with the coding agent as the person in the loop. Not yet true of the code: the requirements 'Extraction decisions are made by rule and kept with the model' and 'A rule never silently overrides what Tier 0 decided', and the feature 'Extraction triage by rule', describe by-rule staging that #1492 revises in CLI 0.10.0."
+    metadata:
+      created_at: 2026-11-28T14:18:12.390Z
+      updated_at: 2026-11-28T14:18:12.390Z
+      version: 1
+  timestamp: 2026-11-28T14:18:12.400Z
+  sequenceNumber: 0
+- type: add
+  elementId: motivation.requirement.extraction-stages-only-what-an-agent-decided
+  layerName: motivation
+  after:
+    id: 15885f3d-de50-45a4-8258-853648e3b272
+    path: motivation.requirement.extraction-stages-only-what-an-agent-decided
+    spec_node_id: motivation.requirement
+    type: requirement
+    layer_id: motivation
+    name: Extraction stages only what an agent decided
+    description: A bootstrap or since extraction stages, rejects, hides, links or deletes nothing that an agent did not decide; every card carries its evidence and suggestions with where each came from.
+    attributes:
+      priority: high
+      requirementType: functional
+    metadata:
+      created_at: 2026-11-28T14:18:12.390Z
+      updated_at: 2026-11-28T14:18:12.390Z
+      version: 1
+  timestamp: 2026-11-28T14:18:12.400Z
+  sequenceNumber: 1
+- type: relationship-add
+  elementId: motivation.principle.agents-interpret-everything::influence::motivation.goal.model-stays-as-built
+  layerName: motivation
+  after:
+    source: motivation.principle.agents-interpret-everything
+    target: motivation.goal.model-stays-as-built
+    predicate: influence
+    layer: motivation
+    category: structural
+  timestamp: 2026-11-28T14:18:12.400Z
+  sequenceNumber: 2
+- type: relationship-add
+  elementId: motivation.principle.agents-interpret-everything::influence::motivation.requirement.extraction-decisions-are-made-by-rule-and-kept-with-the-model
+  layerName: motivation
+  after:
+    source: motivation.principle.agents-interpret-everything
+    target: motivation.requirement.extraction-decisions-are-made-by-rule-and-kept-with-the-model
+    predicate: influence
+    layer: motivation
+    category: structural
+  timestamp: 2026-11-28T14:18:12.400Z
+  sequenceNumber: 3
+- type: relationship-add
+  elementId: motivation.principle.agents-interpret-everything::influence::motivation.requirement.extraction-offers-only-reported-declarations-as-candidates
+  layerName: motivation
+  after:
+    source: motivation.principle.agents-interpret-everything
+    target: motivation.requirement.extraction-offers-only-reported-declarations-as-candidates
+    predicate: influence
+    layer: motivation
+    category: structural
+  timestamp: 2026-11-28T14:18:12.400Z
+  sequenceNumber: 4
+- type: relationship-add
+  elementId: motivation.requirement.extraction-stages-only-what-an-agent-decided::realizes::motivation.principle.agents-interpret-everything
+  layerName: motivation
+  after:
+    source: motivation.requirement.extraction-stages-only-what-an-agent-decided
+    target: motivation.principle.agents-interpret-everything
+    predicate: realizes
+    layer: motivation
+    category: structural
+  timestamp: 2026-11-28T14:18:12.400Z
+  sequenceNumber: 5
+- type: relationship-add
+  elementId: product.feature.extraction-to-a-changeset::satisfies::motivation.requirement.extraction-stages-only-what-an-agent-decided
+  layerName: product
+  after:
+    source: product.feature.extraction-to-a-changeset
+    target: motivation.requirement.extraction-stages-only-what-an-agent-decided
+    predicate: satisfies
+    layer: product
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-28T14:18:12.400Z
+  sequenceNumber: 6
