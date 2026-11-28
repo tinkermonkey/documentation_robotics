@@ -1,0 +1,2779 @@
+- type: update
+  elementId: motivation.requirement.landing-a-change-needs-a-humans-confirmation
+  layerName: motivation
+  before:
+    id: de220664-6286-46c8-9741-94ab45f0c3c9
+    path: motivation.requirement.landing-a-change-needs-a-humans-confirmation
+    spec_node_id: motivation.requirement
+    type: requirement
+    layer_id: motivation
+    name: Landing a change needs a human's confirmation
+    description: "A changeset reaches the base model only after a person confirms it: in an MCP confirmation dialog (elicitation), in the permission prompt a client forces for changeset_commit (Claude Code, carrying a confirmation token from a preview of the same changeset state), or with the viewer's Apply button. A session where no person can answer (DrBot, a non-interactive run) is refused."
+    attributes:
+      requirementType: functional
+      priority: critical
+      documentation: "A changeset reaches the base model only after a person confirms it: in an MCP confirmation dialog (elicitation), in the permission prompt a client forces for changeset_commit (Claude Code, carrying a confirmation token from a preview of the same changeset state), or with the viewer's Apply button. A session where no person can answer (DrBot, a non-interactive run) is refused. Acceptance: a changeset lands from the Claude desktop Code tab after one approval; no client lands one without a person."
+    metadata: &a1
+      created_at: 2026-11-09T22:04:38.022Z
+      updated_at: 2026-11-09T22:04:38.022Z
+      version: 1
+  after:
+    id: de220664-6286-46c8-9741-94ab45f0c3c9
+    path: motivation.requirement.landing-a-change-needs-a-humans-confirmation
+    spec_node_id: motivation.requirement
+    type: requirement
+    layer_id: motivation
+    name: Landing a change needs a human's confirmation
+    description: "A changeset reaches the base model when the user asks for it in the conversation, and a person approves it in the pull request: the landing's files (the model and the changeset's folder) are committed with the code. changeset_commit asks for no dialog and no token. A session where no person can answer (DrBot, changeset-only mode) can't land; verification and upgrade records are never landed; a validation error refuses the landing. The viewer's Apply is the route for those sessions."
+    attributes:
+      requirementType: functional
+      priority: critical
+      documentation: "Decided 2026-11-26 (#1419), reversing the 2026-11-09 'always elicit' ruling: git and the pull request are the gate. A changeset lands from changeset_commit when the user asks in the conversation (one or several, in order, stopping at the first refusal), and the result names the files to commit. Acceptance: a plan lands from any client in one call after the user's ask; no one lands from a session where no person can answer; a person reviews the landed model in the PR."
+    metadata: *a1
+  timestamp: 2026-11-27T17:02:02.236Z
+  sequenceNumber: 0
+- type: update
+  elementId: product.feature.changeset-commit
+  layerName: product
+  before:
+    id: fdde0a71-d00b-4c56-ae39-db5f2139741e
+    path: product.feature.changeset-commit
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Changeset commit
+    description: "MCP: changeset_commit, which asks the person to confirm through an MCP elicitation dialog, or takes a confirmation token from Claude Code (see Commit confirmation token). It is refused when no person can answer, and a refusal says why and names the route that works: declined, no confirmation came back, or the dialog could not be shown. Drift does not refuse it: the confirmation gives the true count of staged changes the base overlaps and what landing does about each kind, naming up to 10 of each kind, the result names every one, and force is accepted and ignored. A landing holds the changeset's lock from its read to its status save, so a write staged meanwhile either lands with it or is refused naming the changeset; after a landing of the active changeset, writes refuse until a changeset is activated, created or deactivated, instead of falling through to the base model. Viewer: Apply, which lands a drifted changeset too. CLI: dr changeset commit, which lists the overlaps and asks at a terminal; with no terminal it refuses a real overlap unless --force is passed, and lands with no overlap."
+    attributes:
+      priority: critical
+      status: delivered
+      documentation: "MCP: changeset_commit, which asks the person to confirm through an MCP elicitation dialog, or takes a confirmation token from Claude Code (see Commit confirmation token). It is refused when no person can answer, and a refusal says why: declined, no confirmation came back, or the dialog could not be shown; drift does not refuse it. Viewer: Apply. CLI: dr changeset commit. A landing clears the active-changeset marker; if the marker cannot be cleared the landing stands and the result warns that the marker is ignored, since a committed changeset is never the active one (#1218)."
+    source_reference: &a2
+      provenance: manual
+      locations:
+        - file: cli/src/core/staging-area.ts
+    metadata: &a3
+      created_at: 2026-11-09T21:54:57.863Z
+      updated_at: 2026-11-09T21:54:57.863Z
+      version: 1
+  after:
+    id: fdde0a71-d00b-4c56-ae39-db5f2139741e
+    path: product.feature.changeset-commit
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Changeset commit
+    description: "MCP: changeset_commit, an ordinary write tool that lands when the user asks in the conversation: no dialog, no token. It takes changesets: [...] and lands them in order, stopping at the first refusal, with one summary of each changeset's counts and any overlaps between them. It is refused in changeset-only mode (DrBot), for verification and upgrade records, and on a validation error. Drift does not refuse it: the result gives the true count of staged changes the base overlaps and what landing did about each kind. The result names the files to commit (model files and each changeset's folder) and the branch; project_status warns when a landed changeset's folder is untracked in git. Viewer: Apply. CLI: dr changeset commit."
+    attributes:
+      priority: critical
+      status: delivered
+      documentation: "MCP: changeset_commit lands when the user asks; git and the pull request are the gate (#1419). Several changesets land in one call (#1256). The result names the paths to commit (#1367). A landing clears the active-changeset marker; if the marker cannot be cleared the landing stands and the result warns (#1218)."
+    source_reference: *a2
+    metadata: *a3
+  timestamp: 2026-11-27T17:02:02.240Z
+  sequenceNumber: 1
+- type: update
+  elementId: product.feature.commit-confirmation-token
+  layerName: product
+  before:
+    id: 024c8984-3141-4664-848d-87f229d7a22a
+    path: product.feature.commit-confirmation-token
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Commit confirmation token
+    description: "MCP: changeset_commit_preview checks a changeset for landing without writing anything and returns the landing summary (intent, counts, layers, drift with the true count of overlaps and what landing does about each kind, validation) with a token bound to the changeset's confirmed state, and says when changes were staged into it moments ago. A changeset already landed is reported as a result (when it landed, the files it wrote, whether they are committed to git), not an error. Claude Code shows the summary, and the person approves the changeset_commit call carrying the token in Claude Code's permission prompt, which anthropic/requiresUserInteraction forces. changeset_commit accepts the token only from Claude Code (v2.1.199 or later) and refuses it once used, expired (one hour: long enough for an answer relayed through another session, too short for yesterday's preview to land today), or when the changeset or base model changed since the preview. An expired token is reported as expired, not as a decline. The token does not bind force, which is ignored. Other clients still confirm in the elicitation dialog."
+    attributes:
+      priority: high
+      status: developing
+      size: s
+      documentation: "Token: an HMAC, keyed per server process, over the changeset id, a one-hour expiry and the confirmedState fingerprint (staged changes and base model); good once. The preview tool is not flagged, so landing takes one approval. Permission modes (checked 2026-11-17 against the Claude Code docs): the prompt is forced in acceptEdits, auto and bypassPermissions (so --dangerously-skip-permissions too), allow rules and PreToolUse hooks don't skip it, and dontAsk, --permission-prompt-tool and runs without a prompt callback deny the call. The server can't see the mode and doesn't need to. changeset_commit_preview's validation also refuses a type or relationship the changeset adds that the model's declared spec lacks (#1411), and its summary names the model files the landing would lay out anew from an earlier dr's layout, with project_upgrade relayout: true as the way to do that first in a commit of its own (#1439)."
+    source_reference: &a4
+      provenance: manual
+      locations:
+        - file: cli/src/mcp/tools/changeset-commit.ts
+          symbol: changesetCommitPreviewHandler
+    metadata: &a5
+      created_at: 2026-11-17T20:42:52.469Z
+      updated_at: 2026-11-17T20:42:52.469Z
+      version: 1
+  after:
+    id: 024c8984-3141-4664-848d-87f229d7a22a
+    path: product.feature.commit-confirmation-token
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Commit preview
+    description: "MCP: changeset_commit_preview is a read-only dry run: it checks a changeset for landing without writing anything and returns the landing summary (intent, counts, layers, drift with the true count of overlaps and what landing does about each kind, validation, the branch and the files the landing would put in the commit). It returns no token: changeset_commit needs none (#1419). A changeset already landed is reported as a result (when it landed, the files it wrote, whether they are committed to git), not an error."
+    attributes:
+      priority: high
+      status: developing
+      size: s
+      documentation: "The confirmation token (an HMAC over the changeset id, an expiry and the confirmed state) and the requiresUserInteraction flag were removed on 2026-11-26 (#1419): the token's hour ran while the person looked at the prompt. changeset_commit_preview's validation also refuses a type or relationship the changeset adds that the model's declared spec lacks (#1411), and its summary names the model files the landing would lay out anew from an earlier dr's layout (#1439)."
+    source_reference: *a4
+    metadata: *a5
+  timestamp: 2026-11-27T17:02:02.245Z
+  sequenceNumber: 2
+- type: delete
+  elementId: testing.testcasesketch.changeset-commit-checks-what-was-confirmed-refuses-when-the-base-model-changed-while-the-dialog-was-6f389b7a
+  layerName: testing
+  before:
+    id: fb41ac6b-90bf-4fbf-b12e-f5e096123027
+    path: testing.testcasesketch.changeset-commit-checks-what-was-confirmed-refuses-when-the-base-model-changed-while-the-dialog-was-6f389b7a
+    spec_node_id: testing.testcasesketch
+    type: testcasesketch
+    layer_id: testing
+    name: changeset_commit checks what was confirmed > refuses when the base model changed while the dialog was open
+    attributes:
+      status: automated
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/tests/unit/mcp/changeset-commit-tool.test.ts
+          symbol: changeset_commit checks what was confirmed > refuses when the base model changed while the dialog was open
+    metadata:
+      created_at: 2026-11-24T21:39:56.349Z
+      updated_at: 2026-11-24T21:39:56.349Z
+      version: 1
+  timestamp: 2026-11-27T17:11:00.404Z
+  sequenceNumber: 3
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-checks-what-was-confirmed-refuses-when-the-base-model-changed-while-the-dialog-was-6f389b7a::tests::application.applicationcomponent.mcp-tool-registry
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-checks-what-was-confirmed-refuses-when-the-base-model-changed-while-the-dialog-was-6f389b7a
+    target: application.applicationcomponent.mcp-tool-registry
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:00.410Z
+  sequenceNumber: 4
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-checks-what-was-confirmed-refuses-when-the-base-model-changed-while-the-dialog-was-6f389b7a::tests::application.applicationfunction.mcp-tool-registry-register-all
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-checks-what-was-confirmed-refuses-when-the-base-model-changed-while-the-dialog-was-6f389b7a
+    target: application.applicationfunction.mcp-tool-registry-register-all
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:00.413Z
+  sequenceNumber: 5
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-checks-what-was-confirmed-refuses-when-the-base-model-changed-while-the-dialog-was-6f389b7a::tests::application.applicationservice.changeset-deactivate-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-checks-what-was-confirmed-refuses-when-the-base-model-changed-while-the-dialog-was-6f389b7a
+    target: application.applicationservice.changeset-deactivate-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:00.416Z
+  sequenceNumber: 6
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-checks-what-was-confirmed-refuses-when-the-base-model-changed-while-the-dialog-was-6f389b7a::tests::application.applicationservice.changeset-show-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-checks-what-was-confirmed-refuses-when-the-base-model-changed-while-the-dialog-was-6f389b7a
+    target: application.applicationservice.changeset-show-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:00.419Z
+  sequenceNumber: 7
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-checks-what-was-confirmed-refuses-when-the-base-model-changed-while-the-dialog-was-6f389b7a::tests::application.applicationservice.model-add-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-checks-what-was-confirmed-refuses-when-the-base-model-changed-while-the-dialog-was-6f389b7a
+    target: application.applicationservice.model-add-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:00.422Z
+  sequenceNumber: 8
+- type: delete
+  elementId: testing.testcasesketch.changeset-commit-checks-what-was-confirmed-refuses-when-the-changeset-changed-while-the-dialog-was-f72db37e
+  layerName: testing
+  before:
+    id: cbecfee6-0e73-4981-b694-fc11b50f3945
+    path: testing.testcasesketch.changeset-commit-checks-what-was-confirmed-refuses-when-the-changeset-changed-while-the-dialog-was-f72db37e
+    spec_node_id: testing.testcasesketch
+    type: testcasesketch
+    layer_id: testing
+    name: changeset_commit checks what was confirmed > refuses when the changeset changed while the dialog was open
+    attributes:
+      status: automated
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/tests/unit/mcp/changeset-commit-tool.test.ts
+          symbol: changeset_commit checks what was confirmed > refuses when the changeset changed while the dialog was open
+    metadata:
+      created_at: 2026-11-24T21:39:56.349Z
+      updated_at: 2026-11-24T21:39:56.349Z
+      version: 1
+  timestamp: 2026-11-27T17:11:00.436Z
+  sequenceNumber: 9
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-checks-what-was-confirmed-refuses-when-the-changeset-changed-while-the-dialog-was-f72db37e::tests::application.applicationcomponent.mcp-tool-registry
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-checks-what-was-confirmed-refuses-when-the-changeset-changed-while-the-dialog-was-f72db37e
+    target: application.applicationcomponent.mcp-tool-registry
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:00.441Z
+  sequenceNumber: 10
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-checks-what-was-confirmed-refuses-when-the-changeset-changed-while-the-dialog-was-f72db37e::tests::application.applicationfunction.mcp-tool-registry-register-all
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-checks-what-was-confirmed-refuses-when-the-changeset-changed-while-the-dialog-was-f72db37e
+    target: application.applicationfunction.mcp-tool-registry-register-all
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:00.445Z
+  sequenceNumber: 11
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-checks-what-was-confirmed-refuses-when-the-changeset-changed-while-the-dialog-was-f72db37e::tests::application.applicationservice.changeset-deactivate-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-checks-what-was-confirmed-refuses-when-the-changeset-changed-while-the-dialog-was-f72db37e
+    target: application.applicationservice.changeset-deactivate-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:00.448Z
+  sequenceNumber: 12
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-checks-what-was-confirmed-refuses-when-the-changeset-changed-while-the-dialog-was-f72db37e::tests::application.applicationservice.changeset-show-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-checks-what-was-confirmed-refuses-when-the-changeset-changed-while-the-dialog-was-f72db37e
+    target: application.applicationservice.changeset-show-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:00.453Z
+  sequenceNumber: 13
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-checks-what-was-confirmed-refuses-when-the-changeset-changed-while-the-dialog-was-f72db37e::tests::application.applicationservice.model-add-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-checks-what-was-confirmed-refuses-when-the-changeset-changed-while-the-dialog-was-f72db37e
+    target: application.applicationservice.model-add-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:00.459Z
+  sequenceNumber: 14
+- type: delete
+  elementId: testing.testcasesketch.changeset-commit-confirmation-commits-on-accept-with-confirm-true-after-showing-the-name-intent-d0a1fba7
+  layerName: testing
+  before:
+    id: 6cf29fb0-571f-4d45-a3ab-3e071ef4f4c9
+    path: testing.testcasesketch.changeset-commit-confirmation-commits-on-accept-with-confirm-true-after-showing-the-name-intent-d0a1fba7
+    spec_node_id: testing.testcasesketch
+    type: testcasesketch
+    layer_id: testing
+    name: "changeset_commit confirmation > commits on accept with confirm: true, after showing the name, intent, counts and layers"
+    attributes:
+      status: automated
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/tests/unit/mcp/changeset-commit-tool.test.ts
+          symbol: "changeset_commit confirmation > commits on accept with confirm: true, after showing the name, intent, counts and layers"
+    metadata:
+      created_at: 2026-11-24T21:39:56.349Z
+      updated_at: 2026-11-24T21:39:56.349Z
+      version: 1
+  timestamp: 2026-11-27T17:11:00.472Z
+  sequenceNumber: 15
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-confirmation-commits-on-accept-with-confirm-true-after-showing-the-name-intent-d0a1fba7::tests::application.applicationcomponent.mcp-tool-registry
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-confirmation-commits-on-accept-with-confirm-true-after-showing-the-name-intent-d0a1fba7
+    target: application.applicationcomponent.mcp-tool-registry
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:00.477Z
+  sequenceNumber: 16
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-confirmation-commits-on-accept-with-confirm-true-after-showing-the-name-intent-d0a1fba7::tests::application.applicationfunction.mcp-tool-registry-register-all
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-confirmation-commits-on-accept-with-confirm-true-after-showing-the-name-intent-d0a1fba7
+    target: application.applicationfunction.mcp-tool-registry-register-all
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:00.484Z
+  sequenceNumber: 17
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-confirmation-commits-on-accept-with-confirm-true-after-showing-the-name-intent-d0a1fba7::tests::application.applicationservice.changeset-deactivate-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-confirmation-commits-on-accept-with-confirm-true-after-showing-the-name-intent-d0a1fba7
+    target: application.applicationservice.changeset-deactivate-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:00.489Z
+  sequenceNumber: 18
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-confirmation-commits-on-accept-with-confirm-true-after-showing-the-name-intent-d0a1fba7::tests::application.applicationservice.changeset-show-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-confirmation-commits-on-accept-with-confirm-true-after-showing-the-name-intent-d0a1fba7
+    target: application.applicationservice.changeset-show-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:00.494Z
+  sequenceNumber: 19
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-confirmation-commits-on-accept-with-confirm-true-after-showing-the-name-intent-d0a1fba7::tests::application.applicationservice.model-add-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-confirmation-commits-on-accept-with-confirm-true-after-showing-the-name-intent-d0a1fba7
+    target: application.applicationservice.model-add-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:00.500Z
+  sequenceNumber: 20
+- type: delete
+  elementId: testing.testcasesketch.changeset-commit-confirmation-does-not-say-the-user-declined-when-no-confirmation-came-back-and-c96d0ec5
+  layerName: testing
+  before:
+    id: c692a6bc-56d1-4302-ae82-c4b1c4107bd2
+    path: testing.testcasesketch.changeset-commit-confirmation-does-not-say-the-user-declined-when-no-confirmation-came-back-and-c96d0ec5
+    spec_node_id: testing.testcasesketch
+    type: testcasesketch
+    layer_id: testing
+    name: changeset_commit confirmation > does not say the user declined when no confirmation came back, and names the viewer's Apply (#1207)
+    attributes:
+      status: automated
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/tests/unit/mcp/changeset-commit-tool.test.ts
+          symbol: changeset_commit confirmation > does not say the user declined when no confirmation came back, and names the viewer's Apply (#1207)
+    metadata:
+      created_at: 2026-11-24T21:39:56.349Z
+      updated_at: 2026-11-24T21:39:56.349Z
+      version: 1
+  timestamp: 2026-11-27T17:11:00.516Z
+  sequenceNumber: 21
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-confirmation-does-not-say-the-user-declined-when-no-confirmation-came-back-and-c96d0ec5::tests::application.applicationcomponent.mcp-tool-registry
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-confirmation-does-not-say-the-user-declined-when-no-confirmation-came-back-and-c96d0ec5
+    target: application.applicationcomponent.mcp-tool-registry
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:00.522Z
+  sequenceNumber: 22
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-confirmation-does-not-say-the-user-declined-when-no-confirmation-came-back-and-c96d0ec5::tests::application.applicationfunction.mcp-tool-registry-register-all
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-confirmation-does-not-say-the-user-declined-when-no-confirmation-came-back-and-c96d0ec5
+    target: application.applicationfunction.mcp-tool-registry-register-all
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:00.529Z
+  sequenceNumber: 23
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-confirmation-does-not-say-the-user-declined-when-no-confirmation-came-back-and-c96d0ec5::tests::application.applicationservice.changeset-deactivate-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-confirmation-does-not-say-the-user-declined-when-no-confirmation-came-back-and-c96d0ec5
+    target: application.applicationservice.changeset-deactivate-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:00.537Z
+  sequenceNumber: 24
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-confirmation-does-not-say-the-user-declined-when-no-confirmation-came-back-and-c96d0ec5::tests::application.applicationservice.model-add-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-confirmation-does-not-say-the-user-declined-when-no-confirmation-came-back-and-c96d0ec5
+    target: application.applicationservice.model-add-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:00.542Z
+  sequenceNumber: 25
+- type: delete
+  elementId: testing.testcasesketch.changeset-commit-confirmation-refuses-a-client-without-the-elicitation-capability-pointing-at-the-b7698d9c
+  layerName: testing
+  before:
+    id: 2aad2ac5-0aac-47f7-ab9c-fa87adc90616
+    path: testing.testcasesketch.changeset-commit-confirmation-refuses-a-client-without-the-elicitation-capability-pointing-at-the-b7698d9c
+    spec_node_id: testing.testcasesketch
+    type: testcasesketch
+    layer_id: testing
+    name: changeset_commit confirmation > refuses a client without the elicitation capability, pointing at the viewer and an interactive session, never the CLI
+    attributes:
+      status: automated
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/tests/unit/mcp/changeset-commit-tool.test.ts
+          symbol: changeset_commit confirmation > refuses a client without the elicitation capability, pointing at the viewer and an interactive session, never the CLI
+    metadata:
+      created_at: 2026-11-24T21:39:56.349Z
+      updated_at: 2026-11-24T21:39:56.349Z
+      version: 1
+  timestamp: 2026-11-27T17:11:00.560Z
+  sequenceNumber: 26
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-confirmation-refuses-a-client-without-the-elicitation-capability-pointing-at-the-b7698d9c::tests::application.applicationcomponent.mcp-tool-registry
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-confirmation-refuses-a-client-without-the-elicitation-capability-pointing-at-the-b7698d9c
+    target: application.applicationcomponent.mcp-tool-registry
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:00.567Z
+  sequenceNumber: 27
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-confirmation-refuses-a-client-without-the-elicitation-capability-pointing-at-the-b7698d9c::tests::application.applicationfunction.mcp-tool-registry-register-all
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-confirmation-refuses-a-client-without-the-elicitation-capability-pointing-at-the-b7698d9c
+    target: application.applicationfunction.mcp-tool-registry-register-all
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:00.574Z
+  sequenceNumber: 28
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-confirmation-refuses-a-client-without-the-elicitation-capability-pointing-at-the-b7698d9c::tests::application.applicationservice.changeset-deactivate-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-confirmation-refuses-a-client-without-the-elicitation-capability-pointing-at-the-b7698d9c
+    target: application.applicationservice.changeset-deactivate-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:00.580Z
+  sequenceNumber: 29
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-confirmation-refuses-a-client-without-the-elicitation-capability-pointing-at-the-b7698d9c::tests::application.applicationservice.changeset-show-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-confirmation-refuses-a-client-without-the-elicitation-capability-pointing-at-the-b7698d9c
+    target: application.applicationservice.changeset-show-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:00.590Z
+  sequenceNumber: 30
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-confirmation-refuses-a-client-without-the-elicitation-capability-pointing-at-the-b7698d9c::tests::application.applicationservice.model-add-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-confirmation-refuses-a-client-without-the-elicitation-capability-pointing-at-the-b7698d9c
+    target: application.applicationservice.model-add-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:00.598Z
+  sequenceNumber: 31
+- type: delete
+  elementId: testing.testcasesketch.changeset-commit-confirmation-refuses-and-writes-nothing-when-label
+  layerName: testing
+  before:
+    id: b8df6c69-25bd-4442-9a43-e1faa16440a5
+    path: testing.testcasesketch.changeset-commit-confirmation-refuses-and-writes-nothing-when-label
+    spec_node_id: testing.testcasesketch
+    type: testcasesketch
+    layer_id: testing
+    name: changeset_commit confirmation > refuses and writes nothing when ${label}
+    attributes:
+      status: automated
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/tests/unit/mcp/changeset-commit-tool.test.ts
+          symbol: changeset_commit confirmation > refuses and writes nothing when ${label}
+    metadata:
+      created_at: 2026-11-24T21:39:56.349Z
+      updated_at: 2026-11-24T21:39:56.349Z
+      version: 1
+  timestamp: 2026-11-27T17:11:00.619Z
+  sequenceNumber: 32
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-confirmation-refuses-and-writes-nothing-when-label::tests::application.applicationcomponent.mcp-tool-registry
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-confirmation-refuses-and-writes-nothing-when-label
+    target: application.applicationcomponent.mcp-tool-registry
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:00.628Z
+  sequenceNumber: 33
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-confirmation-refuses-and-writes-nothing-when-label::tests::application.applicationfunction.mcp-tool-registry-register-all
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-confirmation-refuses-and-writes-nothing-when-label
+    target: application.applicationfunction.mcp-tool-registry-register-all
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:00.638Z
+  sequenceNumber: 34
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-confirmation-refuses-and-writes-nothing-when-label::tests::application.applicationservice.changeset-deactivate-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-confirmation-refuses-and-writes-nothing-when-label
+    target: application.applicationservice.changeset-deactivate-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:00.646Z
+  sequenceNumber: 35
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-confirmation-refuses-and-writes-nothing-when-label::tests::application.applicationservice.changeset-show-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-confirmation-refuses-and-writes-nothing-when-label
+    target: application.applicationservice.changeset-show-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:00.655Z
+  sequenceNumber: 36
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-confirmation-refuses-and-writes-nothing-when-label::tests::application.applicationservice.model-add-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-confirmation-refuses-and-writes-nothing-when-label
+    target: application.applicationservice.model-add-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:00.666Z
+  sequenceNumber: 37
+- type: delete
+  elementId: testing.testcasesketch.changeset-commit-confirmation-refuses-in-changeset-only-mode-without-asking
+  layerName: testing
+  before:
+    id: f2ae1759-d300-4020-8399-85b2bceca955
+    path: testing.testcasesketch.changeset-commit-confirmation-refuses-in-changeset-only-mode-without-asking
+    spec_node_id: testing.testcasesketch
+    type: testcasesketch
+    layer_id: testing
+    name: changeset_commit confirmation > refuses in changeset-only mode without asking
+    attributes:
+      status: automated
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/tests/unit/mcp/changeset-commit-tool.test.ts
+          symbol: changeset_commit confirmation > refuses in changeset-only mode without asking
+    metadata:
+      created_at: 2026-11-24T21:39:56.349Z
+      updated_at: 2026-11-24T21:39:56.349Z
+      version: 1
+  timestamp: 2026-11-27T17:11:00.691Z
+  sequenceNumber: 38
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-confirmation-refuses-in-changeset-only-mode-without-asking::tests::application.applicationcomponent.mcp-tool-registry
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-confirmation-refuses-in-changeset-only-mode-without-asking
+    target: application.applicationcomponent.mcp-tool-registry
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:00.706Z
+  sequenceNumber: 39
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-confirmation-refuses-in-changeset-only-mode-without-asking::tests::application.applicationfunction.mcp-tool-registry-register-all
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-confirmation-refuses-in-changeset-only-mode-without-asking
+    target: application.applicationfunction.mcp-tool-registry-register-all
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:00.725Z
+  sequenceNumber: 40
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-confirmation-refuses-in-changeset-only-mode-without-asking::tests::application.applicationservice.changeset-deactivate-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-confirmation-refuses-in-changeset-only-mode-without-asking
+    target: application.applicationservice.changeset-deactivate-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:00.738Z
+  sequenceNumber: 41
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-confirmation-refuses-in-changeset-only-mode-without-asking::tests::application.applicationservice.changeset-show-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-confirmation-refuses-in-changeset-only-mode-without-asking
+    target: application.applicationservice.changeset-show-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:00.749Z
+  sequenceNumber: 42
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-confirmation-refuses-in-changeset-only-mode-without-asking::tests::application.applicationservice.model-add-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-confirmation-refuses-in-changeset-only-mode-without-asking
+    target: application.applicationservice.model-add-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:00.761Z
+  sequenceNumber: 43
+- type: delete
+  elementId: testing.testcasesketch.changeset-commit-confirmation-says-a-decline-may-have-been-the-clients-and-points-claude-code-at-68945e1c
+  layerName: testing
+  before:
+    id: 03ffbcbb-636f-490c-a49f-75264e0745a3
+    path: testing.testcasesketch.changeset-commit-confirmation-says-a-decline-may-have-been-the-clients-and-points-claude-code-at-68945e1c
+    spec_node_id: testing.testcasesketch
+    type: testcasesketch
+    layer_id: testing
+    name: changeset_commit confirmation > says a decline may have been the client's, and points Claude Code at the preview and its token (#1239)
+    attributes:
+      status: automated
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/tests/unit/mcp/changeset-commit-tool.test.ts
+          symbol: changeset_commit confirmation > says a decline may have been the client's, and points Claude Code at the preview and its token (#1239)
+    metadata:
+      created_at: 2026-11-24T21:39:56.349Z
+      updated_at: 2026-11-24T21:39:56.349Z
+      version: 1
+  timestamp: 2026-11-27T17:11:00.798Z
+  sequenceNumber: 44
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-confirmation-says-a-decline-may-have-been-the-clients-and-points-claude-code-at-68945e1c::tests::application.applicationcomponent.mcp-tool-registry
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-confirmation-says-a-decline-may-have-been-the-clients-and-points-claude-code-at-68945e1c
+    target: application.applicationcomponent.mcp-tool-registry
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:00.814Z
+  sequenceNumber: 45
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-confirmation-says-a-decline-may-have-been-the-clients-and-points-claude-code-at-68945e1c::tests::application.applicationfunction.mcp-tool-registry-register-all
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-confirmation-says-a-decline-may-have-been-the-clients-and-points-claude-code-at-68945e1c
+    target: application.applicationfunction.mcp-tool-registry-register-all
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:00.831Z
+  sequenceNumber: 46
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-confirmation-says-a-decline-may-have-been-the-clients-and-points-claude-code-at-68945e1c::tests::application.applicationservice.changeset-deactivate-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-confirmation-says-a-decline-may-have-been-the-clients-and-points-claude-code-at-68945e1c
+    target: application.applicationservice.changeset-deactivate-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:00.853Z
+  sequenceNumber: 47
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-confirmation-says-a-decline-may-have-been-the-clients-and-points-claude-code-at-68945e1c::tests::application.applicationservice.model-add-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-confirmation-says-a-decline-may-have-been-the-clients-and-points-claude-code-at-68945e1c
+    target: application.applicationservice.model-add-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:00.868Z
+  sequenceNumber: 48
+- type: delete
+  elementId: testing.testcasesketch.changeset-commit-drift-and-edge-cases-lands-a-drifted-changeset-without-force-the-dialog-names-the-3a54cb8e
+  layerName: testing
+  before:
+    id: 3af5055d-bb83-4356-9359-2ae1df411cb2
+    path: testing.testcasesketch.changeset-commit-drift-and-edge-cases-lands-a-drifted-changeset-without-force-the-dialog-names-the-3a54cb8e
+    spec_node_id: testing.testcasesketch
+    type: testcasesketch
+    layer_id: testing
+    name: "changeset_commit drift and edge cases > lands a drifted changeset without force: the dialog names the overlap and what landing does, and so does the result"
+    attributes:
+      status: automated
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/tests/unit/mcp/changeset-commit-tool.test.ts
+          symbol: "changeset_commit drift and edge cases > lands a drifted changeset without force: the dialog names the overlap and what landing does, and so does the result"
+    metadata:
+      created_at: 2026-11-24T21:39:56.349Z
+      updated_at: 2026-11-24T21:39:56.349Z
+      version: 1
+  timestamp: 2026-11-27T17:11:00.899Z
+  sequenceNumber: 49
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-drift-and-edge-cases-lands-a-drifted-changeset-without-force-the-dialog-names-the-3a54cb8e::tests::application.applicationcomponent.mcp-tool-registry
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-drift-and-edge-cases-lands-a-drifted-changeset-without-force-the-dialog-names-the-3a54cb8e
+    target: application.applicationcomponent.mcp-tool-registry
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:00.912Z
+  sequenceNumber: 50
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-drift-and-edge-cases-lands-a-drifted-changeset-without-force-the-dialog-names-the-3a54cb8e::tests::application.applicationfunction.mcp-tool-registry-register-all
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-drift-and-edge-cases-lands-a-drifted-changeset-without-force-the-dialog-names-the-3a54cb8e
+    target: application.applicationfunction.mcp-tool-registry-register-all
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:00.922Z
+  sequenceNumber: 51
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-drift-and-edge-cases-lands-a-drifted-changeset-without-force-the-dialog-names-the-3a54cb8e::tests::application.applicationservice.changeset-deactivate-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-drift-and-edge-cases-lands-a-drifted-changeset-without-force-the-dialog-names-the-3a54cb8e
+    target: application.applicationservice.changeset-deactivate-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:00.935Z
+  sequenceNumber: 52
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-drift-and-edge-cases-lands-a-drifted-changeset-without-force-the-dialog-names-the-3a54cb8e::tests::application.applicationservice.model-add-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-drift-and-edge-cases-lands-a-drifted-changeset-without-force-the-dialog-names-the-3a54cb8e
+    target: application.applicationservice.model-add-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:00.946Z
+  sequenceNumber: 53
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-drift-and-edge-cases-lands-a-drifted-changeset-without-force-the-dialog-names-the-3a54cb8e::tests::application.applicationservice.model-update-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-drift-and-edge-cases-lands-a-drifted-changeset-without-force-the-dialog-names-the-3a54cb8e
+    target: application.applicationservice.model-update-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:00.958Z
+  sequenceNumber: 54
+- type: delete
+  elementId: testing.testcasesketch.changeset-commit-drift-and-edge-cases-refuses-a-changeset-that-is-not-staged
+  layerName: testing
+  before:
+    id: 2672c412-92ee-4f64-ba8c-1cc9b56396b7
+    path: testing.testcasesketch.changeset-commit-drift-and-edge-cases-refuses-a-changeset-that-is-not-staged
+    spec_node_id: testing.testcasesketch
+    type: testcasesketch
+    layer_id: testing
+    name: changeset_commit drift and edge cases > refuses a changeset that is not staged
+    attributes:
+      status: automated
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/tests/unit/mcp/changeset-commit-tool.test.ts
+          symbol: changeset_commit drift and edge cases > refuses a changeset that is not staged
+    metadata:
+      created_at: 2026-11-24T21:39:56.349Z
+      updated_at: 2026-11-24T21:39:56.349Z
+      version: 1
+  timestamp: 2026-11-27T17:11:00.985Z
+  sequenceNumber: 55
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-drift-and-edge-cases-refuses-a-changeset-that-is-not-staged::tests::application.applicationcomponent.mcp-tool-registry
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-drift-and-edge-cases-refuses-a-changeset-that-is-not-staged
+    target: application.applicationcomponent.mcp-tool-registry
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:00.996Z
+  sequenceNumber: 56
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-drift-and-edge-cases-refuses-a-changeset-that-is-not-staged::tests::application.applicationfunction.mcp-tool-registry-register-all
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-drift-and-edge-cases-refuses-a-changeset-that-is-not-staged
+    target: application.applicationfunction.mcp-tool-registry-register-all
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:01.009Z
+  sequenceNumber: 57
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-drift-and-edge-cases-refuses-a-changeset-that-is-not-staged::tests::application.applicationservice.changeset-deactivate-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-drift-and-edge-cases-refuses-a-changeset-that-is-not-staged
+    target: application.applicationservice.changeset-deactivate-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:01.020Z
+  sequenceNumber: 58
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-drift-and-edge-cases-refuses-a-changeset-that-is-not-staged::tests::application.applicationservice.model-add-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-drift-and-edge-cases-refuses-a-changeset-that-is-not-staged
+    target: application.applicationservice.model-add-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:01.032Z
+  sequenceNumber: 59
+- type: delete
+  elementId: testing.testcasesketch.changeset-commit-drift-and-edge-cases-with-more-overlaps-than-the-summary-names-the-token-covers-147fd40c
+  layerName: testing
+  before:
+    id: 54cf962a-35ce-4412-ab3f-d97cd0fd1bc8
+    path: testing.testcasesketch.changeset-commit-drift-and-edge-cases-with-more-overlaps-than-the-summary-names-the-token-covers-147fd40c
+    spec_node_id: testing.testcasesketch
+    type: testcasesketch
+    layer_id: testing
+    name: changeset_commit drift and edge cases > with more overlaps than the summary names > the token covers the whole set, and the result names every overlap it landed over
+    attributes:
+      status: automated
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/tests/unit/mcp/changeset-commit-tool.test.ts
+          symbol: changeset_commit drift and edge cases > with more overlaps than the summary names > the token covers the whole set, and the result names every overlap it landed over
+    metadata:
+      created_at: 2026-11-24T21:39:56.349Z
+      updated_at: 2026-11-24T21:39:56.349Z
+      version: 1
+  timestamp: 2026-11-27T17:11:01.060Z
+  sequenceNumber: 60
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-drift-and-edge-cases-with-more-overlaps-than-the-summary-names-the-token-covers-147fd40c::tests::application.applicationcomponent.mcp-tool-registry
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-drift-and-edge-cases-with-more-overlaps-than-the-summary-names-the-token-covers-147fd40c
+    target: application.applicationcomponent.mcp-tool-registry
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:01.075Z
+  sequenceNumber: 61
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-drift-and-edge-cases-with-more-overlaps-than-the-summary-names-the-token-covers-147fd40c::tests::application.applicationfunction.mcp-tool-registry-register-all
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-drift-and-edge-cases-with-more-overlaps-than-the-summary-names-the-token-covers-147fd40c
+    target: application.applicationfunction.mcp-tool-registry-register-all
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:01.086Z
+  sequenceNumber: 62
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-drift-and-edge-cases-with-more-overlaps-than-the-summary-names-the-token-covers-147fd40c::tests::application.applicationservice.changeset-create-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-drift-and-edge-cases-with-more-overlaps-than-the-summary-names-the-token-covers-147fd40c
+    target: application.applicationservice.changeset-create-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:01.100Z
+  sequenceNumber: 63
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-drift-and-edge-cases-with-more-overlaps-than-the-summary-names-the-token-covers-147fd40c::tests::application.applicationservice.changeset-deactivate-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-drift-and-edge-cases-with-more-overlaps-than-the-summary-names-the-token-covers-147fd40c
+    target: application.applicationservice.changeset-deactivate-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:01.112Z
+  sequenceNumber: 64
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-drift-and-edge-cases-with-more-overlaps-than-the-summary-names-the-token-covers-147fd40c::tests::application.applicationservice.model-add-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-drift-and-edge-cases-with-more-overlaps-than-the-summary-names-the-token-covers-147fd40c
+    target: application.applicationservice.model-add-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:01.126Z
+  sequenceNumber: 65
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-drift-and-edge-cases-with-more-overlaps-than-the-summary-names-the-token-covers-147fd40c::tests::application.applicationservice.model-update-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-drift-and-edge-cases-with-more-overlaps-than-the-summary-names-the-token-covers-147fd40c
+    target: application.applicationservice.model-update-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:01.139Z
+  sequenceNumber: 66
+- type: delete
+  elementId: testing.testcasesketch.changeset-commit-drift-and-edge-cases-writes-nothing-for-a-drifted-changeset-the-user-declines
+  layerName: testing
+  before:
+    id: c4c29de8-096d-42f0-834f-ae0a6762ee4d
+    path: testing.testcasesketch.changeset-commit-drift-and-edge-cases-writes-nothing-for-a-drifted-changeset-the-user-declines
+    spec_node_id: testing.testcasesketch
+    type: testcasesketch
+    layer_id: testing
+    name: changeset_commit drift and edge cases > writes nothing for a drifted changeset the user declines
+    attributes:
+      status: automated
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/tests/unit/mcp/changeset-commit-tool.test.ts
+          symbol: changeset_commit drift and edge cases > writes nothing for a drifted changeset the user declines
+    metadata:
+      created_at: 2026-11-24T21:39:56.349Z
+      updated_at: 2026-11-24T21:39:56.349Z
+      version: 1
+  timestamp: 2026-11-27T17:11:01.172Z
+  sequenceNumber: 67
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-drift-and-edge-cases-writes-nothing-for-a-drifted-changeset-the-user-declines::tests::application.applicationcomponent.mcp-tool-registry
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-drift-and-edge-cases-writes-nothing-for-a-drifted-changeset-the-user-declines
+    target: application.applicationcomponent.mcp-tool-registry
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:01.186Z
+  sequenceNumber: 68
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-drift-and-edge-cases-writes-nothing-for-a-drifted-changeset-the-user-declines::tests::application.applicationfunction.mcp-tool-registry-register-all
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-drift-and-edge-cases-writes-nothing-for-a-drifted-changeset-the-user-declines
+    target: application.applicationfunction.mcp-tool-registry-register-all
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:01.201Z
+  sequenceNumber: 69
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-drift-and-edge-cases-writes-nothing-for-a-drifted-changeset-the-user-declines::tests::application.applicationservice.changeset-deactivate-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-drift-and-edge-cases-writes-nothing-for-a-drifted-changeset-the-user-declines
+    target: application.applicationservice.changeset-deactivate-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:01.214Z
+  sequenceNumber: 70
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-drift-and-edge-cases-writes-nothing-for-a-drifted-changeset-the-user-declines::tests::application.applicationservice.changeset-show-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-drift-and-edge-cases-writes-nothing-for-a-drifted-changeset-the-user-declines
+    target: application.applicationservice.changeset-show-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:01.230Z
+  sequenceNumber: 71
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-drift-and-edge-cases-writes-nothing-for-a-drifted-changeset-the-user-declines::tests::application.applicationservice.model-add-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-drift-and-edge-cases-writes-nothing-for-a-drifted-changeset-the-user-declines
+    target: application.applicationservice.model-add-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:01.244Z
+  sequenceNumber: 72
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-drift-and-edge-cases-writes-nothing-for-a-drifted-changeset-the-user-declines::tests::application.applicationservice.model-update-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-drift-and-edge-cases-writes-nothing-for-a-drifted-changeset-the-user-declines
+    target: application.applicationservice.model-update-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:01.258Z
+  sequenceNumber: 73
+- type: delete
+  elementId: testing.testcasesketch.changeset-commit-listing-is-listed-with-anthropic-requires-user-interaction-in-tools-list-and-no-d1ab3492
+  layerName: testing
+  before:
+    id: a81e7702-35a1-44f7-ba6c-dd2e34db4bc3
+    path: testing.testcasesketch.changeset-commit-listing-is-listed-with-anthropic-requires-user-interaction-in-tools-list-and-no-d1ab3492
+    spec_node_id: testing.testcasesketch
+    type: testcasesketch
+    layer_id: testing
+    name: changeset_commit listing > is listed with anthropic/requiresUserInteraction in tools/list, and no other tool is
+    attributes:
+      status: automated
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/tests/unit/mcp/changeset-commit-tool.test.ts
+          symbol: changeset_commit listing > is listed with anthropic/requiresUserInteraction in tools/list, and no other tool is
+    metadata:
+      created_at: 2026-11-24T21:39:56.349Z
+      updated_at: 2026-11-24T21:39:56.349Z
+      version: 1
+  timestamp: 2026-11-27T17:11:01.293Z
+  sequenceNumber: 74
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-listing-is-listed-with-anthropic-requires-user-interaction-in-tools-list-and-no-d1ab3492::tests::application.applicationcomponent.mcp-tool-registry
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-listing-is-listed-with-anthropic-requires-user-interaction-in-tools-list-and-no-d1ab3492
+    target: application.applicationcomponent.mcp-tool-registry
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:01.308Z
+  sequenceNumber: 75
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-listing-is-listed-with-anthropic-requires-user-interaction-in-tools-list-and-no-d1ab3492::tests::application.applicationfunction.mcp-tool-registry-register-all
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-listing-is-listed-with-anthropic-requires-user-interaction-in-tools-list-and-no-d1ab3492
+    target: application.applicationfunction.mcp-tool-registry-register-all
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:01.323Z
+  sequenceNumber: 76
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-listing-is-listed-with-anthropic-requires-user-interaction-in-tools-list-and-no-d1ab3492::tests::application.applicationservice.changeset-deactivate-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-listing-is-listed-with-anthropic-requires-user-interaction-in-tools-list-and-no-d1ab3492
+    target: application.applicationservice.changeset-deactivate-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:01.338Z
+  sequenceNumber: 77
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-listing-is-listed-with-anthropic-requires-user-interaction-in-tools-list-and-no-d1ab3492::tests::application.applicationservice.model-add-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-listing-is-listed-with-anthropic-requires-user-interaction-in-tools-list-and-no-d1ab3492
+    target: application.applicationservice.model-add-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:01.352Z
+  sequenceNumber: 78
+- type: delete
+  elementId: testing.testcasesketch.changeset-commit-of-a-plans-verification-record-refuses-it-force-with-force-without-asking-naming-196ce962
+  layerName: testing
+  before:
+    id: 204b9817-cd78-4499-989a-8e8f30d9f153
+    path: testing.testcasesketch.changeset-commit-of-a-plans-verification-record-refuses-it-force-with-force-without-asking-naming-196ce962
+    spec_node_id: testing.testcasesketch
+    type: testcasesketch
+    layer_id: testing
+    name: 'changeset_commit of a plan''s verification record > refuses it${force ? " with force" : ""} without asking, naming the plan and what to do, never the CLI'
+    attributes:
+      status: automated
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/tests/unit/mcp/changeset-commit-tool.test.ts
+          symbol: 'changeset_commit of a plan''s verification record > refuses it${force ? " with force" : ""} without asking, naming the plan and what to do, never the CLI'
+    metadata:
+      created_at: 2026-11-24T21:39:56.349Z
+      updated_at: 2026-11-24T21:39:56.349Z
+      version: 1
+  timestamp: 2026-11-27T17:11:01.389Z
+  sequenceNumber: 79
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-of-a-plans-verification-record-refuses-it-force-with-force-without-asking-naming-196ce962::tests::application.applicationcomponent.mcp-tool-registry
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-of-a-plans-verification-record-refuses-it-force-with-force-without-asking-naming-196ce962
+    target: application.applicationcomponent.mcp-tool-registry
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:01.408Z
+  sequenceNumber: 80
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-of-a-plans-verification-record-refuses-it-force-with-force-without-asking-naming-196ce962::tests::application.applicationcomponent.staging-area-manager
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-of-a-plans-verification-record-refuses-it-force-with-force-without-asking-naming-196ce962
+    target: application.applicationcomponent.staging-area-manager
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:01.424Z
+  sequenceNumber: 81
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-of-a-plans-verification-record-refuses-it-force-with-force-without-asking-naming-196ce962::tests::application.applicationfunction.clear-model-cache
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-of-a-plans-verification-record-refuses-it-force-with-force-without-asking-naming-196ce962
+    target: application.applicationfunction.clear-model-cache
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:01.442Z
+  sequenceNumber: 82
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-of-a-plans-verification-record-refuses-it-force-with-force-without-asking-naming-196ce962::tests::application.applicationfunction.extraction-purpose
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-of-a-plans-verification-record-refuses-it-force-with-force-without-asking-naming-196ce962
+    target: application.applicationfunction.extraction-purpose
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:01.459Z
+  sequenceNumber: 83
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-of-a-plans-verification-record-refuses-it-force-with-force-without-asking-naming-196ce962::tests::application.applicationfunction.mcp-tool-registry-register-all
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-of-a-plans-verification-record-refuses-it-force-with-force-without-asking-naming-196ce962
+    target: application.applicationfunction.mcp-tool-registry-register-all
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:01.474Z
+  sequenceNumber: 84
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-of-a-plans-verification-record-refuses-it-force-with-force-without-asking-naming-196ce962::tests::application.applicationfunction.model-load
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-of-a-plans-verification-record-refuses-it-force-with-force-without-asking-naming-196ce962
+    target: application.applicationfunction.model-load
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:01.490Z
+  sequenceNumber: 85
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-of-a-plans-verification-record-refuses-it-force-with-force-without-asking-naming-196ce962::tests::application.applicationservice.changeset-deactivate-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-of-a-plans-verification-record-refuses-it-force-with-force-without-asking-naming-196ce962
+    target: application.applicationservice.changeset-deactivate-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:01.508Z
+  sequenceNumber: 86
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-of-a-plans-verification-record-refuses-it-force-with-force-without-asking-naming-196ce962::tests::application.applicationservice.model-add-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-of-a-plans-verification-record-refuses-it-force-with-force-without-asking-naming-196ce962
+    target: application.applicationservice.model-add-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:01.523Z
+  sequenceNumber: 87
+- type: delete
+  elementId: testing.testcasesketch.changeset-commit-when-the-client-declines-the-dialog-at-once-doesnt-point-other-clients-at-the-70454b3f
+  layerName: testing
+  before:
+    id: bae5e74a-e3ff-4e87-ae99-7c232fc4d7c1
+    path: testing.testcasesketch.changeset-commit-when-the-client-declines-the-dialog-at-once-doesnt-point-other-clients-at-the-70454b3f
+    spec_node_id: testing.testcasesketch
+    type: testcasesketch
+    layer_id: testing
+    name: changeset_commit when the client declines the dialog at once > doesn't point other clients at the preview
+    attributes:
+      status: automated
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/tests/unit/mcp/changeset-commit-tool.test.ts
+          symbol: changeset_commit when the client declines the dialog at once > doesn't point other clients at the preview
+    metadata:
+      created_at: 2026-11-24T21:39:56.349Z
+      updated_at: 2026-11-24T21:39:56.349Z
+      version: 1
+  timestamp: 2026-11-27T17:11:01.563Z
+  sequenceNumber: 88
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-when-the-client-declines-the-dialog-at-once-doesnt-point-other-clients-at-the-70454b3f::tests::application.applicationcomponent.mcp-tool-registry
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-when-the-client-declines-the-dialog-at-once-doesnt-point-other-clients-at-the-70454b3f
+    target: application.applicationcomponent.mcp-tool-registry
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:01.581Z
+  sequenceNumber: 89
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-when-the-client-declines-the-dialog-at-once-doesnt-point-other-clients-at-the-70454b3f::tests::application.applicationfunction.mcp-tool-registry-register-all
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-when-the-client-declines-the-dialog-at-once-doesnt-point-other-clients-at-the-70454b3f
+    target: application.applicationfunction.mcp-tool-registry-register-all
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:01.598Z
+  sequenceNumber: 90
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-when-the-client-declines-the-dialog-at-once-doesnt-point-other-clients-at-the-70454b3f::tests::application.applicationservice.changeset-deactivate-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-when-the-client-declines-the-dialog-at-once-doesnt-point-other-clients-at-the-70454b3f
+    target: application.applicationservice.changeset-deactivate-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:01.616Z
+  sequenceNumber: 91
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-when-the-client-declines-the-dialog-at-once-doesnt-point-other-clients-at-the-70454b3f::tests::application.applicationservice.model-add-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-when-the-client-declines-the-dialog-at-once-doesnt-point-other-clients-at-the-70454b3f
+    target: application.applicationservice.model-add-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:01.634Z
+  sequenceNumber: 92
+- type: delete
+  elementId: testing.testcasesketch.changeset-commit-when-the-client-declines-the-dialog-at-once-reports-a-decline-that-took-time-as-452f65d8
+  layerName: testing
+  before:
+    id: e45b8d62-acaf-4465-9d68-f9d29be24dff
+    path: testing.testcasesketch.changeset-commit-when-the-client-declines-the-dialog-at-once-reports-a-decline-that-took-time-as-452f65d8
+    spec_node_id: testing.testcasesketch
+    type: testcasesketch
+    layer_id: testing
+    name: changeset_commit when the client declines the dialog at once > reports a decline that took time as declined, without claiming who declined it
+    attributes:
+      status: automated
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/tests/unit/mcp/changeset-commit-tool.test.ts
+          symbol: changeset_commit when the client declines the dialog at once > reports a decline that took time as declined, without claiming who declined it
+    metadata:
+      created_at: 2026-11-24T21:39:56.349Z
+      updated_at: 2026-11-24T21:39:56.349Z
+      version: 1
+  timestamp: 2026-11-27T17:11:01.673Z
+  sequenceNumber: 93
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-when-the-client-declines-the-dialog-at-once-reports-a-decline-that-took-time-as-452f65d8::tests::application.applicationcomponent.mcp-tool-registry
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-when-the-client-declines-the-dialog-at-once-reports-a-decline-that-took-time-as-452f65d8
+    target: application.applicationcomponent.mcp-tool-registry
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:01.692Z
+  sequenceNumber: 94
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-when-the-client-declines-the-dialog-at-once-reports-a-decline-that-took-time-as-452f65d8::tests::application.applicationfunction.mcp-tool-registry-register-all
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-when-the-client-declines-the-dialog-at-once-reports-a-decline-that-took-time-as-452f65d8
+    target: application.applicationfunction.mcp-tool-registry-register-all
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:01.712Z
+  sequenceNumber: 95
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-when-the-client-declines-the-dialog-at-once-reports-a-decline-that-took-time-as-452f65d8::tests::application.applicationservice.changeset-deactivate-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-when-the-client-declines-the-dialog-at-once-reports-a-decline-that-took-time-as-452f65d8
+    target: application.applicationservice.changeset-deactivate-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:01.730Z
+  sequenceNumber: 96
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-when-the-client-declines-the-dialog-at-once-reports-a-decline-that-took-time-as-452f65d8::tests::application.applicationservice.model-add-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-when-the-client-declines-the-dialog-at-once-reports-a-decline-that-took-time-as-452f65d8
+    target: application.applicationservice.model-add-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:01.747Z
+  sequenceNumber: 97
+- type: delete
+  elementId: testing.testcasesketch.changeset-commit-when-the-client-declines-the-dialog-at-once-reports-an-instant-action-as-a-dialog-4873f162
+  layerName: testing
+  before:
+    id: 650b106a-10f1-4882-a244-7a8c4cc9ac2a
+    path: testing.testcasesketch.changeset-commit-when-the-client-declines-the-dialog-at-once-reports-an-instant-action-as-a-dialog-4873f162
+    spec_node_id: testing.testcasesketch
+    type: testcasesketch
+    layer_id: testing
+    name: changeset_commit when the client declines the dialog at once > reports an instant ${action} as a dialog that could not be shown, pointing Claude Code at the preview
+    attributes:
+      status: automated
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/tests/unit/mcp/changeset-commit-tool.test.ts
+          symbol: changeset_commit when the client declines the dialog at once > reports an instant ${action} as a dialog that could not be shown, pointing Claude Code at the preview
+    metadata:
+      created_at: 2026-11-24T21:39:56.349Z
+      updated_at: 2026-11-24T21:39:56.349Z
+      version: 1
+  timestamp: 2026-11-27T17:11:01.800Z
+  sequenceNumber: 98
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-when-the-client-declines-the-dialog-at-once-reports-an-instant-action-as-a-dialog-4873f162::tests::application.applicationcomponent.mcp-tool-registry
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-when-the-client-declines-the-dialog-at-once-reports-an-instant-action-as-a-dialog-4873f162
+    target: application.applicationcomponent.mcp-tool-registry
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:01.827Z
+  sequenceNumber: 99
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-when-the-client-declines-the-dialog-at-once-reports-an-instant-action-as-a-dialog-4873f162::tests::application.applicationfunction.mcp-tool-registry-register-all
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-when-the-client-declines-the-dialog-at-once-reports-an-instant-action-as-a-dialog-4873f162
+    target: application.applicationfunction.mcp-tool-registry-register-all
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:01.850Z
+  sequenceNumber: 100
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-when-the-client-declines-the-dialog-at-once-reports-an-instant-action-as-a-dialog-4873f162::tests::application.applicationservice.changeset-deactivate-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-when-the-client-declines-the-dialog-at-once-reports-an-instant-action-as-a-dialog-4873f162
+    target: application.applicationservice.changeset-deactivate-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:01.876Z
+  sequenceNumber: 101
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-when-the-client-declines-the-dialog-at-once-reports-an-instant-action-as-a-dialog-4873f162::tests::application.applicationservice.changeset-show-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-when-the-client-declines-the-dialog-at-once-reports-an-instant-action-as-a-dialog-4873f162
+    target: application.applicationservice.changeset-show-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:01.898Z
+  sequenceNumber: 102
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-when-the-client-declines-the-dialog-at-once-reports-an-instant-action-as-a-dialog-4873f162::tests::application.applicationservice.model-add-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-when-the-client-declines-the-dialog-at-once-reports-an-instant-action-as-a-dialog-4873f162
+    target: application.applicationservice.model-add-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:01.922Z
+  sequenceNumber: 103
+- type: delete
+  elementId: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-gives-a-token-good-for-an-56657737
+  layerName: testing
+  before:
+    id: e9063d14-c1be-43b3-b255-d1caf431351f
+    path: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-gives-a-token-good-for-an-56657737
+    spec_node_id: testing.testcasesketch
+    type: testcasesketch
+    layer_id: testing
+    name: "changeset_commit with a confirmation token from changeset_commit_preview > gives a token good for an hour: long enough for a relayed answer, too short for yesterday's preview"
+    attributes:
+      status: automated
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/tests/unit/mcp/changeset-commit-tool.test.ts
+          symbol: "changeset_commit with a confirmation token from changeset_commit_preview > gives a token good for an hour: long enough for a relayed answer, too short for yesterday's preview"
+    metadata:
+      created_at: 2026-11-24T21:39:56.349Z
+      updated_at: 2026-11-24T21:39:56.349Z
+      version: 1
+  timestamp: 2026-11-27T17:11:01.969Z
+  sequenceNumber: 104
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-gives-a-token-good-for-an-56657737::tests::application.applicationcomponent.mcp-tool-registry
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-gives-a-token-good-for-an-56657737
+    target: application.applicationcomponent.mcp-tool-registry
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:01.991Z
+  sequenceNumber: 105
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-gives-a-token-good-for-an-56657737::tests::application.applicationfunction.mcp-tool-registry-register-all
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-gives-a-token-good-for-an-56657737
+    target: application.applicationfunction.mcp-tool-registry-register-all
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:02.012Z
+  sequenceNumber: 106
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-gives-a-token-good-for-an-56657737::tests::application.applicationservice.changeset-deactivate-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-gives-a-token-good-for-an-56657737
+    target: application.applicationservice.changeset-deactivate-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:02.031Z
+  sequenceNumber: 107
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-gives-a-token-good-for-an-56657737::tests::application.applicationservice.model-add-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-gives-a-token-good-for-an-56657737
+    target: application.applicationservice.model-add-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:02.052Z
+  sequenceNumber: 108
+- type: delete
+  elementId: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-gives-no-token-to-a-claude-8a823ad6
+  layerName: testing
+  before:
+    id: d36a7ce2-10d5-4b80-9ae7-c095c981e677
+    path: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-gives-no-token-to-a-claude-8a823ad6
+    spec_node_id: testing.testcasesketch
+    type: testcasesketch
+    layer_id: testing
+    name: changeset_commit with a confirmation token from changeset_commit_preview > gives no token to a Claude Code older than the flag
+    attributes:
+      status: automated
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/tests/unit/mcp/changeset-commit-tool.test.ts
+          symbol: changeset_commit with a confirmation token from changeset_commit_preview > gives no token to a Claude Code older than the flag
+    metadata:
+      created_at: 2026-11-24T21:39:56.349Z
+      updated_at: 2026-11-24T21:39:56.349Z
+      version: 1
+  timestamp: 2026-11-27T17:11:02.100Z
+  sequenceNumber: 109
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-gives-no-token-to-a-claude-8a823ad6::tests::application.applicationcomponent.mcp-tool-registry
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-gives-no-token-to-a-claude-8a823ad6
+    target: application.applicationcomponent.mcp-tool-registry
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:02.122Z
+  sequenceNumber: 110
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-gives-no-token-to-a-claude-8a823ad6::tests::application.applicationfunction.mcp-tool-registry-register-all
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-gives-no-token-to-a-claude-8a823ad6
+    target: application.applicationfunction.mcp-tool-registry-register-all
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:02.143Z
+  sequenceNumber: 111
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-gives-no-token-to-a-claude-8a823ad6::tests::application.applicationservice.changeset-deactivate-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-gives-no-token-to-a-claude-8a823ad6
+    target: application.applicationservice.changeset-deactivate-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:02.164Z
+  sequenceNumber: 112
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-gives-no-token-to-a-claude-8a823ad6::tests::application.applicationservice.model-add-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-gives-no-token-to-a-claude-8a823ad6
+    target: application.applicationservice.model-add-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:02.186Z
+  sequenceNumber: 113
+- type: delete
+  elementId: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-gives-no-token-to-a-client-0c14fc58
+  layerName: testing
+  before:
+    id: 8a4bbc65-599e-4c25-ac37-1151dc5a6570
+    path: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-gives-no-token-to-a-client-0c14fc58
+    spec_node_id: testing.testcasesketch
+    type: testcasesketch
+    layer_id: testing
+    name: changeset_commit with a confirmation token from changeset_commit_preview > gives no token to a client that doesn't ask before each call, and refuses a token from one
+    attributes:
+      status: automated
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/tests/unit/mcp/changeset-commit-tool.test.ts
+          symbol: changeset_commit with a confirmation token from changeset_commit_preview > gives no token to a client that doesn't ask before each call, and refuses a token from one
+    metadata:
+      created_at: 2026-11-24T21:39:56.349Z
+      updated_at: 2026-11-24T21:39:56.349Z
+      version: 1
+  timestamp: 2026-11-27T17:11:02.235Z
+  sequenceNumber: 114
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-gives-no-token-to-a-client-0c14fc58::tests::application.applicationcomponent.mcp-tool-registry
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-gives-no-token-to-a-client-0c14fc58
+    target: application.applicationcomponent.mcp-tool-registry
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:02.257Z
+  sequenceNumber: 115
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-gives-no-token-to-a-client-0c14fc58::tests::application.applicationfunction.mcp-tool-registry-register-all
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-gives-no-token-to-a-client-0c14fc58
+    target: application.applicationfunction.mcp-tool-registry-register-all
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:02.282Z
+  sequenceNumber: 116
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-gives-no-token-to-a-client-0c14fc58::tests::application.applicationservice.changeset-deactivate-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-gives-no-token-to-a-client-0c14fc58
+    target: application.applicationservice.changeset-deactivate-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:02.304Z
+  sequenceNumber: 117
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-gives-no-token-to-a-client-0c14fc58::tests::application.applicationservice.model-add-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-gives-no-token-to-a-client-0c14fc58
+    target: application.applicationservice.model-add-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:02.328Z
+  sequenceNumber: 118
+- type: delete
+  elementId: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-ignores-force-with-a-token-9ef3e381
+  layerName: testing
+  before:
+    id: 586605a3-dfeb-4712-a64e-330deb84a435
+    path: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-ignores-force-with-a-token-9ef3e381
+    spec_node_id: testing.testcasesketch
+    type: testcasesketch
+    layer_id: testing
+    name: "changeset_commit with a confirmation token from changeset_commit_preview > ignores force with a token: the token binds the changeset and the base, not a flag"
+    attributes:
+      status: automated
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/tests/unit/mcp/changeset-commit-tool.test.ts
+          symbol: "changeset_commit with a confirmation token from changeset_commit_preview > ignores force with a token: the token binds the changeset and the base, not a flag"
+    metadata:
+      created_at: 2026-11-24T21:39:56.349Z
+      updated_at: 2026-11-24T21:39:56.349Z
+      version: 1
+  timestamp: 2026-11-27T17:11:02.385Z
+  sequenceNumber: 119
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-ignores-force-with-a-token-9ef3e381::tests::application.applicationcomponent.mcp-tool-registry
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-ignores-force-with-a-token-9ef3e381
+    target: application.applicationcomponent.mcp-tool-registry
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:02.409Z
+  sequenceNumber: 120
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-ignores-force-with-a-token-9ef3e381::tests::application.applicationfunction.mcp-tool-registry-register-all
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-ignores-force-with-a-token-9ef3e381
+    target: application.applicationfunction.mcp-tool-registry-register-all
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:02.433Z
+  sequenceNumber: 121
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-ignores-force-with-a-token-9ef3e381::tests::application.applicationservice.changeset-deactivate-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-ignores-force-with-a-token-9ef3e381
+    target: application.applicationservice.changeset-deactivate-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:02.457Z
+  sequenceNumber: 122
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-ignores-force-with-a-token-9ef3e381::tests::application.applicationservice.model-add-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-ignores-force-with-a-token-9ef3e381
+    target: application.applicationservice.model-add-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:02.482Z
+  sequenceNumber: 123
+- type: delete
+  elementId: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-is-not-listed-with-4f207c00
+  layerName: testing
+  before:
+    id: 0bb4c3aa-ec91-4e50-bd9c-6796044fb8c9
+    path: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-is-not-listed-with-4f207c00
+    spec_node_id: testing.testcasesketch
+    type: testcasesketch
+    layer_id: testing
+    name: changeset_commit with a confirmation token from changeset_commit_preview > is not listed with anthropic/requiresUserInteraction itself
+    attributes:
+      status: automated
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/tests/unit/mcp/changeset-commit-tool.test.ts
+          symbol: changeset_commit with a confirmation token from changeset_commit_preview > is not listed with anthropic/requiresUserInteraction itself
+    metadata:
+      created_at: 2026-11-24T21:39:56.349Z
+      updated_at: 2026-11-24T21:39:56.349Z
+      version: 1
+  timestamp: 2026-11-27T17:11:02.538Z
+  sequenceNumber: 124
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-is-not-listed-with-4f207c00::tests::application.applicationcomponent.mcp-tool-registry
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-is-not-listed-with-4f207c00
+    target: application.applicationcomponent.mcp-tool-registry
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:02.563Z
+  sequenceNumber: 125
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-is-not-listed-with-4f207c00::tests::application.applicationfunction.mcp-tool-registry-register-all
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-is-not-listed-with-4f207c00
+    target: application.applicationfunction.mcp-tool-registry-register-all
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:02.586Z
+  sequenceNumber: 126
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-is-not-listed-with-4f207c00::tests::application.applicationservice.changeset-deactivate-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-is-not-listed-with-4f207c00
+    target: application.applicationservice.changeset-deactivate-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:02.612Z
+  sequenceNumber: 127
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-is-not-listed-with-4f207c00::tests::application.applicationservice.model-add-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-is-not-listed-with-4f207c00
+    target: application.applicationservice.model-add-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:02.635Z
+  sequenceNumber: 128
+- type: delete
+  elementId: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-lands-a-drifted-changeset-23b4de03
+  layerName: testing
+  before:
+    id: 670eec68-6cd1-491e-80e0-1c85f51dfba0
+    path: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-lands-a-drifted-changeset-23b4de03
+    spec_node_id: testing.testcasesketch
+    type: testcasesketch
+    layer_id: testing
+    name: changeset_commit with a confirmation token from changeset_commit_preview > lands a drifted changeset with the preview's token and no dialog, the summary naming the overlap
+    attributes:
+      status: automated
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/tests/unit/mcp/changeset-commit-tool.test.ts
+          symbol: changeset_commit with a confirmation token from changeset_commit_preview > lands a drifted changeset with the preview's token and no dialog, the summary naming the overlap
+    metadata:
+      created_at: 2026-11-24T21:39:56.349Z
+      updated_at: 2026-11-24T21:39:56.349Z
+      version: 1
+  timestamp: 2026-11-27T17:11:02.691Z
+  sequenceNumber: 129
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-lands-a-drifted-changeset-23b4de03::tests::application.applicationcomponent.mcp-tool-registry
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-lands-a-drifted-changeset-23b4de03
+    target: application.applicationcomponent.mcp-tool-registry
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:02.716Z
+  sequenceNumber: 130
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-lands-a-drifted-changeset-23b4de03::tests::application.applicationfunction.mcp-tool-registry-register-all
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-lands-a-drifted-changeset-23b4de03
+    target: application.applicationfunction.mcp-tool-registry-register-all
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:02.740Z
+  sequenceNumber: 131
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-lands-a-drifted-changeset-23b4de03::tests::application.applicationservice.changeset-deactivate-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-lands-a-drifted-changeset-23b4de03
+    target: application.applicationservice.changeset-deactivate-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:02.764Z
+  sequenceNumber: 132
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-lands-a-drifted-changeset-23b4de03::tests::application.applicationservice.model-add-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-lands-a-drifted-changeset-23b4de03
+    target: application.applicationservice.model-add-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:02.789Z
+  sequenceNumber: 133
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-lands-a-drifted-changeset-23b4de03::tests::application.applicationservice.model-update-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-lands-a-drifted-changeset-23b4de03
+    target: application.applicationservice.model-update-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:02.813Z
+  sequenceNumber: 134
+- type: delete
+  elementId: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-previews-without-writing-0335908c
+  layerName: testing
+  before:
+    id: d4a5fc47-41ec-4d32-90a3-ff21bea2af17
+    path: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-previews-without-writing-0335908c
+    spec_node_id: testing.testcasesketch
+    type: testcasesketch
+    layer_id: testing
+    name: changeset_commit with a confirmation token from changeset_commit_preview > previews without writing, then lands from Claude Code with the token and no dialog
+    attributes:
+      status: automated
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/tests/unit/mcp/changeset-commit-tool.test.ts
+          symbol: changeset_commit with a confirmation token from changeset_commit_preview > previews without writing, then lands from Claude Code with the token and no dialog
+    metadata:
+      created_at: 2026-11-24T21:39:56.349Z
+      updated_at: 2026-11-24T21:39:56.349Z
+      version: 1
+  timestamp: 2026-11-27T17:11:02.871Z
+  sequenceNumber: 135
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-previews-without-writing-0335908c::tests::application.applicationcomponent.mcp-tool-registry
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-previews-without-writing-0335908c
+    target: application.applicationcomponent.mcp-tool-registry
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:02.897Z
+  sequenceNumber: 136
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-previews-without-writing-0335908c::tests::application.applicationfunction.mcp-tool-registry-register-all
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-previews-without-writing-0335908c
+    target: application.applicationfunction.mcp-tool-registry-register-all
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:02.922Z
+  sequenceNumber: 137
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-previews-without-writing-0335908c::tests::application.applicationservice.changeset-deactivate-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-previews-without-writing-0335908c
+    target: application.applicationservice.changeset-deactivate-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:02.947Z
+  sequenceNumber: 138
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-previews-without-writing-0335908c::tests::application.applicationservice.changeset-show-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-previews-without-writing-0335908c
+    target: application.applicationservice.changeset-show-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:02.974Z
+  sequenceNumber: 139
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-previews-without-writing-0335908c::tests::application.applicationservice.model-add-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-previews-without-writing-0335908c
+    target: application.applicationservice.model-add-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:02.999Z
+  sequenceNumber: 140
+- type: delete
+  elementId: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-refuses-a-token-changeset-c78d2658
+  layerName: testing
+  before:
+    id: 15a975ce-bc13-4f30-af5f-89019d365469
+    path: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-refuses-a-token-changeset-c78d2658
+    spec_node_id: testing.testcasesketch
+    type: testcasesketch
+    layer_id: testing
+    name: changeset_commit with a confirmation token from changeset_commit_preview > refuses a token changeset_commit_preview did not issue
+    attributes:
+      status: automated
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/tests/unit/mcp/changeset-commit-tool.test.ts
+          symbol: changeset_commit with a confirmation token from changeset_commit_preview > refuses a token changeset_commit_preview did not issue
+    metadata:
+      created_at: 2026-11-24T21:39:56.349Z
+      updated_at: 2026-11-24T21:39:56.349Z
+      version: 1
+  timestamp: 2026-11-27T17:11:03.058Z
+  sequenceNumber: 141
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-refuses-a-token-changeset-c78d2658::tests::application.applicationcomponent.mcp-tool-registry
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-refuses-a-token-changeset-c78d2658
+    target: application.applicationcomponent.mcp-tool-registry
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:03.085Z
+  sequenceNumber: 142
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-refuses-a-token-changeset-c78d2658::tests::application.applicationfunction.mcp-tool-registry-register-all
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-refuses-a-token-changeset-c78d2658
+    target: application.applicationfunction.mcp-tool-registry-register-all
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:03.111Z
+  sequenceNumber: 143
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-refuses-a-token-changeset-c78d2658::tests::application.applicationservice.changeset-deactivate-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-refuses-a-token-changeset-c78d2658
+    target: application.applicationservice.changeset-deactivate-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:03.137Z
+  sequenceNumber: 144
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-refuses-a-token-changeset-c78d2658::tests::application.applicationservice.changeset-show-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-refuses-a-token-changeset-c78d2658
+    target: application.applicationservice.changeset-show-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:03.163Z
+  sequenceNumber: 145
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-refuses-a-token-changeset-c78d2658::tests::application.applicationservice.model-add-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-refuses-a-token-changeset-c78d2658
+    target: application.applicationservice.model-add-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:03.188Z
+  sequenceNumber: 146
+- type: delete
+  elementId: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-refuses-in-changeset-only-1eca3261
+  layerName: testing
+  before:
+    id: 48cb3e05-757d-4dc9-8619-3417f5da27ba
+    path: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-refuses-in-changeset-only-1eca3261
+    spec_node_id: testing.testcasesketch
+    type: testcasesketch
+    layer_id: testing
+    name: changeset_commit with a confirmation token from changeset_commit_preview > refuses in changeset-only mode even with a token, and the preview says it is the user's to land
+    attributes:
+      status: automated
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/tests/unit/mcp/changeset-commit-tool.test.ts
+          symbol: changeset_commit with a confirmation token from changeset_commit_preview > refuses in changeset-only mode even with a token, and the preview says it is the user's to land
+    metadata:
+      created_at: 2026-11-24T21:39:56.349Z
+      updated_at: 2026-11-24T21:39:56.349Z
+      version: 1
+  timestamp: 2026-11-27T17:11:03.250Z
+  sequenceNumber: 147
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-refuses-in-changeset-only-1eca3261::tests::application.applicationcomponent.mcp-tool-registry
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-refuses-in-changeset-only-1eca3261
+    target: application.applicationcomponent.mcp-tool-registry
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:03.277Z
+  sequenceNumber: 148
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-refuses-in-changeset-only-1eca3261::tests::application.applicationfunction.issue-confirm-token
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-refuses-in-changeset-only-1eca3261
+    target: application.applicationfunction.issue-confirm-token
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:03.304Z
+  sequenceNumber: 149
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-refuses-in-changeset-only-1eca3261::tests::application.applicationfunction.mcp-tool-registry-register-all
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-refuses-in-changeset-only-1eca3261
+    target: application.applicationfunction.mcp-tool-registry-register-all
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:03.330Z
+  sequenceNumber: 150
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-refuses-in-changeset-only-1eca3261::tests::application.applicationservice.changeset-deactivate-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-refuses-in-changeset-only-1eca3261
+    target: application.applicationservice.changeset-deactivate-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:03.358Z
+  sequenceNumber: 151
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-refuses-in-changeset-only-1eca3261::tests::application.applicationservice.changeset-show-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-refuses-in-changeset-only-1eca3261
+    target: application.applicationservice.changeset-show-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:03.385Z
+  sequenceNumber: 152
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-refuses-in-changeset-only-1eca3261::tests::application.applicationservice.model-add-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-refuses-in-changeset-only-1eca3261
+    target: application.applicationservice.model-add-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:03.412Z
+  sequenceNumber: 153
+- type: delete
+  elementId: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-refuses-the-token-when-the-cdd9c577
+  layerName: testing
+  before:
+    id: 17887078-ed1c-422f-884b-4906699ed5b3
+    path: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-refuses-the-token-when-the-cdd9c577
+    spec_node_id: testing.testcasesketch
+    type: testcasesketch
+    layer_id: testing
+    name: changeset_commit with a confirmation token from changeset_commit_preview > refuses the token when the base model changed after the preview
+    attributes:
+      status: automated
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/tests/unit/mcp/changeset-commit-tool.test.ts
+          symbol: changeset_commit with a confirmation token from changeset_commit_preview > refuses the token when the base model changed after the preview
+    metadata:
+      created_at: 2026-11-24T21:39:56.349Z
+      updated_at: 2026-11-24T21:39:56.349Z
+      version: 1
+  timestamp: 2026-11-27T17:11:03.477Z
+  sequenceNumber: 154
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-refuses-the-token-when-the-cdd9c577::tests::application.applicationcomponent.mcp-tool-registry
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-refuses-the-token-when-the-cdd9c577
+    target: application.applicationcomponent.mcp-tool-registry
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:03.506Z
+  sequenceNumber: 155
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-refuses-the-token-when-the-cdd9c577::tests::application.applicationfunction.mcp-tool-registry-register-all
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-refuses-the-token-when-the-cdd9c577
+    target: application.applicationfunction.mcp-tool-registry-register-all
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:03.534Z
+  sequenceNumber: 156
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-refuses-the-token-when-the-cdd9c577::tests::application.applicationservice.changeset-deactivate-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-refuses-the-token-when-the-cdd9c577
+    target: application.applicationservice.changeset-deactivate-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:03.563Z
+  sequenceNumber: 157
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-refuses-the-token-when-the-cdd9c577::tests::application.applicationservice.changeset-show-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-refuses-the-token-when-the-cdd9c577
+    target: application.applicationservice.changeset-show-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:03.591Z
+  sequenceNumber: 158
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-refuses-the-token-when-the-cdd9c577::tests::application.applicationservice.model-add-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-refuses-the-token-when-the-cdd9c577
+    target: application.applicationservice.model-add-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:03.619Z
+  sequenceNumber: 159
+- type: delete
+  elementId: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-refuses-the-token-when-the-1d0752e9
+  layerName: testing
+  before:
+    id: 4b8caf12-3dd8-4475-8d9c-4c5b8344882d
+    path: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-refuses-the-token-when-the-1d0752e9
+    spec_node_id: testing.testcasesketch
+    type: testcasesketch
+    layer_id: testing
+    name: changeset_commit with a confirmation token from changeset_commit_preview > refuses the token when the changeset changed after the preview
+    attributes:
+      status: automated
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/tests/unit/mcp/changeset-commit-tool.test.ts
+          symbol: changeset_commit with a confirmation token from changeset_commit_preview > refuses the token when the changeset changed after the preview
+    metadata:
+      created_at: 2026-11-24T21:39:56.349Z
+      updated_at: 2026-11-24T21:39:56.349Z
+      version: 1
+  timestamp: 2026-11-27T17:11:03.685Z
+  sequenceNumber: 160
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-refuses-the-token-when-the-1d0752e9::tests::application.applicationcomponent.mcp-tool-registry
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-refuses-the-token-when-the-1d0752e9
+    target: application.applicationcomponent.mcp-tool-registry
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:03.715Z
+  sequenceNumber: 161
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-refuses-the-token-when-the-1d0752e9::tests::application.applicationfunction.mcp-tool-registry-register-all
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-refuses-the-token-when-the-1d0752e9
+    target: application.applicationfunction.mcp-tool-registry-register-all
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:03.743Z
+  sequenceNumber: 162
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-refuses-the-token-when-the-1d0752e9::tests::application.applicationservice.changeset-deactivate-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-refuses-the-token-when-the-1d0752e9
+    target: application.applicationservice.changeset-deactivate-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:03.772Z
+  sequenceNumber: 163
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-refuses-the-token-when-the-1d0752e9::tests::application.applicationservice.changeset-show-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-refuses-the-token-when-the-1d0752e9
+    target: application.applicationservice.changeset-show-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:03.803Z
+  sequenceNumber: 164
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-refuses-the-token-when-the-1d0752e9::tests::application.applicationservice.model-add-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-refuses-the-token-when-the-1d0752e9
+    target: application.applicationservice.model-add-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:03.832Z
+  sequenceNumber: 165
+- type: delete
+  elementId: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-says-an-expired-token-d71b8483
+  layerName: testing
+  before:
+    id: 8c6b5545-31ae-476a-9c6e-03a418450666
+    path: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-says-an-expired-token-d71b8483
+    spec_node_id: testing.testcasesketch
+    type: testcasesketch
+    layer_id: testing
+    name: changeset_commit with a confirmation token from changeset_commit_preview > says an expired token expired and that a new preview is needed, not that the user declined
+    attributes:
+      status: automated
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/tests/unit/mcp/changeset-commit-tool.test.ts
+          symbol: changeset_commit with a confirmation token from changeset_commit_preview > says an expired token expired and that a new preview is needed, not that the user declined
+    metadata:
+      created_at: 2026-11-24T21:39:56.349Z
+      updated_at: 2026-11-24T21:39:56.349Z
+      version: 1
+  timestamp: 2026-11-27T17:11:03.900Z
+  sequenceNumber: 166
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-says-an-expired-token-d71b8483::tests::application.applicationcomponent.mcp-tool-registry
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-says-an-expired-token-d71b8483
+    target: application.applicationcomponent.mcp-tool-registry
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:03.930Z
+  sequenceNumber: 167
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-says-an-expired-token-d71b8483::tests::application.applicationfunction.mcp-tool-registry-register-all
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-says-an-expired-token-d71b8483
+    target: application.applicationfunction.mcp-tool-registry-register-all
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:03.959Z
+  sequenceNumber: 168
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-says-an-expired-token-d71b8483::tests::application.applicationservice.changeset-deactivate-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-says-an-expired-token-d71b8483
+    target: application.applicationservice.changeset-deactivate-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:03.989Z
+  sequenceNumber: 169
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-says-an-expired-token-d71b8483::tests::application.applicationservice.changeset-show-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-says-an-expired-token-d71b8483
+    target: application.applicationservice.changeset-show-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:04.020Z
+  sequenceNumber: 170
+- type: relationship-delete
+  elementId: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-says-an-expired-token-d71b8483::tests::application.applicationservice.model-add-handler
+  layerName: testing
+  before:
+    source: testing.testcasesketch.changeset-commit-with-a-confirmation-token-from-changeset-commit-preview-says-an-expired-token-d71b8483
+    target: application.applicationservice.model-add-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:04.051Z
+  sequenceNumber: 171
+- type: delete
+  elementId: testing.testcasesketch.confirmation-tokens-are-good-once-for-the-state-and-changeset-they-were-issued-for-until-they-expire
+  layerName: testing
+  before:
+    id: a2292fc4-e35c-4fe2-9535-4d348a4f76fd
+    path: testing.testcasesketch.confirmation-tokens-are-good-once-for-the-state-and-changeset-they-were-issued-for-until-they-expire
+    spec_node_id: testing.testcasesketch
+    type: testcasesketch
+    layer_id: testing
+    name: confirmation tokens > are good once, for the state and changeset they were issued for, until they expire
+    attributes:
+      status: automated
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/tests/unit/mcp/changeset-commit-tool.test.ts
+          symbol: confirmation tokens > are good once, for the state and changeset they were issued for, until they expire
+    metadata:
+      created_at: 2026-11-24T21:39:56.349Z
+      updated_at: 2026-11-24T21:39:56.349Z
+      version: 1
+  timestamp: 2026-11-27T17:11:04.120Z
+  sequenceNumber: 172
+- type: relationship-delete
+  elementId: testing.testcasesketch.confirmation-tokens-are-good-once-for-the-state-and-changeset-they-were-issued-for-until-they-expire::tests::application.applicationfunction.check-confirm-token
+  layerName: testing
+  before:
+    source: testing.testcasesketch.confirmation-tokens-are-good-once-for-the-state-and-changeset-they-were-issued-for-until-they-expire
+    target: application.applicationfunction.check-confirm-token
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:04.152Z
+  sequenceNumber: 173
+- type: relationship-delete
+  elementId: testing.testcasesketch.confirmation-tokens-are-good-once-for-the-state-and-changeset-they-were-issued-for-until-they-expire::tests::application.applicationfunction.issue-confirm-token
+  layerName: testing
+  before:
+    source: testing.testcasesketch.confirmation-tokens-are-good-once-for-the-state-and-changeset-they-were-issued-for-until-they-expire
+    target: application.applicationfunction.issue-confirm-token
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:04.183Z
+  sequenceNumber: 174
+- type: delete
+  elementId: testing.testcasesketch.confirmation-tokens-cant-be-reused-by-spelling-the-expiry-another-way
+  layerName: testing
+  before:
+    id: d6421ebf-55f9-4998-b6c4-3c9c735e5c68
+    path: testing.testcasesketch.confirmation-tokens-cant-be-reused-by-spelling-the-expiry-another-way
+    spec_node_id: testing.testcasesketch
+    type: testcasesketch
+    layer_id: testing
+    name: confirmation tokens > can't be reused by spelling the expiry another way
+    attributes:
+      status: automated
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/tests/unit/mcp/changeset-commit-tool.test.ts
+          symbol: confirmation tokens > can't be reused by spelling the expiry another way
+    metadata:
+      created_at: 2026-11-24T21:39:56.349Z
+      updated_at: 2026-11-24T21:39:56.349Z
+      version: 1
+  timestamp: 2026-11-27T17:11:04.254Z
+  sequenceNumber: 175
+- type: relationship-delete
+  elementId: testing.testcasesketch.confirmation-tokens-cant-be-reused-by-spelling-the-expiry-another-way::tests::application.applicationfunction.check-confirm-token
+  layerName: testing
+  before:
+    source: testing.testcasesketch.confirmation-tokens-cant-be-reused-by-spelling-the-expiry-another-way
+    target: application.applicationfunction.check-confirm-token
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:04.287Z
+  sequenceNumber: 176
+- type: relationship-delete
+  elementId: testing.testcasesketch.confirmation-tokens-cant-be-reused-by-spelling-the-expiry-another-way::tests::application.applicationfunction.issue-confirm-token
+  layerName: testing
+  before:
+    source: testing.testcasesketch.confirmation-tokens-cant-be-reused-by-spelling-the-expiry-another-way
+    target: application.applicationfunction.issue-confirm-token
+    predicate: tests
+    layer: testing
+    targetLayer: application
+  timestamp: 2026-11-27T17:11:04.318Z
+  sequenceNumber: 177
+- type: delete
+  elementId: application.applicationfunction.asks-before-each-call
+  layerName: application
+  before:
+    id: f118a09a-53b0-4036-9cef-93688b52265a
+    path: application.applicationfunction.asks-before-each-call
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: asksBeforeEachCall
+    description: Whether the connected client asks the person before each changeset_commit call.
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/tools/changeset-commit.ts
+          symbol: asksBeforeEachCall
+    metadata:
+      created_at: 2026-11-20T15:06:30.044Z
+      updated_at: 2026-11-20T15:06:30.044Z
+      version: 1
+  timestamp: 2026-11-27T17:11:04.377Z
+  sequenceNumber: 178
+- type: relationship-delete
+  elementId: application.applicationfunction.asks-before-each-call::accesses::data-model.objectschema.mcp-tool-context
+  layerName: application
+  before:
+    source: application.applicationfunction.asks-before-each-call
+    target: data-model.objectschema.mcp-tool-context
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+  timestamp: 2026-11-27T17:11:04.413Z
+  sequenceNumber: 179
+- type: relationship-delete
+  elementId: application.applicationfunction.asks-before-each-call::realizes::application.applicationservice.changeset-commit-handler
+  layerName: application
+  before:
+    source: application.applicationfunction.asks-before-each-call
+    target: application.applicationservice.changeset-commit-handler
+    predicate: realizes
+    layer: application
+  timestamp: 2026-11-27T17:11:04.445Z
+  sequenceNumber: 180
+- type: delete
+  elementId: application.applicationfunction.check-confirm-token
+  layerName: application
+  before:
+    id: b263615e-a2df-48e6-8c86-f39c96c86c3d
+    path: application.applicationfunction.check-confirm-token
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: checkConfirmToken
+    description: Checks a token against the changeset as it is now
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/tools/changeset-commit.ts
+          symbol: checkConfirmToken
+    metadata:
+      created_at: 2026-11-20T15:06:30.044Z
+      updated_at: 2026-11-20T15:06:30.044Z
+      version: 1
+  timestamp: 2026-11-27T17:11:04.518Z
+  sequenceNumber: 181
+- type: relationship-delete
+  elementId: application.applicationfunction.check-confirm-token::accesses::data-model.schemadefinition.token-check
+  layerName: application
+  before:
+    source: application.applicationfunction.check-confirm-token
+    target: data-model.schemadefinition.token-check
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+  timestamp: 2026-11-27T17:11:04.553Z
+  sequenceNumber: 182
+- type: relationship-delete
+  elementId: application.applicationfunction.check-confirm-token::realizes::application.applicationservice.changeset-commit-handler
+  layerName: application
+  before:
+    source: application.applicationfunction.check-confirm-token
+    target: application.applicationservice.changeset-commit-handler
+    predicate: realizes
+    layer: application
+  timestamp: 2026-11-27T17:11:04.584Z
+  sequenceNumber: 183
+- type: delete
+  elementId: application.applicationfunction.confirmation-message
+  layerName: application
+  before:
+    id: 3cb6814d-cc89-4080-849b-cc3a5d5b5c2c
+    path: application.applicationfunction.confirmation-message
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: confirmationMessage
+    description: The text of the confirmation dialog.
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/tools/changeset-commit.ts
+          symbol: confirmationMessage
+    metadata:
+      created_at: 2026-11-20T15:06:30.044Z
+      updated_at: 2026-11-20T15:06:30.044Z
+      version: 1
+  timestamp: 2026-11-27T17:11:04.659Z
+  sequenceNumber: 184
+- type: relationship-delete
+  elementId: application.applicationfunction.confirmation-message::accesses::data-model.objectschema.changeset-drift
+  layerName: application
+  before:
+    source: application.applicationfunction.confirmation-message
+    target: data-model.objectschema.changeset-drift
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+  timestamp: 2026-11-27T17:11:04.694Z
+  sequenceNumber: 185
+- type: relationship-delete
+  elementId: application.applicationfunction.confirmation-message::accesses::data-model.objectschema.staging-area-drift-report
+  layerName: application
+  before:
+    source: application.applicationfunction.confirmation-message
+    target: data-model.objectschema.staging-area-drift-report
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+  timestamp: 2026-11-27T17:11:04.727Z
+  sequenceNumber: 186
+- type: relationship-delete
+  elementId: application.applicationfunction.confirmation-message::depends-on::application.applicationfunction.changeset-commit-summarize-changeset
+  layerName: application
+  before:
+    source: application.applicationfunction.confirmation-message
+    target: application.applicationfunction.changeset-commit-summarize-changeset
+    predicate: depends-on
+    layer: application
+  timestamp: 2026-11-27T17:11:04.761Z
+  sequenceNumber: 187
+- type: relationship-delete
+  elementId: application.applicationfunction.confirmation-message::depends-on::application.applicationfunction.drift-lines
+  layerName: application
+  before:
+    source: application.applicationfunction.confirmation-message
+    target: application.applicationfunction.drift-lines
+    predicate: depends-on
+    layer: application
+  timestamp: 2026-11-27T17:11:04.795Z
+  sequenceNumber: 188
+- type: delete
+  elementId: application.applicationfunction.issue-confirm-token
+  layerName: application
+  before:
+    id: 5d1624a7-61cc-4483-8fbd-8e1b8c949493
+    path: application.applicationfunction.issue-confirm-token
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: issueConfirmToken
+    description: A confirmation token for landing this changeset as it is now
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/tools/changeset-commit.ts
+          symbol: issueConfirmToken
+    metadata:
+      created_at: 2026-11-20T15:06:30.044Z
+      updated_at: 2026-11-20T15:06:30.044Z
+      version: 1
+  timestamp: 2026-11-27T17:11:04.870Z
+  sequenceNumber: 189
+- type: delete
+  elementId: data-model.schemadefinition.token-check
+  layerName: data-model
+  before:
+    id: b6e95051-d065-4530-91b3-efe6775b70fa
+    path: data-model.schemadefinition.token-check
+    spec_node_id: data-model.schemadefinition
+    type: schemadefinition
+    layer_id: data-model
+    name: TokenCheck
+    attributes:
+      title: TokenCheck
+      type: string
+      enum:
+        - ok
+        - malformed
+        - expired
+        - used
+        - mismatch
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/tools/changeset-commit.ts
+          symbol: TokenCheck
+    metadata:
+      created_at: 2026-11-20T15:07:42.636Z
+      updated_at: 2026-11-20T15:07:42.636Z
+      version: 1
+  timestamp: 2026-11-27T17:11:04.948Z
+  sequenceNumber: 190
+- type: add
+  elementId: application.applicationfunction.land-one
+  layerName: application
+  after:
+    id: 93d80851-e140-4b45-b5f7-6f8879034230
+    path: application.applicationfunction.land-one
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: land-one
+    description: "Lands one changeset for changeset_commit: prepares it, commits it under the project's write lock and returns its counts, drift, warnings and filesToCommit."
+    metadata:
+      created_at: 2026-11-27T17:11:09.891Z
+      updated_at: 2026-11-27T17:11:09.891Z
+      version: 1
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/mcp/tools/changeset-commit.ts
+          symbol: landOne
+  timestamp: 2026-11-27T17:11:27.612Z
+  sequenceNumber: 191
+- type: add
+  elementId: application.applicationfunction.requested-names
+  layerName: application
+  after:
+    id: a0e9571b-6cd4-47f2-8d5e-c93d9bd113dc
+    path: application.applicationfunction.requested-names
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: requested-names
+    description: The changeset names a changeset_commit call asks to land (changeset and changesets), in order, each once.
+    metadata:
+      created_at: 2026-11-27T17:11:09.892Z
+      updated_at: 2026-11-27T17:11:09.892Z
+      version: 1
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/mcp/tools/changeset-commit.ts
+          symbol: requestedNames
+  timestamp: 2026-11-27T17:11:27.612Z
+  sequenceNumber: 192
+- type: add
+  elementId: application.applicationfunction.landing-summary-text
+  layerName: application
+  after:
+    id: 13bb1285-4989-4c54-ba04-a4ad651dd06f
+    path: application.applicationfunction.landing-summary-text
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: landing-summary-text
+    description: "The landing summary changeset_commit_preview shows: intent, counts, layers, drift and validation."
+    metadata:
+      created_at: 2026-11-27T17:11:09.892Z
+      updated_at: 2026-11-27T17:11:09.892Z
+      version: 1
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/mcp/tools/changeset-commit.ts
+          symbol: landingSummaryText
+  timestamp: 2026-11-27T17:11:27.612Z
+  sequenceNumber: 193
+- type: add
+  elementId: application.applicationfunction.files-to-commit
+  layerName: application
+  after:
+    id: e121e276-7a66-4c79-8654-bee7d46b2a2f
+    path: application.applicationfunction.files-to-commit
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: files-to-commit
+    description: "The paths a landing puts in the commit: the model files written, manifest.yaml and the changeset's folder (#1367)."
+    metadata:
+      created_at: 2026-11-27T17:11:09.892Z
+      updated_at: 2026-11-27T17:11:09.892Z
+      version: 1
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/mcp/tools/changeset-landed.ts
+          symbol: filesToCommit
+  timestamp: 2026-11-27T17:11:27.612Z
+  sequenceNumber: 194
+- type: add
+  elementId: application.applicationfunction.collect-untracked-landings
+  layerName: application
+  after:
+    id: 381ed751-4bc6-4a31-ac62-1eb4d42d9826
+    path: application.applicationfunction.collect-untracked-landings
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: collect-untracked-landings
+    description: "project_status: committed or recorded changesets whose folder git doesn't track (#1367)."
+    metadata:
+      created_at: 2026-11-27T17:11:09.892Z
+      updated_at: 2026-11-27T17:11:09.892Z
+      version: 1
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/mcp/tools/project-status-collectors.ts
+          symbol: collectUntrackedLandings
+  timestamp: 2026-11-27T17:11:27.612Z
+  sequenceNumber: 195
+- type: relationship-add
+  elementId: application.applicationfunction.land-one::realizes::application.applicationservice.changeset-commit-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.land-one
+    target: application.applicationservice.changeset-commit-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-27T17:11:17.088Z
+  sequenceNumber: 196
+- type: relationship-add
+  elementId: application.applicationfunction.requested-names::realizes::application.applicationservice.changeset-commit-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.requested-names
+    target: application.applicationservice.changeset-commit-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-27T17:11:17.088Z
+  sequenceNumber: 197
+- type: relationship-add
+  elementId: application.applicationfunction.files-to-commit::realizes::application.applicationservice.changeset-commit-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.files-to-commit
+    target: application.applicationservice.changeset-commit-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-27T17:11:17.088Z
+  sequenceNumber: 198
+- type: relationship-add
+  elementId: application.applicationfunction.landing-summary-text::realizes::application.applicationservice.changeset-commit-preview-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.landing-summary-text
+    target: application.applicationservice.changeset-commit-preview-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-27T17:11:17.088Z
+  sequenceNumber: 199
+- type: relationship-add
+  elementId: application.applicationfunction.collect-untracked-landings::realizes::application.applicationservice.project-status-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.collect-untracked-landings
+    target: application.applicationservice.project-status-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-27T17:11:17.088Z
+  sequenceNumber: 200

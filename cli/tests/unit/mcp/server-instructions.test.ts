@@ -22,9 +22,14 @@ describe("SERVER_INSTRUCTIONS", () => {
     expect(named.filter((name) => !registered.has(name))).toEqual([]);
   });
 
-  it("lands a change only when the user asks, and only with their confirmation", () => {
-    expect(SERVER_INSTRUCTIONS).toContain("changeset_commit only when the user asks");
-    expect(SERVER_INSTRUCTIONS).toContain("Never commit on your own initiative");
+  it("lands a change when the user asks, with git and the PR as the gate (#1419)", () => {
+    expect(SERVER_INSTRUCTIONS).toContain("changeset_commit when the user asks");
+    expect(SERVER_INSTRUCTIONS).toContain("git and the PR are the gate");
+    expect(SERVER_INSTRUCTIONS).toContain("changesets: [...] lands several in order");
+    expect(SERVER_INSTRUCTIONS).toContain("filesToCommit");
+    expect(SERVER_INSTRUCTIONS).toContain("Never land on your own initiative");
+    expect(SERVER_INSTRUCTIONS).not.toContain("confirmToken");
+    expect(SERVER_INSTRUCTIONS).not.toContain("in a dialog");
   });
 
   it("starts the session with project_status", () => {
@@ -105,8 +110,8 @@ describe("SERVER_INSTRUCTIONS", () => {
     // A dr subcommand is one of the CLI's command words; "dr command" and "run dr for" are prose.
     const commands = SERVER_INSTRUCTIONS.match(/\bdr (?:changeset|visualize|upgrade|init|analyzer|validate|add|update|claude)\b[^.,;]*/g) ?? [];
     expect(commands).toEqual([]);
-    const fallback = SERVER_INSTRUCTIONS.indexOf("If it is refused");
-    expect(SERVER_INSTRUCTIONS.indexOf("review_open, then Apply", fallback)).toBeGreaterThan(fallback);
+    const fallback = SERVER_INSTRUCTIONS.indexOf("can't land");
+    expect(SERVER_INSTRUCTIONS.indexOf("Apply in the viewer (review_open)", fallback)).toBeGreaterThan(fallback);
     expect(SERVER_INSTRUCTIONS).toContain("never the dr CLI");
   });
 });

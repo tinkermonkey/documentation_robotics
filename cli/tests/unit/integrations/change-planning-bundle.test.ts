@@ -118,7 +118,8 @@ describe("change-planning integration", () => {
       it("never sends the human to the CLI to land a refused commit (round 3)", () => {
         expect(text).not.toContain("dr changeset commit");
         expect(text).not.toContain("dr changeset activate");
-        expect(text).toMatch(/interactive\s+session/);
+        // DrBot can't land; the viewer's Apply is the route, never the CLI (#1419).
+        expect(text).toMatch(/viewer[^.]*`review_open`|`review_open`[^.]*Apply/);
       });
 
       it("commits only the plan's own changeset directory", () => {
@@ -135,11 +136,12 @@ describe("change-planning integration", () => {
         expect(text).not.toMatch(/keep the\s+as-built changeset out of the commit/);
       });
 
-      it("lands only when the human asks and confirms", () => {
+      it("lands only when the human asks; git and the PR are the gate, with no dialog or token (#1419)", () => {
         expect(text).not.toMatch(/`changeset_apply`/);
-        expect(text).toMatch(/human commits/i);
+        expect(text).toMatch(/human commits|person approves/i);
         expect(text).toContain("`changeset_commit`");
-        expect(text).toMatch(/confirm it in a dialog/);
+        expect(text).not.toMatch(/confirm it in a dialog|confirmToken/);
+        expect(text).toContain("filesToCommit");
       });
 
       // Round-2 wording: verify ran inside the build turn, the as-built side copied the plan, the

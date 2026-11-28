@@ -1,7 +1,7 @@
 /**
- * changeset_commit over MCP: it lands a changeset only after a person confirms it in an
- * elicitation dialog. Driven through a real MCP client over an in-memory transport, with and
- * without the elicitation capability.
+ * changeset_commit over MCP: an ordinary write tool that lands when the user asks (#1419): no
+ * dialog, no token. Driven through a real MCP client over an in-memory transport. `summaries`
+ * collects the landing summary changeset_commit_preview gives for each landing the tests make.
  */
 
 import { describe, it, expect, beforeEach, afterEach, spyOn } from "bun:test";
@@ -12,12 +12,12 @@ import yaml from "yaml";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { ElicitRequestSchema, type ElicitRequest, type ElicitResult } from "@modelcontextprotocol/sdk/types.js";
 import { Model } from "../../../src/core/model.js";
 import { CHANGESET_ONLY_ENV } from "../../../src/core/changeset-only-guard.js";
 import { McpToolRegistry } from "../../../src/mcp/tool-registry.js";
 import { clearModelCache } from "../../../src/mcp/tools/shared.js";
 import { modelAddHandler } from "../../../src/mcp/tools/model-add.js";
+import { modelDeleteHandler } from "../../../src/mcp/tools/model-delete.js";
 import { modelUpdateHandler } from "../../../src/mcp/tools/model-update.js";
 import { relationshipAddHandler } from "../../../src/mcp/tools/relationship-tools.js";
 import {
@@ -36,22 +36,15 @@ import {
 } from "../../../src/core/commit-progress.js";
 import { extractionPurpose } from "../../../src/core/changeset-purpose.js";
 import { changesetUnstageHandler, changesetUpdateHandler } from "../../../src/mcp/tools/changeset-editing.js";
-import {
-  CONFIRM_TOKEN_TTL_MS,
-  OVERLAPS_NAMED_PER_KIND,
-  checkConfirmToken,
-  confirmationTiming,
-  issueConfirmToken,
-} from "../../../src/mcp/tools/changeset-commit.js";
+import { OVERLAPS_NAMED_PER_KIND } from "../../../src/mcp/tools/changeset-commit.js";
 
 const GOAL = "motivation.goal.faster-checkout";
 const FUNCTION = "application.applicationfunction.export-orders";
-const ACCEPT: ElicitResult = { action: "accept", content: { confirm: true } };
 
 let rootPath: string;
 let savedEnv: string | undefined;
 let client: Client | undefined;
-let elicitations: ElicitRequest["params"][];
+let summaries: { message: string }[];
 
 function parse(result: any): any {
   return JSON.parse(result.content[0].text);
@@ -62,36 +55,24 @@ function text(result: any): string {
 }
 
 /** Connects an in-memory client to a server carrying the real tool surface. */
-async function connect(options: {
-  elicitation: boolean;
-  answer?: ElicitResult;
-  /** Runs while the dialog is open, before the answer is sent. */
-  whileAsking?: () => Promise<void>;
-  /** The clientInfo the client sends in initialize (default test-client 0.0.0). */
-  clientInfo?: { name: string; version: string };
-}): Promise<Client> {
+async function connect(_options: Record<string, unknown> = {}): Promise<Client> {
   const server = new McpServer({ name: "dr-test", version: "0.0.0" });
   new McpToolRegistry().registerAll(server);
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
   await server.connect(serverTransport);
-
-  const created = new Client(
-    options.clientInfo ?? { name: "test-client", version: "0.0.0" },
-    { capabilities: options.elicitation ? { elicitation: {} } : {} }
-  );
-  if (options.elicitation) {
-    created.setRequestHandler(ElicitRequestSchema, async (request) => {
-      elicitations.push(request.params);
-      await options.whileAsking?.();
-      return options.answer ?? { action: "cancel" };
-    });
-  }
+  const created = new Client({ name: "test-client", version: "0.0.0" }, { capabilities: {} });
   await created.connect(clientTransport);
   client = created;
   return created;
 }
 
+/** Lands as the user asked: the landing summary is read first, as an agent would show it. */
 async function commit(c: Client, args: Record<string, unknown> = {}): Promise<any> {
+  const shown = await c.callTool({ name: "changeset_commit_preview", arguments: { changeset: "export-orders", rootPath, ...args } });
+  if (!shown.isError) {
+    const previewed = parse(shown);
+    if (previewed.status === "ready-to-commit") summaries.push({ message: previewed.summary });
+  }
   return c.callTool({ name: "changeset_commit", arguments: { changeset: "export-orders", rootPath, ...args } });
 }
 
@@ -110,6 +91,10 @@ async function baseModelText(): Promise<string> {
 /** The id of the plan the tests stage. */
 async function planId(): Promise<string> {
   return parse(await changesetShowHandler({ changesetId: "export-orders", rootPath })).id;
+}
+
+async function preview(c: Client, args: Record<string, unknown> = {}): Promise<any> {
+  return c.callTool({ name: "changeset_commit_preview", arguments: { changeset: "export-orders", rootPath, ...args } });
 }
 
 async function changesetStatus(): Promise<string> {
@@ -140,9 +125,7 @@ beforeEach(async () => {
   savedEnv = process.env[CHANGESET_ONLY_ENV];
   delete process.env[CHANGESET_ONLY_ENV];
   clearModelCache();
-  elicitations = [];
-  // Test clients answer at once; only the instant-decline tests treat that as the client's answer.
-  confirmationTiming.instantDeclineMs = 0;
+  summaries = [];
   rootPath = join(tmpdir(), `dr-mcp-changeset-commit-${Date.now()}-${Math.random().toString(36).slice(2)}`);
   await mkdir(rootPath, { recursive: true });
   await Model.init(rootPath, { name: "Changeset Commit Test Model", version: "0.1.0" });
@@ -159,22 +142,9 @@ afterEach(async () => {
   await rm(rootPath, { recursive: true, force: true });
 });
 
-describe("changeset_commit listing", () => {
-  it("is listed with anthropic/requiresUserInteraction in tools/list, and no other tool is", async () => {
-    const c = await connect({ elicitation: true });
-    const { tools } = await c.listTools();
-    const commitTool = tools.find((t) => t.name === "changeset_commit");
-    expect(commitTool?._meta).toEqual({ "anthropic/requiresUserInteraction": true });
-    expect(commitTool?.inputSchema.required).toContain("changeset");
-    expect(tools.filter((t) => t._meta?.["anthropic/requiresUserInteraction"]).map((t) => t.name)).toEqual([
-      "changeset_commit",
-    ]);
-  });
-});
-
-describe("changeset_commit confirmation", () => {
-  it("commits on accept with confirm: true, after showing the name, intent, counts and layers", async () => {
-    const c = await connect({ elicitation: true, answer: { action: "accept", content: { confirm: true } } });
+describe("changeset_commit", () => {
+  it("lands the changeset, and its landing summary shows the name, intent, counts and layers", async () => {
+    const c = await connect();
     const result = await commit(c);
     expect(result.isError).toBeFalsy();
     expect(parse(result)).toMatchObject({
@@ -185,18 +155,13 @@ describe("changeset_commit confirmation", () => {
       deactivated: true,
     });
 
-    expect(elicitations).toHaveLength(1);
-    const asked = elicitations[0] as any;
-    expect(asked.message).toContain('Commit changeset "export-orders"');
+    expect(summaries).toHaveLength(1);
+    const asked = summaries[0];
+    expect(asked.message).toContain('Land changeset "export-orders"');
     expect(asked.message).toContain("Intent: Admins export orders as CSV");
     expect(asked.message).toContain("Changes: 3 (2 adds, 1 relationship adds)");
     expect(asked.message).toContain("Layers: application");
     expect(asked.message).toContain("Drift: none");
-    expect(asked.requestedSchema).toEqual({
-      type: "object",
-      properties: { confirm: expect.objectContaining({ type: "boolean" }) },
-      required: ["confirm"],
-    });
 
     expect(await changesetStatus()).toBe("committed");
     const base = await baseModelText();
@@ -213,7 +178,7 @@ describe("changeset_commit confirmation", () => {
     const heard: PublishedCommitProgress[] = [];
     const stop = subscribeCommitProgress((p) => heard.push(p));
     try {
-      const c = await connect({ elicitation: true, answer: ACCEPT });
+      const c = await connect();
       expect((await commit(c)).isError).toBeFalsy();
     } finally {
       stop();
@@ -223,7 +188,7 @@ describe("changeset_commit confirmation", () => {
     expect(mine[0]).toMatchObject({ phase: "validating", applied: 0, total: 3 });
     expect(mine.at(-1)).toMatchObject({ phase: "done", applied: 3, total: 3 });
     expect(mine.every((p) => sameRootPath(p.rootPath, rootPath))).toBe(true);
-    // The dialog's dry run reports nothing: only the real commit does.
+    // The preview's dry run reports nothing: only the real commit does.
     expect(mine.filter((p) => p.phase === "validating")).toHaveLength(1);
   });
 
@@ -234,7 +199,7 @@ describe("changeset_commit confirmation", () => {
       throw new Error("disk full");
     });
     try {
-      const c = await connect({ elicitation: true, answer: ACCEPT });
+      const c = await connect();
       expect((await commit(c)).isError).toBe(true);
     } finally {
       backup.mockRestore();
@@ -256,78 +221,152 @@ describe("changeset_commit confirmation", () => {
 
     // Stamping the manifest after the changeset was created changes no content, so it is not drift
     // (the base hash covers content only, #1169) and nothing is said about it.
-    const c = await connect({ elicitation: true, answer: ACCEPT });
+    const c = await connect();
     const result = parse(await commit(c));
     expect(result.status).toBe("committed");
     expect(result.drift).toBeUndefined();
-    expect((elicitations[0] as any).message).toContain("Drift: none");
+    expect(summaries[0].message).toContain("Drift: none");
     expect(result.reconciled).toBeUndefined();
     expect(result.codeDrift).toContain("doesn't reconcile");
     expect(result.codeDrift).toContain('"extract-bootstrap"');
   });
 
-  // #1207: a dialog can come back unanswered by any person (the client declined or cancelled it
-  // for them), so no refusal claims more than the tool knows, and each names a route with no dialog.
-  for (const [label, answer, says] of [
-    ["the dialog comes back declined", { action: "decline" }, "the confirmation dialog came back declined"],
-    ["no confirmation comes back (cancel)", { action: "cancel" }, "no confirmation came back"],
-    ["the user answers without confirming", { action: "accept", content: { confirm: false } }, "without confirming it"],
-  ] as const) {
-    it(`refuses and writes nothing when ${label}`, async () => {
-      const before = await baseModelText();
-      const c = await connect({ elicitation: true, answer: answer as ElicitResult });
-      const result = await commit(c);
-      expect(result.isError).toBe(true);
-      expect(text(result)).toContain(says);
-      expect(text(result)).toContain("Nothing was written");
-      expect(elicitations).toHaveLength(1);
-      expect(await changesetStatus()).toBe("staged");
-      expect(await baseModelText()).toBe(before);
-    });
-  }
-
-  it("does not say the user declined when no confirmation came back, and names the viewer's Apply (#1207)", async () => {
-    const c = await connect({ elicitation: true, answer: { action: "cancel" } });
-    const result = await commit(c);
-    expect(text(result)).not.toContain("the user declined");
-    expect(text(result)).toContain("may not have been shown");
-    expect(text(result)).toContain("Remote Control");
-    expect(text(result)).toContain("review_open");
-    expect(text(result)).toContain("Apply");
-    expect(text(result)).not.toContain("dr changeset");
-  });
-
-  it("says a decline may have been the client's, and points Claude Code at the preview and its token (#1239)", async () => {
-    const c = await connect({ elicitation: true, answer: { action: "decline" }, clientInfo: CLAUDE_CODE });
-    const result = await commit(c);
-    expect(text(result)).toContain("If the user did not decline it themselves");
-    expect(text(result)).toContain("changeset_commit_preview");
-    expect(text(result)).toContain("Apply");
-    expect(text(result)).not.toMatch(/\bdr changeset\b|--force|force: true/);
-  });
-
-  it("refuses a client without the elicitation capability, pointing at the viewer and an interactive session, never the CLI", async () => {
-    const before = await baseModelText();
-    const c = await connect({ elicitation: false });
-    const result = await commit(c);
+  it("refuses in changeset-only mode, naming the viewer's Apply and never the CLI", async () => {
+    process.env[CHANGESET_ONLY_ENV] = "true";
+    const c = await connect();
+    const result = await c.callTool({ name: "changeset_commit", arguments: { changeset: "export-orders", rootPath } });
     expect(result.isError).toBe(true);
-    expect(text(result)).toContain("does not support MCP elicitation");
+    expect(text(result)).toContain("changeset-only mode");
     expect(text(result)).toContain("Apply");
-    expect(text(result)).toContain("interactive Claude Code session");
-    // Round 3: agents passed the CLI fallback on to the developer, who types no dr command.
     expect(text(result)).not.toContain("dr changeset");
+    expect(await changesetStatus()).toBe("staged");
+  });
+
+  it("is an ordinary write tool: no requiresUserInteraction flag, no confirmToken input", async () => {
+    const c = await connect();
+    const { tools } = await c.listTools();
+    const commitTool = tools.find((t) => t.name === "changeset_commit");
+    expect(commitTool?._meta?.["anthropic/requiresUserInteraction"]).toBeUndefined();
+    expect(tools.filter((t) => t._meta?.["anthropic/requiresUserInteraction"])).toEqual([]);
+    expect(Object.keys(commitTool?.inputSchema.properties ?? {})).not.toContain("confirmToken");
+    expect(Object.keys(commitTool?.inputSchema.properties ?? {})).toContain("changesets");
+  });
+
+  it("lands in one call, with no dialog and no token, and names the files to commit (#1367)", async () => {
+    const c = await connect();
+    const result = parse(await c.callTool({ name: "changeset_commit", arguments: { changeset: "export-orders", rootPath } }));
+    expect(result.status).toBe("committed");
+    expect(result.confirmedBy).toBeUndefined();
+    expect(result.byOperation).toEqual({ add: 2, "relationship-add": 1 });
+    expect(result.layers).toEqual(["application"]);
+    const id = await planId();
+    expect(result.filesToCommit).toContain(join("documentation-robotics", "changesets", id));
+    expect(result.filesToCommit).toContain(join("documentation-robotics", "model", "manifest.yaml"));
+    expect(result.filesToCommit).toContain(join("documentation-robotics", "model", "relationships.yaml"));
+    expect(result.next).toContain("Commit these with the code");
+  });
+
+  it("the preview is a read-only dry run: the same summary, the files, no token", async () => {
+    const before = await baseModelText();
+    const c = await connect();
+    const shown = parse(await c.callTool({ name: "changeset_commit_preview", arguments: { changeset: "export-orders", rootPath } }));
+    expect(shown.status).toBe("ready-to-commit");
+    expect(shown.confirmToken).toBeUndefined();
+    expect(shown.expiresAt).toBeUndefined();
+    expect(shown.next).toBe("When the user asks to land it, call changeset_commit.");
+    expect(shown.summary).toContain("Changes: 3");
+    expect(shown.filesToCommit.length).toBeGreaterThan(0);
     expect(await changesetStatus()).toBe("staged");
     expect(await baseModelText()).toBe(before);
   });
 
-  it("refuses in changeset-only mode without asking", async () => {
-    process.env[CHANGESET_ONLY_ENV] = "true";
-    const c = await connect({ elicitation: true, answer: { action: "accept", content: { confirm: true } } });
-    const result = await commit(c);
+  it("a validation error refuses the landing and writes nothing", async () => {
+    // The goal the plan's service realizes is deleted from the base: the landing would leave a dangling link.
+    await changesetDeactivateHandler({ rootPath });
+    await modelDeleteHandler({ id: GOAL, force: true, rootPath } as any);
+    clearModelCache();
+    const before = await baseModelText();
+    const c = await connect();
+    const result = await c.callTool({ name: "changeset_commit", arguments: { changeset: "export-orders", rootPath } });
     expect(result.isError).toBe(true);
-    expect(text(result)).toContain("changeset-only mode");
-    expect(elicitations).toHaveLength(0);
+    expect(text(result)).toContain("was not committed");
     expect(await changesetStatus()).toBe("staged");
+    expect(await baseModelText()).toBe(before);
+  });
+
+  describe("several changesets at once (#1256)", () => {
+    async function planSecond(): Promise<void> {
+      await changesetCreateHandler({ name: "second-plan", description: "A second plan", rootPath });
+      await modelAddHandler({ layer: "application", type: "applicationfunction", name: "import-orders", rootPath });
+    }
+
+    it("lands them in order with one summary listing each one's counts", async () => {
+      await planSecond();
+      const c = await connect();
+      const result = parse(
+        await c.callTool({ name: "changeset_commit", arguments: { changesets: ["export-orders", "second-plan"], rootPath } })
+      );
+      expect(result.status).toBe("committed");
+      expect(result.landed.map((l: any) => l.name)).toEqual(["export-orders", "second-plan"]);
+      expect(result.summary).toHaveLength(2);
+      expect(result.summary[0]).toContain("export-orders: landed, 3 change(s)");
+      expect(result.summary[1]).toContain("second-plan: landed, 1 change(s)");
+      expect(result.filesToCommit.filter((f: string) => f.includes("changesets"))).toHaveLength(2);
+      const base = await baseModelText();
+      expect(base).toContain(FUNCTION);
+      expect(base).toContain("application.applicationfunction.import-orders");
+    });
+
+    it("stops at the first refusal: the ones before it stay landed, the ones after are not attempted", async () => {
+      await planSecond();
+      const c = await connect();
+      const result = parse(
+        await c.callTool({
+          name: "changeset_commit",
+          arguments: { changesets: ["export-orders", "no-such-changeset", "second-plan"], rootPath },
+        })
+      );
+      expect(result.status).toBe("stopped");
+      expect(result.landed.map((l: any) => l.name)).toEqual(["export-orders"]);
+      expect(result.stoppedAt.changeset).toBe("no-such-changeset");
+      expect(result.notAttempted).toEqual(["second-plan"]);
+      expect(await changesetStatus()).toBe("committed");
+      const second = parse(await changesetShowHandler({ changesetId: "second-plan", rootPath }));
+      expect(second.status).toBe("staged");
+    });
+
+    it("stops when the second fails validation: the first stays landed, the second stays staged", async () => {
+      await planSecond();
+      // export-orders' service realizes a goal that is then deleted from the base.
+      await changesetDeactivateHandler({ rootPath });
+      await modelDeleteHandler({ id: GOAL, force: true, rootPath } as any);
+      clearModelCache();
+      const c = await connect();
+      const result = parse(
+        await c.callTool({ name: "changeset_commit", arguments: { changesets: ["second-plan", "export-orders"], rootPath } })
+      );
+      expect(result.status).toBe("stopped");
+      expect(result.landed.map((l: any) => l.name)).toEqual(["second-plan"]);
+      expect(result.stoppedAt.changeset).toBe("export-orders");
+      expect(await changesetStatus()).toBe("staged");
+    });
+
+    it("refuses outright when the first one is refused", async () => {
+      const c = await connect();
+      const result = await c.callTool({
+        name: "changeset_commit",
+        arguments: { changesets: ["no-such-changeset", "export-orders"], rootPath },
+      });
+      expect(result.isError).toBe(true);
+      expect(await changesetStatus()).toBe("staged");
+    });
+
+    it("asks for a changeset by name", async () => {
+      const c = await connect();
+      const result = await c.callTool({ name: "changeset_commit", arguments: { rootPath } });
+      expect(result.isError).toBe(true);
+      expect(text(result)).toContain("Name the changeset");
+    });
   });
 });
 
@@ -347,13 +386,13 @@ describe("changeset_commit drift and edge cases", () => {
 
   // #1200: drift warns, it does not refuse. The dialog is where the person decides, so it names
   // each overlap and what landing does about it; the result repeats it.
-  it("lands a drifted changeset without force: the dialog names the overlap and what landing does, and so does the result", async () => {
+  it("lands a drifted changeset without force: the summary names the overlap and what landing does, and so does the result", async () => {
     await overlapTheGoal();
-    const c = await connect({ elicitation: true, answer: ACCEPT });
+    const c = await connect();
     const result = await commit(c);
     expect(result.isError).toBeFalsy();
     const landed = parse(result);
-    expect(landed).toMatchObject({ status: "committed", deactivated: false, confirmedBy: "dialog" });
+    expect(landed).toMatchObject({ status: "committed", deactivated: false });
     expect(landed.driftOverridden).toBeUndefined();
     expect(landed.drift.landedOver).toContain("overlapped 1 staged change(s)");
     expect(landed.drift.total).toBe(1);
@@ -362,7 +401,7 @@ describe("changeset_commit drift and edge cases", () => {
     expect(landed.drift.kinds[0].consequence).toContain("landing replaces the base's edit with the plan's version");
     expect(landed.warnings).toBeUndefined();
 
-    const message = (elicitations[0] as any).message as string;
+    const message = summaries[0].message as string;
     expect(message).toContain("Drift: the base model changed under this changeset.");
     expect(message).toContain("1 staged change(s) overlap the base. Landing goes ahead, and does this:");
     expect(message).toContain("- changed-in-base, 1 element(s): The base edited this element");
@@ -396,7 +435,7 @@ describe("changeset_commit drift and edge cases", () => {
 
     it("the summary gives the true count and every kind, says how many it did not name, and where they all are", async () => {
       await overlapManyGoals();
-      const c = await connect({ elicitation: false, clientInfo: CLAUDE_CODE });
+      const c = await connect();
       const shown = parse(await preview(c, { changeset: "reword-goals" }));
 
       expect(shown.overlaps).toEqual({ total: MANY + 1, named: OVERLAPS_NAMED_PER_KIND + 1 });
@@ -418,19 +457,10 @@ describe("changeset_commit drift and edge cases", () => {
       expect(brief.drift.overlapping.elements).toHaveLength(MANY + 1);
     });
 
-    it("the token covers the whole set, and the result names every overlap it landed over", async () => {
+    it("the result names every overlap it landed over", async () => {
       await overlapManyGoals();
-      const c = await connect({ elicitation: false, clientInfo: CLAUDE_CODE });
-      const { confirmToken } = parse(await preview(c, { changeset: "reword-goals" }));
-
-      // A change to an overlap the summary did not name still refuses the token.
-      await modelUpdateHandler({ id: goals[MANY - 1], description: "Reworded again in the base", rootPath } as any);
-      const refused = await commit(c, { changeset: "reword-goals", confirmToken });
-      expect(refused.isError).toBe(true);
-      expect(text(refused)).toContain("changed since the preview");
-
-      const again = parse(await preview(c, { changeset: "reword-goals" }));
-      const landed = parse(await commit(c, { changeset: "reword-goals", confirmToken: again.confirmToken }));
+      const c = await connect();
+      const landed = parse(await commit(c, { changeset: "reword-goals" }));
       expect(landed.status).toBe("committed");
       expect(landed.drift.total).toBe(MANY + 1);
       const changed = landed.drift.kinds.find((kind: any) => kind.reason === "changed-in-base");
@@ -460,9 +490,9 @@ describe("changeset_commit drift and edge cases", () => {
 
     it("the dialog says the same", async () => {
       await overlapManyGoals();
-      const c = await connect({ elicitation: true, answer: ACCEPT });
+      const c = await connect();
       expect(parse(await commit(c, { changeset: "reword-goals" })).status).toBe("committed");
-      const message = (elicitations[0] as any).message as string;
+      const message = summaries[0].message as string;
       expect(message).toContain(`${MANY + 1} staged change(s) overlap the base.`);
       expect(message).toContain(`4 of the ${MANY + 1} are not named here.`);
     });
@@ -473,13 +503,13 @@ describe("changeset_commit drift and edge cases", () => {
     await changesetDeactivateHandler({ rootPath });
     await modelAddHandler({ layer: "motivation", type: "goal", name: "lower-costs", attributes: { priority: "low" }, rootPath });
 
-    const c = await connect({ elicitation: false, clientInfo: CLAUDE_CODE });
+    const c = await connect();
     const shown = parse(await preview(c));
     expect(shown.summary).toContain("No overlap was found in what could be checked.");
     expect(shown.summary).toContain("Not checked: 1 staged relationship change(s) were not checked");
     expect(shown.summary).toContain("rebaseline: true records a base index");
     expect(shown.summary).not.toContain("Nothing this changeset stages overlaps it");
-    const landed = parse(await commit(c, { confirmToken: shown.confirmToken }));
+    const landed = parse(await commit(c));
     expect(landed.status).toBe("committed");
     expect(landed.drift.notChecked).toContain("Not checked:");
   });
@@ -495,7 +525,7 @@ describe("changeset_commit drift and edge cases", () => {
     clearModelCache();
     await changesetUpdateHandler({ changeset: "export-orders", rebaseline: true, rootPath } as any);
 
-    const c = await connect({ elicitation: false, clientInfo: CLAUDE_CODE });
+    const c = await connect();
     const shown = parse(await preview(c));
     expect(shown.summary).not.toContain("Drift: none");
     expect(shown.summary).toContain("Not checked:");
@@ -504,34 +534,21 @@ describe("changeset_commit drift and edge cases", () => {
 
   it("accepts force, ignores it and says so", async () => {
     await overlapTheGoal();
-    const c = await connect({ elicitation: true, answer: ACCEPT });
+    const c = await connect();
     const landed = parse(await commit(c, { force: true }));
     expect(landed.status).toBe("committed");
     expect(landed.warnings.join(" ")).toContain("force is deprecated and was ignored");
-    expect((elicitations[0] as any).message).not.toContain("force");
+    expect(summaries[0].message).not.toContain("force");
   });
 
-  it("writes nothing for a drifted changeset the user declines", async () => {
-    await overlapTheGoal();
-    const before = await baseModelText();
-    const c = await connect({ elicitation: true, answer: { action: "decline" } });
-    const result = await commit(c);
-    expect(result.isError).toBe(true);
-    expect(elicitations).toHaveLength(1);
-    expect(await changesetStatus()).toBe("staged");
-    expect(await baseModelText()).toBe(before);
-  });
-
-  // #1208: an edit to an element the changeset only links to is not an overlap, so it is not
-  // something the person is warned about at confirmation.
   it("does not warn about an edit to an element the changeset only links to", async () => {
     await driftTheBase();
-    const c = await connect({ elicitation: true, answer: ACCEPT });
+    const c = await connect();
     const result = await commit(c);
     expect(result.isError).toBeFalsy();
     expect(parse(result).status).toBe("committed");
     expect(parse(result).drift).toBeUndefined();
-    const message = (elicitations[0] as any).message as string;
+    const message = summaries[0].message as string;
     expect(message).toContain("In the base: 1 elements changed");
     expect(message).toContain("Nothing this changeset stages overlaps it");
     expect(message).not.toContain("overlap the base");
@@ -546,14 +563,14 @@ describe("changeset_commit drift and edge cases", () => {
     await modelAddHandler({ layer: "motivation", type: "goal", name: "lower-costs", attributes: { priority: "low" }, rootPath });
     await changesetDeactivateHandler({ rootPath });
 
-    const c = await connect({ elicitation: true, answer: ACCEPT });
+    const c = await connect();
     expect(parse(await commit(c, { changeset: "lower-costs" })).status).toBe("committed");
 
     const result = await commit(c);
     expect(result.isError).toBeFalsy();
     expect(parse(result).status).toBe("committed");
     expect(parse(result).drift).toBeUndefined();
-    const message = (elicitations[1] as any).message as string;
+    const message = summaries[1].message as string;
     expect(message).toContain("In the base: 1 elements added");
     expect(message).toContain("Nothing this changeset stages overlaps it");
     expect(await baseModelText()).toContain(FUNCTION);
@@ -568,11 +585,11 @@ describe("changeset_commit drift and edge cases", () => {
     await changesetUnstageHandler({ elementId: GOAL, rootPath });
     await modelUpdateHandler({ id: GOAL, description: "Checkout in under a minute, in one step", rootPath } as any);
 
-    const c = await connect({ elicitation: true, answer: ACCEPT });
+    const c = await connect();
     const result = await commit(c);
     expect(parse(result).status).toBe("committed");
     expect(parse(result).drift).toBeUndefined();
-    expect((elicitations[0] as any).message).toContain("Nothing this changeset stages overlaps it");
+    expect(summaries[0].message).toContain("Nothing this changeset stages overlaps it");
     expect(await baseModelText()).toContain("Checkout in under a minute, in one step");
   });
 
@@ -591,7 +608,7 @@ describe("changeset_commit drift and edge cases", () => {
     // The safety line for a re-baseline: an agent can't use it to clear what the person reads when
     // confirming. The preview after it still states the overlap, and says the changeset was
     // re-baselined; so does the dialog; and the landing reports it.
-    const c = await connect({ elicitation: false, clientInfo: CLAUDE_CODE });
+    const c = await connect();
     const shown = parse(await preview(c));
     expect(shown.drifted).toBe(true);
     expect(shown.summary).toContain("Re-baselined ");
@@ -604,9 +621,9 @@ describe("changeset_commit drift and edge cases", () => {
     const again = parse(await changesetUpdateHandler({ changeset: "export-orders", rebaseline: true, rootPath } as any));
     expect(again.rebaselined.overlapsRemaining).toMatchObject([{ element: GOAL, reason: "changed-in-base" }]);
 
-    const asked = await connect({ elicitation: true, answer: ACCEPT });
+    const asked = await connect();
     const landed = parse(await commit(asked));
-    const message = (elicitations[0] as any).message as string;
+    const message = summaries[0].message as string;
     expect(message).toContain("Re-baselined ");
     expect(message).toContain("(2 times)");
     expect(message).toContain("- changed-in-base, 1 element(s)");
@@ -621,7 +638,7 @@ describe("changeset_commit drift and edge cases", () => {
     expect(updated.rebaselined.next).toContain("Nothing the changeset stages overlaps the base");
     expect(updated.changes).toBe(3);
 
-    const c = await connect({ elicitation: false, clientInfo: CLAUDE_CODE });
+    const c = await connect();
     const shown = parse(await preview(c));
     expect(shown.drifted).toBe(false);
     expect(shown.summary).toContain("Drift: none");
@@ -669,7 +686,7 @@ describe("changeset_commit drift and edge cases", () => {
   });
 
   it("refuses to re-baseline a changeset that is not staged, and changeset_update with nothing to do", async () => {
-    const c = await connect({ elicitation: true, answer: ACCEPT });
+    const c = await connect();
     expect(parse(await commit(c)).status).toBe("committed");
     const refused = await changesetUpdateHandler({ changeset: "export-orders", rebaseline: true, rootPath } as any);
     expect(refused.isError).toBe(true);
@@ -680,54 +697,20 @@ describe("changeset_commit drift and edge cases", () => {
 
   it("reports an empty changeset as nothing to commit, without asking", async () => {
     await changesetCreateHandler({ name: "empty", rootPath });
-    const c = await connect({ elicitation: true, answer: { action: "accept", content: { confirm: true } } });
+    const c = await connect();
     const result = await commit(c, { changeset: "empty" });
     expect(parse(result)).toMatchObject({ status: "nothing-to-commit", stagedChanges: 0 });
-    expect(elicitations).toHaveLength(0);
+    expect(summaries).toHaveLength(0);
   });
 
   it("answers that a changeset already landed is landed, without asking again (#1441)", async () => {
-    const c = await connect({ elicitation: true, answer: { action: "accept", content: { confirm: true } } });
+    const c = await connect();
     expect((await commit(c)).isError).toBeFalsy();
     const again = await commit(c);
     expect(again.isError).toBeFalsy();
     expect(parse(again)).toMatchObject({ status: "already-landed" });
     expect(parse(again).nothingToDo).toContain("is already landed");
-    expect(elicitations).toHaveLength(1);
-  });
-});
-
-describe("changeset_commit checks what was confirmed", () => {
-  it("refuses when the changeset changed while the dialog was open", async () => {
-    const before = await baseModelText();
-    const c = await connect({
-      elicitation: true,
-      answer: ACCEPT,
-      whileAsking: async () => {
-        await modelAddHandler({ layer: "application", type: "applicationfunction", name: "late-addition", rootPath });
-      },
-    });
-    const result = await commit(c);
-    expect(result.isError).toBe(true);
-    expect(text(result)).toContain("changed while the user was confirming");
-    expect(await changesetStatus()).toBe("staged");
-    expect(await baseModelText()).toBe(before);
-  });
-
-  it("refuses when the base model changed while the dialog was open", async () => {
-    const c = await connect({
-      elicitation: true,
-      answer: ACCEPT,
-      whileAsking: async () => {
-        await changesetDeactivateHandler({ rootPath });
-        await modelAddHandler({ layer: "motivation", type: "goal", name: "lower-costs", attributes: { priority: "low" }, rootPath });
-      },
-    });
-    const result = await commit(c);
-    expect(result.isError).toBe(true);
-    expect(text(result)).toContain("changed while the user was confirming");
-    expect(await changesetStatus()).toBe("staged");
-    expect(await baseModelText()).not.toContain(FUNCTION);
+    expect(summaries).toHaveLength(1);
   });
 });
 
@@ -746,7 +729,7 @@ describe("changeset_commit with another changeset active", () => {
     await relationshipAddHandler({ source: "application.applicationservice.s1", predicate: "realizes", target: GOAL, rootPath });
     await changesetActivateHandler({ changesetId: "export-orders", rootPath });
 
-    const c = await connect({ elicitation: true, answer: ACCEPT });
+    const c = await connect();
     const result = await commit(c, { changeset: "bbb" });
     expect(parse(result)).toMatchObject({ name: "bbb", status: "committed", committed: 2, deactivated: false });
 
@@ -780,14 +763,14 @@ describe("changeset_commit of an as-built changeset while a plan is staged", () 
     } as any);
   }
 
-  it("warns in the dialog that the plan should land instead, and still commits on accept", async () => {
+  it("warns in the summary that the plan should land instead, and still commits", async () => {
     await stageAsBuilt();
-    const c = await connect({ elicitation: true, answer: ACCEPT });
+    const c = await connect();
     const result = await commit(c, { changeset: "export-orders-as-built" });
     expect(parse(result).status).toBe("committed");
     expect(parse(result).warnings[0]).toContain('the plan "export-orders" is still staged');
 
-    const message = (elicitations[0] as any).message as string;
+    const message = summaries[0].message as string;
     expect(message).toContain('"export-orders-as-built" is an as-built changeset from codebase_extract');
     expect(message).toContain('the plan "export-orders" is still staged');
     expect(message).toContain("land the plan instead");
@@ -795,11 +778,11 @@ describe("changeset_commit of an as-built changeset while a plan is staged", () 
 
   it("does not warn when the plan itself lands", async () => {
     await stageAsBuilt();
-    const c = await connect({ elicitation: true, answer: ACCEPT });
+    const c = await connect();
     const result = await commit(c, { changeset: "export-orders" });
     expect(parse(result).status).toBe("committed");
     expect(parse(result).warnings).toBeUndefined();
-    expect((elicitations[0] as any).message).not.toContain("as-built changeset");
+    expect(summaries[0].message).not.toContain("as-built changeset");
   });
 });
 
@@ -834,7 +817,7 @@ describe("changeset_commit of a plan's verification record", () => {
     it(`refuses it${force ? " with force" : ""} without asking, naming the plan and what to do, never the CLI`, async () => {
       await stageVerificationRecord();
       const before = await baseModelText();
-      const c = await connect({ elicitation: true, answer: ACCEPT });
+      const c = await connect();
       const result = await commit(c, { changeset: "export-orders-as-built", ...(force ? { force: true } : {}) });
       expect(result.isError).toBe(true);
       const error = parse(result);
@@ -845,21 +828,21 @@ describe("changeset_commit of a plan's verification record", () => {
       expect(error.suggestions.join("\n")).toContain("Keep this record");
       expect(error.suggestions.join("\n")).toContain("extract without a plan active");
       expect(text(result)).not.toMatch(/\bdr (changeset|visualize)\b|--force/);
-      expect(elicitations).toHaveLength(0);
+      expect(summaries).toHaveLength(0);
       expect(await baseModelText()).toBe(before);
     });
   }
 
   it("refuses it in changeset_commit_preview too, and the plan still lands", async () => {
     await stageVerificationRecord();
-    const c = await connect({ elicitation: true, answer: ACCEPT, clientInfo: CLAUDE_CODE });
+    const c = await connect();
     const shown = await preview(c, { changeset: "export-orders-as-built", force: true });
     expect(shown.isError).toBe(true);
     expect(parse(shown).category).toBe("user");
     expect(parse(shown).error).toContain("is a verification record");
     await c.close();
 
-    const c2 = await connect({ elicitation: true, answer: ACCEPT });
+    const c2 = await connect();
     const landed = await commit(c2, { changeset: "export-orders" });
     expect(parse(landed).status).toBe("committed");
   });
@@ -895,11 +878,11 @@ describe("changeset_commit validates against the base and the named changeset on
     await addY();
 
     const before = await baseModelText();
-    const c = await connect({ elicitation: true, answer: ACCEPT });
+    const c = await connect();
     const result = await commit(c, { changeset: "bbb" });
     expect(result.isError).toBe(true);
     expect(text(result)).toContain(`Relationship target element '${y}' not found`);
-    expect(elicitations).toHaveLength(0);
+    expect(summaries).toHaveLength(0);
     expect(await baseModelText()).toBe(before);
   });
 });
@@ -910,246 +893,6 @@ async function preview(c: Client, args: Record<string, unknown> = {}): Promise<a
   return c.callTool({ name: "changeset_commit_preview", arguments: { changeset: "export-orders", rootPath, ...args } });
 }
 
-describe("changeset_commit with a confirmation token from changeset_commit_preview", () => {
-  it("is not listed with anthropic/requiresUserInteraction itself", async () => {
-    const c = await connect({ elicitation: false, clientInfo: CLAUDE_CODE });
-    const { tools } = await c.listTools();
-    const previewTool = tools.find((t) => t.name === "changeset_commit_preview");
-    expect(previewTool).toBeDefined();
-    expect(previewTool?._meta?.["anthropic/requiresUserInteraction"]).toBeUndefined();
-  });
-
-  it("previews without writing, then lands from Claude Code with the token and no dialog", async () => {
-    const before = await baseModelText();
-    // Print mode: Claude Code advertises elicitation but declines it; the token path never asks.
-    const c = await connect({ elicitation: true, answer: { action: "decline" }, clientInfo: CLAUDE_CODE });
-    const shown = parse(await preview(c));
-    expect(shown.status).toBe("ready-to-commit");
-    expect(shown.summary).toContain('Commit changeset "export-orders"');
-    expect(shown.summary).toContain("Intent: Admins export orders as CSV");
-    expect(typeof shown.confirmToken).toBe("string");
-    expect(shown.next).toContain("permission prompt");
-    expect(await baseModelText()).toBe(before);
-    expect(await changesetStatus()).toBe("staged");
-
-    const result = await commit(c, { confirmToken: shown.confirmToken });
-    expect(result.isError).toBeFalsy();
-    const landed = parse(result);
-    expect(landed.status).toBe("committed");
-    expect(landed.confirmedBy).toBe("permission-prompt");
-    expect(elicitations).toHaveLength(0);
-    expect(await changesetStatus()).toBe("committed");
-  });
-
-  it("gives no token to a client that doesn't ask before each call, and refuses a token from one", async () => {
-    const claude = await connect({ elicitation: false, clientInfo: CLAUDE_CODE });
-    const { confirmToken } = parse(await preview(claude));
-    await claude.close();
-
-    const before = await baseModelText();
-    const other = await connect({ elicitation: true, answer: ACCEPT });
-    const shown = parse(await preview(other));
-    expect(shown.confirmToken).toBeUndefined();
-    expect(shown.next).toContain("dialog");
-    const result = await commit(other, { confirmToken });
-    expect(result.isError).toBe(true);
-    expect(text(result)).toContain("only from a client that asks the person");
-    expect(elicitations).toHaveLength(0);
-    expect(await baseModelText()).toBe(before);
-  });
-
-  it("gives no token to a Claude Code older than the flag", async () => {
-    const c = await connect({ elicitation: false, clientInfo: { name: "claude-code", version: "2.1.198" } });
-    expect(parse(await preview(c)).confirmToken).toBeUndefined();
-  });
-
-  it("refuses the token when the changeset changed after the preview", async () => {
-    const c = await connect({ elicitation: false, clientInfo: CLAUDE_CODE });
-    const { confirmToken } = parse(await preview(c));
-    await modelAddHandler({ layer: "application", type: "applicationfunction", name: "import-orders", rootPath });
-    const before = await baseModelText();
-    const result = await commit(c, { confirmToken });
-    expect(result.isError).toBe(true);
-    expect(text(result)).toContain("changed since the preview");
-    expect(text(result)).toContain("changeset_commit_preview again");
-    expect(await changesetStatus()).toBe("staged");
-    expect(await baseModelText()).toBe(before);
-  });
-
-  it("ignores force with a token: the token binds the changeset and the base, not a flag", async () => {
-    const c = await connect({ elicitation: false, clientInfo: CLAUDE_CODE });
-    const { confirmToken } = parse(await preview(c));
-    const landed = parse(await commit(c, { confirmToken, force: true }));
-    expect(landed.status).toBe("committed");
-    expect(landed.warnings.join(" ")).toContain("force is deprecated and was ignored");
-  });
-
-  it("refuses the token when the base model changed after the preview", async () => {
-    const c = await connect({ elicitation: false, clientInfo: CLAUDE_CODE });
-    const { confirmToken } = parse(await preview(c));
-    await changesetDeactivateHandler({ rootPath });
-    await modelAddHandler({ layer: "motivation", type: "goal", name: "lower-costs", attributes: { priority: "low" }, rootPath });
-    const before = await baseModelText();
-    const result = await commit(c, { confirmToken });
-    expect(result.isError).toBe(true);
-    expect(text(result)).toContain("changed since the preview");
-    expect(await changesetStatus()).toBe("staged");
-    expect(await baseModelText()).toBe(before);
-  });
-
-  // #1239, the keystone: a changeset the base overlaps lands from a session where no dialog can be
-  // shown (the desktop app, Remote Control), with no force and no CLI. The person reads the overlap
-  // in the preview's summary and approves the commit call in the permission prompt.
-  it("lands a drifted changeset with the preview's token and no dialog, the summary naming the overlap", async () => {
-    await modelUpdateHandler({ id: GOAL, description: "Checkout in one step", rootPath } as any);
-    await changesetDeactivateHandler({ rootPath });
-    await modelUpdateHandler({ id: GOAL, description: "Checkout in under a minute", rootPath } as any);
-
-    // The client declines every dialog, as print mode does; the token path never asks.
-    const c = await connect({ elicitation: true, answer: { action: "decline" }, clientInfo: CLAUDE_CODE });
-    const shown = parse(await preview(c));
-    expect(shown.status).toBe("ready-to-commit");
-    expect(shown.drifted).toBe(true);
-    expect(shown.force).toBeUndefined();
-    expect(shown.summary).toContain("1 staged change(s) overlap the base. Landing goes ahead, and does this:");
-    expect(shown.summary).toContain("- changed-in-base, 1 element(s)");
-    expect(shown.summary).toContain(`      ${GOAL}`);
-    expect(shown.overlaps).toEqual({ total: 1, named: 1 });
-    expect(shown.more).toBeUndefined();
-    expect(shown.next).toContain("its drift lines included");
-    expect(shown.next).not.toContain("force");
-
-    const result = await commit(c, { confirmToken: shown.confirmToken });
-    expect(result.isError).toBeFalsy();
-    const landed = parse(result);
-    expect(landed).toMatchObject({ status: "committed", confirmedBy: "permission-prompt" });
-    expect(landed.drift.kinds[0]).toMatchObject({ reason: "changed-in-base", items: [GOAL] });
-    expect(elicitations).toHaveLength(0);
-    expect(await baseModelText()).toContain("Checkout in one step");
-  });
-
-  it("gives a token good for an hour: long enough for a relayed answer, too short for yesterday's preview", async () => {
-    const c = await connect({ elicitation: false, clientInfo: CLAUDE_CODE });
-    const shown = parse(await preview(c));
-    const lifetime = new Date(shown.expiresAt).getTime() - Date.now();
-    expect(lifetime).toBeGreaterThan(59 * 60_000);
-    expect(lifetime).toBeLessThanOrEqual(60 * 60_000);
-    expect(CONFIRM_TOKEN_TTL_MS).toBe(60 * 60_000);
-    expect(confirmationTiming.tokenTtlMs).toBe(CONFIRM_TOKEN_TTL_MS);
-    expect(shown.next).toContain("good for an hour");
-    const { tools } = await c.listTools();
-    expect(tools.find((t) => t.name === "changeset_commit_preview")!.description).toContain("good for an hour");
-  });
-
-  it("says an expired token expired and that a new preview is needed, not that the user declined", async () => {
-    const saved = confirmationTiming.tokenTtlMs;
-    try {
-      const c = await connect({ elicitation: false, clientInfo: CLAUDE_CODE });
-      // The lifetime is one setting: a token issued under it has passed it by the time it is used.
-      confirmationTiming.tokenTtlMs = -1;
-      const { confirmToken } = parse(await preview(c));
-      const before = await baseModelText();
-      const result = await commit(c, { confirmToken });
-      expect(result.isError).toBe(true);
-      expect(text(result)).toContain("the confirmToken expired");
-      expect(text(result)).toContain("the user did not decline");
-      expect(text(result)).toContain("changeset_commit_preview again");
-      expect(await changesetStatus()).toBe("staged");
-      expect(await baseModelText()).toBe(before);
-    } finally {
-      confirmationTiming.tokenTtlMs = saved;
-    }
-  });
-
-  it("refuses a token changeset_commit_preview did not issue", async () => {
-    const c = await connect({ elicitation: false, clientInfo: CLAUDE_CODE });
-    const result = await commit(c, { confirmToken: "not-a-token" });
-    expect(result.isError).toBe(true);
-    expect(text(result)).toContain("not one changeset_commit_preview issued");
-    expect(await changesetStatus()).toBe("staged");
-  });
-
-  it("refuses in changeset-only mode even with a token, and the preview says it is the user's to land", async () => {
-    const c = await connect({ elicitation: false, clientInfo: CLAUDE_CODE });
-    process.env[CHANGESET_ONLY_ENV] = "true";
-    const shown = parse(await preview(c));
-    expect(shown.confirmToken).toBeUndefined();
-    expect(shown.next).toContain("Apply");
-    const { token } = issueConfirmToken("x", "state");
-    const result = await commit(c, { confirmToken: token });
-    expect(result.isError).toBe(true);
-    expect(text(result)).toContain("changeset-only mode");
-    expect(await changesetStatus()).toBe("staged");
-  });
-});
-
-describe("confirmation tokens", () => {
-  it("are good once, for the state and changeset they were issued for, until they expire", () => {
-    const now = Date.now();
-    const { token } = issueConfirmToken("cs-1", "state-a", now);
-    expect(checkConfirmToken(token, "cs-1", "state-b", now)).toBe("mismatch");
-    expect(checkConfirmToken(token, "cs-2", "state-a", now)).toBe("mismatch");
-    expect(checkConfirmToken(token, "cs-1", "state-a", now + confirmationTiming.tokenTtlMs + 1)).toBe("expired");
-    // Still good most of an hour on: the answer may be relayed through another session.
-    expect(checkConfirmToken(token, "cs-1", "state-b", now + 55 * 60_000)).toBe("mismatch");
-    expect(checkConfirmToken(token, "cs-1", "state-a", now + 55 * 60_000)).toBe("ok");
-    expect(checkConfirmToken(token, "cs-1", "state-a", now)).toBe("used");
-    expect(checkConfirmToken("abc", "cs-1", "state-a", now)).toBe("malformed");
-  });
-
-  it("can't be reused by spelling the expiry another way", () => {
-    const now = Date.now();
-    const { token } = issueConfirmToken("cs-1", "state-a", now);
-    const [expiry, digest] = token.split(".");
-    expect(checkConfirmToken(token, "cs-1", "state-a", now)).toBe("ok");
-    for (const respelled of [`${expiry.toUpperCase()}.${digest}`, `0${expiry}.${digest}`, `${expiry}~.${digest}`]) {
-      expect(["malformed", "used"]).toContain(checkConfirmToken(respelled, "cs-1", "state-a", now));
-    }
-  });
-});
-
-describe("changeset_commit when the client declines the dialog at once", () => {
-  for (const action of ["decline", "cancel"] as const) {
-    it(`reports an instant ${action} as a dialog that could not be shown, pointing Claude Code at the preview`, async () => {
-      confirmationTiming.instantDeclineMs = 60_000;
-      const before = await baseModelText();
-      const c = await connect({ elicitation: true, answer: { action }, clientInfo: CLAUDE_CODE });
-      const result = await commit(c);
-      expect(result.isError).toBe(true);
-      expect(text(result)).toContain("the confirmation dialog could not be shown");
-      expect(text(result)).not.toContain("the user declined");
-      expect(text(result)).toContain("changeset_commit_preview");
-      expect(text(result)).toContain("Apply");
-      expect(text(result)).not.toContain("dr changeset");
-      expect(await changesetStatus()).toBe("staged");
-      expect(await baseModelText()).toBe(before);
-    });
-  }
-
-  it("doesn't point other clients at the preview", async () => {
-    confirmationTiming.instantDeclineMs = 60_000;
-    const c = await connect({ elicitation: true, answer: { action: "decline" } });
-    const result = await commit(c);
-    expect(text(result)).toContain("could not be shown");
-    expect(text(result)).not.toContain("changeset_commit_preview");
-  });
-
-  it("reports a decline that took time as declined, without claiming who declined it", async () => {
-    confirmationTiming.instantDeclineMs = 20;
-    const c = await connect({
-      elicitation: true,
-      answer: { action: "decline" },
-      whileAsking: () => new Promise((resolve) => setTimeout(resolve, 60)),
-      clientInfo: CLAUDE_CODE,
-    });
-    const result = await commit(c);
-    expect(text(result)).toContain("the confirmation dialog came back declined");
-    expect(text(result)).not.toContain("could not be shown. The client");
-  });
-});
-
-// #1331, #1330: a reconcile that stages nothing still lands, as the record that the model matches
-// the code it read; and one that read uncommitted code says to commit it first.
 describe("changeset_commit of an empty reconcile", () => {
   const sh = (args: string[]) => {
     const r = Bun.spawnSync(["git", "-c", "user.name=t", "-c", "user.email=t@t", ...args], { cwd: rootPath });
@@ -1179,12 +922,12 @@ describe("changeset_commit of an empty reconcile", () => {
 
   it("previews and lands with no staged changes, moving the drift baseline", async () => {
     await stageEmptyReconcile();
-    const c = await connect({ elicitation: false });
+    const c = await connect();
     const preview = parse(await c.callTool({ name: "changeset_commit_preview", arguments: { changeset: "reconcile-empty", rootPath } }));
     expect(preview.status).toBe("ready-to-commit");
     expect(preview.summary).toContain("0 changes: records that the model matches the code it read");
     expect(preview.summary).toContain("moves the drift baseline to ");
-    const d = await connect({ elicitation: true, answer: ACCEPT });
+    const d = await connect();
     const landed = parse(await d.callTool({ name: "changeset_commit", arguments: { changeset: "reconcile-empty", rootPath } }));
     expect(landed.status).toBe("committed");
     expect(landed.reconciled.code_commit).toBe(sh(["rev-parse", "HEAD"]));
@@ -1198,7 +941,7 @@ describe("changeset_commit of an empty reconcile", () => {
     const { hashFiles } = await import("../../../src/core/reconciliation.js");
     await stageEmptyReconcile(await hashFiles(rootPath, ["src/a.ts"]));
 
-    const first = await connect({ elicitation: true, answer: { action: "cancel" } });
+    const first = await connect();
     const warned = parse(await first.callTool({ name: "changeset_commit_preview", arguments: { changeset: "reconcile-empty", rootPath } }));
     expect(warned.summary).toContain("Commit the code first, then land");
     expect(warned.summary).toContain("src/a.ts");
@@ -1208,7 +951,7 @@ describe("changeset_commit of an empty reconcile", () => {
     const settled = parse(await first.callTool({ name: "changeset_commit_preview", arguments: { changeset: "reconcile-empty", rootPath } }));
     expect(settled.summary).not.toContain("Commit the code first");
 
-    const d = await connect({ elicitation: true, answer: ACCEPT });
+    const d = await connect();
     const landed = parse(await d.callTool({ name: "changeset_commit", arguments: { changeset: "reconcile-empty", rootPath } }));
     expect(landed.status).toBe("committed");
     // The extraction read the commit before; the code is in this one.
@@ -1216,7 +959,7 @@ describe("changeset_commit of an empty reconcile", () => {
   });
 
   it("does not land empty when the run left cards, was limited to layers, or the code moved past what it read", async () => {
-    const c = await connect({ elicitation: false });
+    const c = await connect();
     const preview = async () => parse(await c.callTool({ name: "changeset_commit_preview", arguments: { changeset: "reconcile-empty", rootPath } }));
 
     await stageEmptyReconcile(undefined, { cards: [{ cardId: "x" }], candidateDeletes: ["a"] });
@@ -1227,7 +970,7 @@ describe("changeset_commit of an empty reconcile", () => {
 
   it("limited to layers: nothing to commit, since it says nothing about the rest", async () => {
     await stageEmptyReconcile(undefined, { layers: ["api"] });
-    const c = await connect({ elicitation: false });
+    const c = await connect();
     const held = parse(await c.callTool({ name: "changeset_commit_preview", arguments: { changeset: "reconcile-empty", rootPath } }));
     expect(held.status).toBe("nothing-to-commit");
     expect(held.note).toContain("limited to api");
@@ -1243,7 +986,7 @@ describe("changeset_commit of an empty reconcile", () => {
     await writeFile(join(rootPath, "src", "c.ts"), "export const c = 1;\n");
     sh(["add", "src"]);
     sh(["commit", "-q", "-m", "code"]);
-    const d = await connect({ elicitation: true, answer: ACCEPT });
+    const d = await connect();
     const landed = parse(await d.callTool({ name: "changeset_commit", arguments: { changeset: "reconcile-empty", rootPath } }));
     expect(landed.status).toBe("committed");
     // b.ts was edited after the index (never settles) and c.ts was never read: the stamp stays put.

@@ -15,7 +15,6 @@ import { startTestFarmServer, type TestFarmServer } from "../helpers/test-farm-s
 import { createFakeWs } from "../unit/server/helpers.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import { ElicitRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import { MCP_ROOT_PATH_HEADER } from "../../src/mcp/central-mcp.js";
 
 const add = (name: string, operationId: string) => [
@@ -150,8 +149,7 @@ describe("changeset.commit.progress", () => {
     const transport = new StreamableHTTPClientTransport(new URL(server.url("/mcp")), {
       requestInit: { headers: { ...server.auth, [MCP_ROOT_PATH_HEADER]: encodeURIComponent(server.root) } },
     });
-    const client = new Client({ name: "progress-test", version: "1.0.0" }, { capabilities: { elicitation: {} } });
-    client.setRequestHandler(ElicitRequestSchema, async () => ({ action: "accept", content: { confirm: true } }));
+    const client = new Client({ name: "progress-test", version: "1.0.0" }, { capabilities: {} });
     await client.connect(transport);
     try {
       const result: any = await client.callTool({ name: "changeset_commit", arguments: { changeset: id } });

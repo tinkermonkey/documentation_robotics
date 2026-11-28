@@ -488,9 +488,59 @@ export type ChangesetsSection =
       discarded: number;
       /** Set when base drift could not be checked. */
       driftUnknown?: string;
+      /**
+       * Committed or recorded changesets whose folder under documentation-robotics/changesets/ git
+       * doesn't track yet (#1367): a landing's files go in the PR with the code, this folder included.
+       */
+      untracked?: UntrackedChangesets;
       /** The pre-#1218 marker, documentation-robotics/changesets/.active, when it is still on disk or in git. */
       legacyMarker?: LegacyMarkerState;
     };
+
+/** Landed changesets whose folder is not in git (#1367). */
+export interface UntrackedChangesets {
+  /** The changeset folders, relative to the project root. */
+  folders: string[];
+  /** What it means and what to do. */
+  note: string;
+}
+
+/** The changesets folder, relative to the project root. */
+const CHANGESETS_DIR = "documentation-robotics/changesets";
+
+/**
+ * Landed (committed or recorded) changesets whose folder git shows as untracked: the landing wrote
+ * the model but the folder that says what landed would be left out of the commit. Null when none, or
+ * when git can't say (never a guess). A staged changeset's folder is untracked too, until its PR.
+ */
+export async function collectUntrackedLandings(
+  ctx: Pick<StatusContext, "projectRoot" | "git">,
+  changesets: Changeset[]
+): Promise<UntrackedChangesets | null> {
+  if (!ctx.projectRoot) return null;
+  const landed = new Set(
+    changesets.filter((c) => c.status === "committed" || c.status === "recorded").map((c) => c.id)
+  );
+  if (landed.size === 0) return null;
+  // ls-files prints paths relative to the project root, wherever the project sits in the repository
+  // (git status prints them from the repository's root).
+  const status = await ctx.git(["ls-files", "--others", "--exclude-standard", "--", CHANGESETS_DIR], ctx.projectRoot);
+  if (!status.ok) return null;
+  const folders = new Set<string>();
+  for (const line of status.stdout.split("\n")) {
+    const rest = line.trim().replace(/^"|"$/g, "");
+    const id = rest.startsWith(`${CHANGESETS_DIR}/`) ? rest.slice(CHANGESETS_DIR.length + 1).split("/")[0] : undefined;
+    if (id && landed.has(id)) folders.add(`${CHANGESETS_DIR}/${id}`);
+  }
+  if (folders.size === 0) return null;
+  const list = [...folders].sort();
+  return {
+    folders: list,
+    note:
+      `${list.length} landed changeset folder(s) are not tracked by git (${list.slice(0, 3).join(", ")}${list.length > 3 ? ` and ${list.length - 3} more` : ""}). ` +
+      "Commit them with the model files so the PR shows what landed: git add documentation-robotics.",
+  };
+}
 
 /**
  * The active-changeset marker from before #1218, documentation-robotics/changesets/.active, which
@@ -640,6 +690,7 @@ export async function collectChangesets(ctx: StatusContext): Promise<ChangesetsS
   const active = activeId ? changesets.find((changeset) => changeset.id === activeId) : undefined;
   const nameOf = (id: string) => changesets.find((changeset) => changeset.id === id)?.name;
   const legacyMarker = await collectLegacyMarker(ctx, nameOf);
+  const untracked = await collectUntrackedLandings(ctx, changesets);
   return {
     status: "ok",
     active: active && active.status === "staged" ? stagedEntries.find((e) => e.id === active.id) ?? null : null,
@@ -650,6 +701,7 @@ export async function collectChangesets(ctx: StatusContext): Promise<ChangesetsS
     recorded: changesets.filter((changeset) => changeset.status === "recorded").length,
     ...(driftUnknown ? { driftUnknown } : {}),
     ...(legacyMarker ? { legacyMarker } : {}),
+    ...(untracked ? { untracked } : {}),
   };
 }
 

@@ -264,9 +264,9 @@ describe("dr mcp", () => {
     expect(toolsResponse.error).toBeUndefined();
     const names = toolsResponse.result.tools.map((t: any) => t.name).sort();
     expect(names).toEqual([...MODEL_TOOL_NAMES].sort());
-    // Landing needs a person: Claude Code prompts for this tool in every permission mode.
+    // Landing is an ordinary write tool: git and the PR are the gate (#1419), so no tool is flagged.
     const commitTool = toolsResponse.result.tools.find((t: any) => t.name === "changeset_commit");
-    expect(commitTool._meta).toEqual({ "anthropic/requiresUserInteraction": true });
+    expect(commitTool._meta?.["anthropic/requiresUserInteraction"]).toBeUndefined();
     // Tools are registered loose (so unknown arguments can be refused by name); the listing still
     // describes every argument.
     const briefTool = toolsResponse.result.tools.find((t: any) => t.name === "changeset_brief");

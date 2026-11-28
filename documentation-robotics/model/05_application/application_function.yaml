@@ -8716,74 +8716,6 @@ application.applicationfunction.as-built-first-warning:
     created_at: 2026-11-20T15:06:30.044Z
     updated_at: 2026-11-20T15:06:30.044Z
     version: 1
-application.applicationfunction.confirmation-message:
-  id: 3cb6814d-cc89-4080-849b-cc3a5d5b5c2c
-  path: application.applicationfunction.confirmation-message
-  spec_node_id: application.applicationfunction
-  type: applicationfunction
-  layer_id: application
-  name: confirmationMessage
-  description: The text of the confirmation dialog.
-  source_reference:
-    provenance: extracted
-    locations:
-      - file: cli/src/mcp/tools/changeset-commit.ts
-        symbol: confirmationMessage
-  metadata:
-    created_at: 2026-11-20T15:06:30.044Z
-    updated_at: 2026-11-20T15:06:30.044Z
-    version: 1
-application.applicationfunction.asks-before-each-call:
-  id: f118a09a-53b0-4036-9cef-93688b52265a
-  path: application.applicationfunction.asks-before-each-call
-  spec_node_id: application.applicationfunction
-  type: applicationfunction
-  layer_id: application
-  name: asksBeforeEachCall
-  description: Whether the connected client asks the person before each changeset_commit call.
-  source_reference:
-    provenance: extracted
-    locations:
-      - file: cli/src/mcp/tools/changeset-commit.ts
-        symbol: asksBeforeEachCall
-  metadata:
-    created_at: 2026-11-20T15:06:30.044Z
-    updated_at: 2026-11-20T15:06:30.044Z
-    version: 1
-application.applicationfunction.issue-confirm-token:
-  id: 5d1624a7-61cc-4483-8fbd-8e1b8c949493
-  path: application.applicationfunction.issue-confirm-token
-  spec_node_id: application.applicationfunction
-  type: applicationfunction
-  layer_id: application
-  name: issueConfirmToken
-  description: A confirmation token for landing this changeset as it is now
-  source_reference:
-    provenance: extracted
-    locations:
-      - file: cli/src/mcp/tools/changeset-commit.ts
-        symbol: issueConfirmToken
-  metadata:
-    created_at: 2026-11-20T15:06:30.044Z
-    updated_at: 2026-11-20T15:06:30.044Z
-    version: 1
-application.applicationfunction.check-confirm-token:
-  id: b263615e-a2df-48e6-8c86-f39c96c86c3d
-  path: application.applicationfunction.check-confirm-token
-  spec_node_id: application.applicationfunction
-  type: applicationfunction
-  layer_id: application
-  name: checkConfirmToken
-  description: Checks a token against the changeset as it is now
-  source_reference:
-    provenance: extracted
-    locations:
-      - file: cli/src/mcp/tools/changeset-commit.ts
-        symbol: checkConfirmToken
-  metadata:
-    created_at: 2026-11-20T15:06:30.044Z
-    updated_at: 2026-11-20T15:06:30.044Z
-    version: 1
 application.applicationfunction.changeset-arg-fields:
   id: 25e88240-bfde-4f28-b634-d39aad66095b
   path: application.applicationfunction.changeset-arg-fields
@@ -28957,37 +28889,88 @@ application.applicationfunction.narrow-verify-report:
     created_at: 2026-11-27T17:03:25.426Z
     updated_at: 2026-11-27T17:03:25.426Z
     version: 1
-application.applicationfunction.declaration-shapes-of:
-  id: ff6ff403-7586-4498-b52d-1734ecb47fa8
-  path: application.applicationfunction.declaration-shapes-of
+application.applicationfunction.land-one:
+  id: 93d80851-e140-4b45-b5f7-6f8879034230
+  path: application.applicationfunction.land-one
   spec_node_id: application.applicationfunction
   type: applicationfunction
   layer_id: application
-  name: declarationShapesOf
-  description: Reads a JS/TS declaration's shapes (exported, react-hook, react-component) from its text, for Tier-0 rules' shape condition.
+  name: land-one
+  description: "Lands one changeset for changeset_commit: prepares it, commits it under the project's write lock and returns its counts, drift, warnings and filesToCommit."
   source_reference:
-    provenance: extracted
+    provenance: manual
     locations:
-      - file: cli/src/analyzers/cards/shapes.ts
-        symbol: declarationShapesOf
+      - file: cli/src/mcp/tools/changeset-commit.ts
+        symbol: landOne
   metadata:
-    created_at: 2026-11-28T13:16:00.935Z
-    updated_at: 2026-11-28T13:16:00.935Z
+    created_at: 2026-11-27T17:11:09.891Z
+    updated_at: 2026-11-27T17:11:09.891Z
     version: 1
-application.applicationfunction.is-declared-variable:
-  id: 67c1466e-39d8-4ffc-b550-04ce0a2d09f9
-  path: application.applicationfunction.is-declared-variable
+application.applicationfunction.requested-names:
+  id: a0e9571b-6cd4-47f2-8d5e-c93d9bd113dc
+  path: application.applicationfunction.requested-names
   spec_node_id: application.applicationfunction
   type: applicationfunction
   layer_id: application
-  name: isDeclaredVariable
-  description: "Whether a Variable card is worth a card: an exported, non-primitive JS/TS const."
+  name: requested-names
+  description: The changeset names a changeset_commit call asks to land (changeset and changesets), in order, each once.
   source_reference:
-    provenance: extracted
+    provenance: manual
     locations:
-      - file: cli/src/analyzers/cards/shapes.ts
-        symbol: isDeclaredVariable
+      - file: cli/src/mcp/tools/changeset-commit.ts
+        symbol: requestedNames
   metadata:
-    created_at: 2026-11-28T13:16:00.935Z
-    updated_at: 2026-11-28T13:16:00.935Z
+    created_at: 2026-11-27T17:11:09.892Z
+    updated_at: 2026-11-27T17:11:09.892Z
+    version: 1
+application.applicationfunction.landing-summary-text:
+  id: 13bb1285-4989-4c54-ba04-a4ad651dd06f
+  path: application.applicationfunction.landing-summary-text
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: landing-summary-text
+  description: "The landing summary changeset_commit_preview shows: intent, counts, layers, drift and validation."
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/mcp/tools/changeset-commit.ts
+        symbol: landingSummaryText
+  metadata:
+    created_at: 2026-11-27T17:11:09.892Z
+    updated_at: 2026-11-27T17:11:09.892Z
+    version: 1
+application.applicationfunction.files-to-commit:
+  id: e121e276-7a66-4c79-8654-bee7d46b2a2f
+  path: application.applicationfunction.files-to-commit
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: files-to-commit
+  description: "The paths a landing puts in the commit: the model files written, manifest.yaml and the changeset's folder (#1367)."
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/mcp/tools/changeset-landed.ts
+        symbol: filesToCommit
+  metadata:
+    created_at: 2026-11-27T17:11:09.892Z
+    updated_at: 2026-11-27T17:11:09.892Z
+    version: 1
+application.applicationfunction.collect-untracked-landings:
+  id: 381ed751-4bc6-4a31-ac62-1eb4d42d9826
+  path: application.applicationfunction.collect-untracked-landings
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: collect-untracked-landings
+  description: "project_status: committed or recorded changesets whose folder git doesn't track (#1367)."
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/mcp/tools/project-status-collectors.ts
+        symbol: collectUntrackedLandings
+  metadata:
+    created_at: 2026-11-27T17:11:09.892Z
+    updated_at: 2026-11-27T17:11:09.892Z
     version: 1
