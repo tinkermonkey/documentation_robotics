@@ -77,6 +77,8 @@ describe("annotations staged in a changeset", () => {
     const preview = parse(await changesetCommitPreviewHandler({ changeset: "plan-a", rootPath } as any));
     expect(JSON.stringify(preview)).toContain(`Annotations: 1 staged`);
     expect(JSON.stringify(preview)).toContain(created.id);
+    // The preview is a dry run: nothing reaches the base.
+    expect(await baseIds()).toEqual([]);
 
     const landed = parse(await changesetCommitHandler({ changeset: "plan-a", rootPath } as any));
     expect(landed.status).toBe("committed");

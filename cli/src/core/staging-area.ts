@@ -9,6 +9,7 @@
  */
 
 import path from "path";
+import { rm } from "fs/promises";
 import ansis from "ansis";
 import { StagedChangesetStorage } from "./staged-changeset-storage.js";
 import {
@@ -29,7 +30,7 @@ import { BaseSnapshotManager } from "./base-snapshot-manager.js";
 import { Changeset, StagedChange, withSequenceNumbers, type ChangesetStatus } from "./changeset.js";
 import { ChangesetValidator } from "./changeset-validator.js";
 import { fileExists } from "../utils/file-io.js";
-import { AnnotationStore } from "./annotation-store.js";
+import { AnnotationStore, STAGED_ANNOTATIONS_DIR } from "./annotation-store.js";
 import { trackModelWrite } from "./model-write-tracker.js";
 import type { Model } from "./model.js";
 import type { VirtualProjectionEngine } from "./virtual-projection.js";
@@ -2082,6 +2083,8 @@ export class StagingAreaManager {
     await this.storage.save(changeset);
     // Only the record stays (name, description, status): nothing reads a base index after this.
     await this.storage.removeSideFiles(id);
+    // Nor its staged annotations: they landed with the plan, or are not wanted now.
+    await rm(path.join(this.changesetPath(id), STAGED_ANNOTATIONS_DIR), { recursive: true, force: true });
     if ((await this.readActiveMarker()) === id) {
       await this.clearActive();
     }

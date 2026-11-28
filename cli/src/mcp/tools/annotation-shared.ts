@@ -55,14 +55,15 @@ export interface AnnotationHome {
 export async function annotationWriteTarget(model: Model, changesetArg?: string, reading = false): Promise<AnnotationHome> {
   const manager = new StagingAreaManager(model.rootPath, model);
   let changeset;
-  if (changesetArg !== undefined) {
+  if (changesetArg !== undefined && changesetArg !== "") {
     changeset = await manager.load(changesetArg);
     if (!changeset) {
       throw new CLIError(`Changeset ${changesetArg} not found`, ErrorCategory.NOT_FOUND, [
         'Use "changeset_list" to see the staged changesets',
       ]);
     }
-    if (changeset.status !== "staged") {
+    // A read may look in a landed changeset (annotations that did not land are still in its folder).
+    if (!reading && changeset.status !== "staged") {
       throw new CLIError(`Changeset '${changeset.name}' is ${changeset.status}; an annotation can only be staged in a staged changeset`, ErrorCategory.USER);
     }
   } else {
