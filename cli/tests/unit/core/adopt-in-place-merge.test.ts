@@ -47,10 +47,11 @@ async function seed(root: string) {
 async function adopt(root: string, sequenceNumber: number, file: string) {
   const storage = new StagedChangesetStorage(root);
   const plan = (await storage.load(ID))!;
-  const change = (plan.changes as any[]).find((c) => c.sequenceNumber === sequenceNumber);
+  const index = (plan.changes as any[]).findIndex((c) => c.sequenceNumber === sequenceNumber);
+  const change = plan.changes[index] as any;
   const after = structuredClone(change.after);
   setStagedSourceReference(after, { provenance: "extracted", locations: [{ file, symbol: "X" }] } as any);
-  return storage.amendChangesInPlace(ID, [{ sequenceNumber, after }]);
+  return storage.amendChangesInPlace(ID, [{ index, elementId: change.elementId, after }]);
 }
 
 describe("adopting source references onto a shared staged plan (#1382)", () => {
@@ -75,8 +76,8 @@ describe("adopting source references onto a shared staged plan (#1382)", () => {
       await cp(storageDir(base), storageDir(r), { recursive: true });
     }
 
-    expect(await adopt(a, 1, "src/alpha.ts")).toEqual([1]);
-    expect(await adopt(b, 2, "src/bravo.ts")).toEqual([2]);
+    expect(await adopt(a, 1, "src/alpha.ts")).toEqual([0]);
+    expect(await adopt(b, 2, "src/bravo.ts")).toEqual([1]);
 
     // Nothing but the amended `after` changed: no renumbering, no tombstones, no modified bump.
     const meta = (root: string) => readFile(join(storageDir(root), "metadata.yaml"), "utf-8");

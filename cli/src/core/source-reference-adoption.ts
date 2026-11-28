@@ -42,7 +42,7 @@ export interface AdoptionResult {
   unknownIds?: string[];
 }
 
-type Amendment = { sequenceNumber: number; layerName: string; after: Record<string, unknown> };
+type Amendment = { index: number; elementId: string; layerName: string; after: Record<string, unknown> };
 
 export interface AdoptionOptions {
   /** Planned element ids (dotted id, path or UUID) whose probable matches the caller confirmed. */
@@ -120,12 +120,12 @@ export async function adoptSourceReferences(
     };
     // Amended in place (no new change, no renumbering), so two branches adopting different
     // elements into one plan merge cleanly in git (#1382).
-    amendments.push({ sequenceNumber: latest.sequenceNumber, layerName: latest.layerName, after: withReference(latest.after) });
+    amendments.push({ index: (planned.changes as StagedChange[]).indexOf(latest), elementId: latest.elementId, layerName: latest.layerName, after: withReference(latest.after) });
     adopted.push(gap);
   }
 
   const amended = new Set(await manager.amendInPlace(planned.id!, amendments));
-  const notAmended = adopted.filter((_, i) => !amended.has(amendments[i].sequenceNumber));
+  const notAmended = adopted.filter((_, i) => !amended.has(amendments[i].index));
   for (const gap of notAmended) {
     adopted.splice(adopted.indexOf(gap), 1);
     skipped.push({ planned: gap.planned, reason: "the change that carries it is no longer staged in the plan" });
@@ -252,12 +252,12 @@ export async function adoptConfirmedReferences(
     };
     const after = structuredClone(latest.after);
     setStagedSourceReference(after, reference);
-    amendments.push({ sequenceNumber: latest.sequenceNumber, layerName: latest.layerName, after });
+    amendments.push({ index: changes.indexOf(latest), elementId: latest.elementId, layerName: latest.layerName, after });
     confirmedNow.push({ planned: id, reference });
   }
   const amended = new Set(await manager.amendInPlace(planned.id!, amendments));
   confirmedNow.forEach((c, i) => {
-    if (amended.has(amendments[i].sequenceNumber)) confirmed.push(c);
+    if (amended.has(amendments[i].index)) confirmed.push(c);
     else skipped.push({ planned: c.planned, reason: "the change that carries it is no longer staged in the plan" });
   });
   return { confirmed, skipped };
