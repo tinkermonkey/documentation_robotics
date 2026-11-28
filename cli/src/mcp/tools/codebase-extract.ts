@@ -54,6 +54,12 @@
  * ranges with an estimate of their cards; `preview: true` gives those counts without staging or
  * recording anything, before a long run. When most undecided cards sit in a few folders no model
  * element names, `next` suggests listing them in `.cbmignore`.
+ *
+ * Relationships and deletions are suggestions (#1492, "agents interpret everything"): the links the
+ * edge mapping gives CBM edges (a call, a usage, a test file's name) come back as `suggested.links`
+ * with their evidence, and the elements whose code is gone as `candidateDeletes`; nothing is staged
+ * for either until the agent accepts it (`acceptLinks`, `acceptDeletes`: in bulk, by evidence kind,
+ * predicate, files, confidence or id), and what it accepts carries origin agent with `suggestedBy`.
  */
 
 import { existsSync, readFileSync } from "node:fs";
@@ -62,6 +68,7 @@ import path from "node:path";
 import { z } from "zod";
 import { requiredAttributesFor } from "../../utils/required-attributes.js";
 import { strictItem } from "../strict-schema.js";
+import { acceptedDeletes, acceptedLinks, fileMatches, linkEdge, linkFiles, linkKey, tally } from "../../analyzers/suggestions.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { codeChangesSince, inDirs, scopeChanges, type CodeChangesResult } from "../../analyzers/code-changes.js";
 import { INFRA_FILE, SOURCE_EXT, VENDOR_EXCLUDE } from "../../analyzers/cards/build.js";
@@ -84,8 +91,6 @@ import {
   needsAttributesCard,
   planElements,
   planRelationships,
-  INFERRED_TEST_EDGE,
-  INFERRED_TEST_CALL_EDGE,
   sortUndecided,
   sourceSymbolOf,
   symbolChangedInRange,
@@ -227,9 +232,6 @@ const RESPONSE_BUDGET_BYTES = 28 * 1024;
 const MAX_LISTED = 100;
 /** Groups of cards a response lists by default. */
 const DEFAULT_GROUPS = 50;
-/** The evidence that a candidate delete's code is gone, sure enough to stage the delete (#1375). */
-const STAGED_DELETE_EVIDENCE: ReadonlySet<CandidateDelete["evidence"]> = new Set(["file-deleted", "symbol-missing"]);
-
 /** A candidate delete this run staged as a delete. */
 interface StagedDelete {
   id: string;
@@ -301,6 +303,7 @@ const RUN_LISTS = [
   "planCoverage",
   "unwiredTests",
   "weakCalls",
+  "suggestedLinks",
   "notElements",
   "declaredSpecNotStaged",
   "contradictedGaps",
@@ -311,6 +314,38 @@ const RUN_LISTS = [
 
 /** A list `list` can read: the name a shortened list's hint gives. */
 type RunListName = (typeof RUN_LISTS)[number];
+
+/**
+ * Which suggested links the agent accepts, as its own decision. Every condition given must hold; an
+ * item with none is refused (`all: true` says "every suggestion", on purpose).
+ */
+const acceptLinkItemSchema = strictItem("An acceptLinks[] item", {
+  edge: z
+    .union([z.string().min(1), z.array(z.string().min(1)).min(1)])
+    .optional()
+    .describe("The evidence the suggestion rests on: the CBM edge (CALLS, USAGE, ...), TEST_FILE_NAME (a tests link inferred from a test file's name) or TEST_CALL_VIA_REJECTED."),
+  predicate: z.union([z.string().min(1), z.array(z.string().min(1)).min(1)]).optional().describe("The suggested relationship's predicate (tests, depends-on, ...)."),
+  files: z
+    .union([z.string().min(1), z.array(z.string().min(1)).min(1)])
+    .optional()
+    .describe("A file, a folder or a glob: suggestions whose caller (a test's file for a tests link) is in it."),
+  source: z.string().min(1).optional().describe("A suggestion's source element id."),
+  target: z.string().min(1).optional().describe("A suggestion's target element id."),
+  minConfidence: z.number().min(0).max(1).optional().describe("Only suggestions whose best call has at least this resolution confidence (a suggestion with no recorded confidence is not matched)."),
+  keys: z.array(z.string().min(1)).optional().describe("Specific suggestions, as source::predicate::target."),
+  all: z.literal(true).optional().describe("Every suggestion this run lists. A decision to take all of them: read them first."),
+});
+
+/** Which suggested deletes the agent accepts, as its own decision. */
+const acceptDeleteItemSchema = strictItem("An acceptDeletes[] item", {
+  evidence: z
+    .union([z.string().min(1), z.array(z.string().min(1)).min(1)])
+    .optional()
+    .describe("The suggestion's evidence: file-deleted, symbol-missing, file-renamed, file-missing, reference-never-matched, decision-superseded."),
+  files: z.union([z.string().min(1), z.array(z.string().min(1)).min(1)]).optional().describe("A file, a folder or a glob: suggested deletes whose element's code was there."),
+  ids: z.array(z.string().min(1)).optional().describe("Specific elements, by id."),
+  all: z.literal(true).optional().describe("Every suggested delete this run lists. A decision to take all of them: read them first."),
+});
 
 const inputSchema = {
   changeset: z
@@ -427,6 +462,24 @@ const inputSchema = {
         "this changeset's since and layers. Uses cached answers only, so it stages exactly what you were shown and sends nothing. " +
         "Pass it only after the user agreed; reject (or model_add differently) any accept card they disagree with first. " +
         "Suggest mode (tier1.mode \"suggest\"): in stage mode the run stages the accept band itself, so acceptTier1 is ignored (next says so)."
+    ),
+  acceptLinks: z
+    .array(acceptLinkItemSchema)
+    .optional()
+    .describe(
+      "Accept suggested relationships (suggested.links lists them, each with its evidence: the CBM edge, the call sites and the resolution confidence) as your own decision, " +
+        "in bulk: by edge, predicate, files, source, target, minConfidence or keys, or all: true. Each is staged with origin agent. " +
+        "Nothing is staged without it: a link is a suggestion until you read its evidence and accept it, and one you don't accept is left out of the model (reject it to stop it coming back). " +
+        "A suggestion whose end is not in the model (or this run's adds) is not staged and says so. A run with acceptLinks needs the run's own arguments (changeset, since, layers); it can't be combined with page, list or view."
+    ),
+  acceptDeletes: z
+    .array(acceptDeleteItemSchema)
+    .optional()
+    .describe(
+      "Accept suggested deletions (candidateDeletes lists them, each with its evidence) as your own decision: by evidence, files or ids, or all: true. " +
+        "Each is staged as a delete with the relationships that name it, origin agent. An element that is the as-built changeset's own add, is not in the base model, " +
+        "or is still referenced by an element that stays is not staged and says why. Nothing is deleted without it: check the code, then accept. " +
+        "A run with acceptDeletes needs the run's own arguments; it can't be combined with page, list or view."
     ),
   decide: z
     .array(decideItemSchema)
@@ -568,6 +621,8 @@ interface StoredCards {
   }>;
   /** Ids extraction listed as candidate deletes for this changeset, accumulated across runs. */
   candidateDeletes?: string[];
+  /** The relationships the last run suggested (`source::predicate::target`), none staged: the agent decides them. */
+  suggestedLinks?: Array<{ key: string; files?: string[] }>;
   /** A since run whose changed lines were known: the default pile is the cards the range changed. */
   rangeOnly?: boolean;
   /**
@@ -1061,6 +1116,19 @@ function patched(snapshot: Record<string, unknown>, update: PlannedUpdate, now: 
   return after;
 }
 
+/** A suggested link as a result lists it: the relationship, who suggests it and the evidence to weigh it by. */
+function suggestedLinkItem(r: PlannedRelationship) {
+  return {
+    key: linkKey(r),
+    source: r.source,
+    predicate: r.predicate,
+    target: r.target,
+    suggested: true as const,
+    by: `edge:${linkEdge(r)}`,
+    ...(r.evidence ? { evidence: r.evidence } : {}),
+  };
+}
+
 function relationshipChange(r: PlannedRelationship, origin: ChangeOrigin): Omit<StagedChange, "sequenceNumber"> {
   return {
     type: "relationship-add",
@@ -1076,18 +1144,6 @@ function relationshipChange(r: PlannedRelationship, origin: ChangeOrigin): Omit<
     },
     origin,
   };
-}
-
-/**
- * A staged relationship's origin: the decision that created its end (section 7). An end Tier 1
- * decided wins, then an end Tier 0 decided in this run; between elements the run didn't add, the
- * edge mapping (`edge:<CBM edge>`), which is Tier 0's.
- */
-function relationshipOrigin(r: PlannedRelationship, addOrigins: ReadonlyMap<string, ChangeOrigin>): ChangeOrigin {
-  // A tests link inferred from a test file's name says so, whoever decided its ends.
-  if (r.edge === INFERRED_TEST_EDGE || r.edge === INFERRED_TEST_CALL_EDGE) return { by: "tier0", rule: `edge:${r.edge}` };
-  const ends = [addOrigins.get(r.source), addOrigins.get(r.target)].filter((o): o is ChangeOrigin => !!o);
-  return structuredClone(ends.find((o) => o.by === "tier1") ?? ends[0] ?? { by: "tier0", rule: `edge:${r.edge}` });
 }
 
 /**
@@ -1506,9 +1562,38 @@ function plannedStep(cards: number): string {
   );
 }
 
+/**
+ * How to decide what extraction only suggested (#1492): nothing was staged for links or deletes, so
+ * the agent reads each suggestion's evidence against the code and accepts, in bulk, what it judges right.
+ */
+function suggestionSteps(s: {
+  links: number;
+  linkEdges: Array<{ value: string; count: number }>;
+  deletes: number;
+  rerun: string;
+}): string[] {
+  const steps: string[] = [];
+  if (s.links) {
+    const by = s.linkEdges.slice(0, 4).map((e) => `${e.value} ${e.count}`).join(", ");
+    steps.push(
+      `${s.links} relationship(s) are suggested (suggested.links; ${by}), none staged: each rests on a CBM edge, with its call sites and resolution confidence. ` +
+        "Start with the confident ones (confidence 0.9 and over, or the same predicate between the same kinds of element), skim a sample against the code, " +
+        `then accept in bulk as your own decision: ${s.rerun} and acceptLinks: [{edge: "CALLS", minConfidence: 0.9}] (also predicate, files, source, target, keys, all: true). ` +
+        "A call is how the code runs, not what the architecture relates: a suggestion you judge wrong goes in reject: [{relationship: {source, predicate, target}, reason}]."
+    );
+  }
+  if (s.deletes) {
+    steps.push(
+      `${s.deletes} element(s) are suggested for deletion (candidateDeletes): the index no longer finds their code. Confirm in the code (a moved or renamed file is not a deletion), ` +
+        `then ${s.rerun} and acceptDeletes: [{evidence: "file-deleted"}] (also files, ids, all: true).`
+    );
+  }
+  return steps;
+}
+
 function helpersStep(h: SharedHelpers): string {
   return (
-    `${h.helpers.length} function(s) or component(s) each realize more than ${h.sharedBy} services (sharedHelpers: ${h.links} links, ${h.staging} staged by this run). ` +
+    `${h.helpers.length} function(s) or component(s) each realize more than ${h.sharedBy} services (sharedHelpers: ${h.links} links, ${h.staging} suggested by this run). ` +
     "Ask the user whether shared helpers belong to every service that calls them; to leave one's links out, decide its relationship as none with keep: true."
   );
 }
@@ -1565,12 +1650,12 @@ function nextSteps(
       "For cards that are not elements, call codebase_extract with reject: [{card: cardId, reason}] so later runs leave them out.",
       verify
         ? `Call ${rerun} for their relationships.`
-        : `Then call ${rerun} (it keeps that run's since and layers). It finds your elements by their source reference and stages the relationships the edge mapping gives them.`
+        : `Then call ${rerun} (it keeps that run's since and layers). It finds your elements by their source reference and suggests the relationships the edge mapping gives them (suggested.links, each with its evidence): read them, then accept the ones you judge right with acceptLinks.`
     );
   }
   if (plan.candidateDeletes.length) {
     steps.push(
-      "Check candidateDeletes: call model_delete only for elements whose code is really gone (replacedBy names the element staged for a renamed file). " +
+      "Check candidateDeletes (suggested deletions, each with its evidence: nothing was deleted): read the code, then acceptDeletes for the ones whose code is really gone, or model_delete one (replacedBy names the element staged for a renamed file). " +
         "reference-never-matched means the element's reference was wrong before the range: the range removed nothing, so fix or delete the element without blaming the range."
     );
   }
@@ -1637,12 +1722,12 @@ function pendingSteps(
       "For cards that are not elements, call codebase_extract with reject: [{card: cardId, reason}] so later runs leave them out; that needs no changeset.",
       verify
         ? `Call codebase_extract again with changeset: "${name}", since: "${since}" for their relationships.`
-        : `After adding elements, call codebase_extract with changeset: "${name}"${since ? `, since: "${since}"` : ""}: it keeps this run's since and layers, and stages the relationships the edge mapping gives them.`
+        : `After adding elements, call codebase_extract with changeset: "${name}"${since ? `, since: "${since}"` : ""}: it keeps this run's since and layers, and suggests the relationships the edge mapping gives them (suggested.links, each with its evidence) for you to accept with acceptLinks.`
     );
   }
   if (plan.candidateDeletes.length) {
     steps.push(
-      "Check candidateDeletes: call model_delete (into that changeset) only for elements whose code is really gone. " +
+      "Check candidateDeletes (suggested deletions, each with its evidence: nothing was deleted): read the code, then acceptDeletes (into that changeset) for the ones whose code is really gone, or model_delete one. " +
         "reference-never-matched means the element's reference was wrong before the range: the range removed nothing."
     );
   }
@@ -2307,6 +2392,11 @@ function relationshipsToReject(
       return source && predicate && target ? relationshipKey(resolvedTriple({ source, predicate, target }, graph)) : k;
     }),
     ...stagedRelationshipAdds(changeset, graph),
+    // What the last run suggested: rejecting one is the agent's decision that it is not in the code.
+    ...(stored?.suggestedLinks ?? []).map((l) => {
+      const [source, predicate, target] = l.key.split("::");
+      return source && predicate && target ? relationshipKey(resolvedTriple({ source, predicate, target }, graph)) : l.key;
+    }),
   ]);
   for (const t of changeset?.unstaged ?? []) {
     if (t.change.type !== "relationship-add") continue;
@@ -2591,6 +2681,11 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
       if (acceptTier1 && (paging || decisionsOnly || preview || args.tier1 === false)) {
         throw new CLIError("acceptTier1 stages Tier 1's accept band in a run; it can't be combined with page, reject, clearRejected, preview or tier1: false", ErrorCategory.USER, [
           "Call codebase_extract with acceptTier1: true and the run's own arguments (changeset, or since and layers)",
+        ]);
+      }
+      if ((args.acceptLinks?.length || args.acceptDeletes?.length) && (paging || decisionsOnly || args.list)) {
+        throw new CLIError("acceptLinks and acceptDeletes accept suggestions in a run; they can't be combined with page, list, reject-only or clearRejected-only calls", ErrorCategory.USER, [
+          "Call codebase_extract with acceptLinks or acceptDeletes and the run's own arguments (changeset, or since and layers)",
         ]);
       }
       const rejects = rejectItems.length ? splitRejects(rejectItems) : null;
@@ -2909,6 +3004,13 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
           const groupRefs: typeof rejects.relationships = [];
           for (const g of rejects.groups) {
             const hits = relationshipGraph ? relationshipsInFiles(relationshipGraph, g.files, g.predicate) : [];
+            // Links the last run only suggested: by the file of the call that suggests them.
+            for (const l of stored?.suggestedLinks ?? []) {
+              const [source, predicate, target] = l.key.split("::");
+              if (predicate === g.predicate && source && target && l.files?.some((f) => fileMatches(f, [g.files])) && !hits.some((h) => h.source === source && h.target === target)) {
+                hits.push({ source, predicate, target });
+              }
+            }
             if (!hits.length) {
               groupProblems.push({ index: g.index, item: `files: ${g.files}, predicate: ${g.predicate}`, status: "no-match", message: `no '${g.predicate}' relationship of '${changesetLabel}' or the model has a source element in '${g.files}'` });
             }
@@ -3905,7 +4007,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
           (id) => before.getElement(id)?.acceptedGaps
         );
         // Likewise a relationship type the declared spec lacks (#1411)
-        const relationships = keptByGaps.filter((r) => {
+        const suggestedAll = keptByGaps.filter((r) => {
           const source = specOfEnd(r.source);
           const target = specOfEnd(r.target);
           const gap = source && target ? relationshipNotInDeclaredSpec(model.manifest, source, r.predicate, target) : null;
@@ -3919,6 +4021,12 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
           });
           return false;
         });
+        // The links are suggestions with their evidence (#1492): the agent accepts them, in bulk if it
+        // likes, as its own decision, and only those are staged.
+        const acceptance = acceptedLinks(args.acceptLinks ?? [], suggestedAll);
+        const acceptedKeys = new Set(acceptance.accepted.map(linkKey));
+        const suggestedLinks = suggestedAll.filter((r) => !acceptedKeys.has(linkKey(r)));
+        const relationships = acceptance.accepted;
 
         // What each rule decided, and how each decide item of this call fared.
         // Every rule, one that decided nothing included: a rule that matches nothing may be mistyped.
@@ -4046,29 +4154,21 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
           }
           stagedUpdates.push(update);
         }
-        // A relationship's end may be an element an earlier run staged (a Tier-1 accept among
-        // them): its origin comes from the record. An end the agent staged gives no origin of its
-        // own: the edge mapping decided the relationship.
-        const endOrigins = new Map(addOrigins);
-        for (const st of stillStaged) if (st.origin && st.origin.by !== "agent" && !endOrigins.has(st.id)) endOrigins.set(st.id, st.origin);
-        for (const r of relationships) batch.push(relationshipChange(r, relationshipOrigin(r, endOrigins)));
+        for (const r of relationships) batch.push(relationshipChange(r, { by: "agent", suggestedBy: `edge:${linkEdge(r)}` }));
 
-        // Candidate deletes with unambiguous evidence (the file was deleted in the range, or the
-        // symbol is gone from a file that had it) are staged as deletes, marked with their origin
-        // (#1375), so changeset_verify sees a planned deletion as done. Weaker evidence (a reference
-        // that never matched, a renamed file, a file or symbol missing with no range to say what
-        // changed) stays a hint for the agent to check, as does a candidate this changeset adds, or
-        // one other elements still reference.
+        // Candidate deletes are suggestions with their evidence (#1492): the element's code is gone, as
+        // far as the index can see. Only the ones the agent accepts (acceptDeletes) are staged, with
+        // the relationships that name them, as the agent's own decision. A candidate that is the
+        // as-built changeset's own add, is not in the base model, or that elements which stay still
+        // reference is not staged, and says why.
         const stagedDeletes: StagedDelete[] = [];
-        if (since && plan.candidateDeletes.some((d) => STAGED_DELETE_EVIDENCE.has(d.evidence))) {
+        const deleteAcceptance = acceptedDeletes(args.acceptDeletes ?? [], plan.candidateDeletes);
+        if (deleteAcceptance.accepted.length) {
           const tracker = dependencyTracker(model);
-          const sure = (d: CandidateDelete) => d.evidence === "file-deleted" || (d.evidence === "symbol-missing" && d.baseChecked === true);
-          // What each sure candidate cannot go with: it is the as-built changeset's own add, or elements outside the
-          // candidates still reference it. A candidate that stays blocks the ones that reference it, so repeat until stable.
-          const going = new Set(plan.candidateDeletes.filter(sure).map((d) => d.id));
+          const going = new Set(deleteAcceptance.accepted.map((d) => d.id));
           const why = new Map<string, string>();
           const ready = new Map<string, { snapshot: Record<string, unknown>; base: { id?: unknown; path?: unknown } }>();
-          for (const d of plan.candidateDeletes.filter(sure)) {
+          for (const d of deleteAcceptance.accepted) {
             const current = await currentSnapshot(model, before, changeset ?? emptyChangeset(), d.id, d.layer);
             const base = (await model.getBaseLayer(d.layer))?.getElement(d.id);
             if (!current || current.stagedAdd || !base) {
@@ -4086,20 +4186,15 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
               changed = true;
             }
           }
-          const hints: CandidateDelete[] = [];
+          const left: CandidateDelete[] = [];
           for (const d of plan.candidateDeletes) {
             if (!going.has(d.id)) {
-              hints.push(why.has(d.id) ? { ...d, detail: `${d.detail}. Not staged: ${why.get(d.id)}` } : d);
+              left.push(why.has(d.id) ? { ...d, detail: `${d.detail}. Not staged: ${why.get(d.id)}` } : d);
               continue;
             }
             const { snapshot, base } = ready.get(d.id)!;
-            batch.push({
-              type: "delete",
-              elementId: d.id,
-              layerName: d.layer,
-              before: snapshot,
-              origin: { by: "tier0", rule: `candidate-delete:${d.evidence}` },
-            });
+            const origin: ChangeOrigin = { by: "agent", suggestedBy: `candidate-delete:${d.evidence}` };
+            batch.push({ type: "delete", elementId: d.id, layerName: d.layer, before: snapshot, origin: { ...origin } });
             // The relationships that name it go with it, as model_delete stages them, so a landing leaves none dangling.
             const names = new Set(elementIdentifiers(base, d.id));
             for (const rel of model.relationships.getAll().filter((r) => names.has(r.source) || names.has(r.target))) {
@@ -4117,12 +4212,13 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
                   ...(rel.targetLayer ? { targetLayer: rel.targetLayer } : {}),
                   ...(rel.properties ? { properties: rel.properties } : {}),
                 },
-                origin: { by: "tier0", rule: `candidate-delete:${d.evidence}` },
+                origin: { ...origin },
               });
             }
             stagedDeletes.push({ id: d.id, layer: d.layer, type: d.type, evidence: d.evidence, file: d.file, ...(d.symbol ? { symbol: d.symbol } : {}), detail: d.detail });
           }
-          plan.candidateDeletes = hints;
+          // Not staged ones stay suggestions; the ones accepted stay in the record as what extraction offered.
+          plan.candidateDeletes = left;
         }
 
         // Existing elements whose code calls what the range changed, though their own code didn't
@@ -4180,6 +4276,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
           cards: shown.length,
           deletes: stagedDeletes.length,
           candidateDeletes: plan.candidateDeletes.length,
+          suggestedLinks: suggestedLinks.length,
         };
         // Tier 1's time is left out: it stops asking at its own deadline, and a run that would have
         // fitted without it is staged even when Tier 1 ran long (Tier 1 never fails the run, §4.6).
@@ -4302,7 +4399,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
           const e = elements.get(id);
           return !!e && e.layer === "application" && e.type === "applicationservice";
         };
-        const helpers: SharedHelpers = sharedHelperGroups([...relationships, ...(planned.present ?? [])], relationships, isService, args.sharedBy ?? DEFAULT_SHARED_BY);
+        const helpers: SharedHelpers = sharedHelperGroups([...suggestedAll, ...(planned.present ?? [])], suggestedAll, isService, args.sharedBy ?? DEFAULT_SHARED_BY);
         const groupLimit = args.limit ?? DEFAULT_GROUPS;
         const groupDepth = args.groupDepth ?? DEFAULT_GROUP_DEPTH;
         const allGroups = groupCards(shown, referencedCount, { depth: groupDepth, since: !!since });
@@ -4398,7 +4495,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
                   helpers: capped(helpers.helpers, Math.min(listLimit ?? 20, 20), "sharedHelpers"),
                   note:
                     `Each of these realizes more than ${helpers.sharedBy} services (sharedBy; pass another number to move the line): shared helpers, probably, not the behaviour of any one service. ` +
-                    `Nothing is left out because of it: ${helpers.staging} of their ${helpers.links} 'realizes' links are staged by this run. To leave a helper's links out, on record: ` +
+                    `Nothing is left out because of it: ${helpers.staging} of their ${helpers.links} 'realizes' links are suggested by this run (none is staged until you accept it). To leave a helper's links out, on record: ` +
                     'decide: [{relationship: {source: "<its id>", predicate: "realizes"}, as: "none", reason, keep: true}] (preview: true counts what it removes).',
                 },
               }
@@ -4412,6 +4509,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
           if (items.length) runLists[listName] = items;
         };
         keepList("candidateDeletes", plan.candidateDeletes);
+        keepList("suggestedLinks", suggestedLinks.map(suggestedLinkItem));
         keepList("deleted", stagedDeletes);
         keepList("retyped", plan.retyped);
         keepList("updated", updatedList);
@@ -4602,7 +4700,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         // and candidate deletes for the agent without creating or activating an empty changeset
         // (which would then sit in project_status as the next thing to resume).
         const stages = batch.length > 0 || rewrites.length > 0;
-        const hasWork = stages || undecided.length > 0 || plan.candidateDeletes.length > 0;
+        const hasWork = stages || undecided.length > 0 || plan.candidateDeletes.length > 0 || suggestedLinks.length > 0;
         let created = false;
         let active = !!changeset && activeId === changeset.id;
         // With intent the caller has a confirmed purpose for the changeset: it is created for the
@@ -4672,10 +4770,13 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
           const values = Object.fromEntries(names.filter((f) => fields.get(f) !== undefined).map((f) => [f, fields.get(f)]));
           return { id, fields: names, ...(Object.keys(values).length ? { values } : {}) };
         });
-        const candidateDeleteIds = [...new Set([...(storedBefore?.candidateDeletes ?? []), ...plan.candidateDeletes.map((d) => d.id)])];
+        const candidateDeleteIds = [...new Set([...(storedBefore?.candidateDeletes ?? []), ...plan.candidateDeletes.map((d) => d.id), ...stagedDeletes.map((d) => d.id)])];
+        // The last run's suggestions only: changeset_verify lists a planned link among them for the agent to check.
+        const suggestedLinkKeys = suggestedLinks.map((r) => ({ key: linkKey(r), ...(linkFiles(r).length ? { files: linkFiles(r) } : {}) }));
         const accumulated = {
           ...(updatedRecord.length ? { updated: updatedRecord } : {}),
           ...(candidateDeleteIds.length ? { candidateDeletes: candidateDeleteIds } : {}),
+          ...(suggestedLinkKeys.length ? { suggestedLinks: suggestedLinkKeys } : {}),
         };
         // Verify mode: which planned elements the as-built side has, and which cards could be the others.
         let coverage: PlanCoverageItem[] = [];
@@ -4742,6 +4843,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
               origin: addOrigins.get(a.id)!,
             });
           }
+          // The links the agent accepted from the suggestions stay recorded: one it unstages later is its decision that the link is wrong.
           const stagedRelationships = [...new Set([...relationshipsBefore.still, ...relationships.map(relationshipKey)])];
           const record: StoredCards = {
             changesetId: changeset.id!,
@@ -4768,7 +4870,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
           await declareExtractionPurpose(manager, changeset, record);
           // Waiting cards this changeset now holds.
           if (pending?.changesetName === changeset.name) await rm(pendingPath, { force: true });
-        } else if (undecided.length || plan.candidateDeletes.length) {
+        } else if (undecided.length || plan.candidateDeletes.length || suggestedLinks.length) {
           const record: StoredCards = {
             changesetId: "",
             changesetName: name,
@@ -4931,7 +5033,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
                 ? {
                     deleted: capped(stagedDeletes, fit.listLimit, "deleted"),
                     deletedNote:
-                      "Candidate deletes whose evidence is unambiguous (file-deleted, symbol-missing), staged as deletes with origin tier0, rule candidate-delete:<evidence>, " +
+                      "Suggested deletes you accepted (acceptDeletes), staged as deletes with origin agent, suggestedBy candidate-delete:<evidence>, " +
                       "together with the relationships that name them. changeset_unstage takes one back if the code is not really gone.",
                   }
                 : {}),
@@ -4961,6 +5063,55 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
                       "References to other models (@model/...) from codebase-memory-mcp's cross-repository edges, staged on the calling element " +
                       "(its references field, not a relationship). verified: false means that model was not on disk to check, so the target is " +
                       "the id extraction gives that route there. A caller that is not an element yet gets its reference on a later run.",
+                  },
+                }
+              : {}),
+            ...(suggestedLinks.length || args.acceptLinks?.length || args.acceptDeletes?.length
+              ? {
+                  suggested: {
+                    ...(suggestedLinks.length
+                      ? {
+                          links: {
+                            byEdge: tally(suggestedLinks, linkEdge),
+                            byPredicate: tally(suggestedLinks, (r) => r.predicate),
+                            ...capped(suggestedLinks.map(suggestedLinkItem), fit.listLimit, "suggestedLinks"),
+                            note:
+                              "Relationships the edge mapping suggests from CBM edges (a call, a usage, a test file's name): none is staged, because a call is not a rule for how the code is modelled. " +
+                              "Each carries its evidence (the edge, up to three call sites, the best resolution confidence and how it was resolved). You decide: read a sample against the code, " +
+                              "then acceptLinks in bulk (edge, predicate, files, source, target, minConfidence, keys, all) as your own decision, and reject the wrong ones. " +
+                              "weakCalls (unchanged) are suggestions the index is least sure of.",
+                          },
+                        }
+                      : {}),
+                    ...(args.acceptLinks?.length || args.acceptDeletes?.length
+                      ? {
+                          accepted: {
+                            ...(args.acceptLinks?.length
+                              ? {
+                                  links: {
+                                    staged: relationships.length,
+                                    items: args.acceptLinks.map((_, i) => ({ index: i, matched: acceptance.matched[i] ?? 0 })),
+                                    ...(acceptance.empty.length ? { problems: acceptance.empty.map((i) => ({ index: i, message: "names no condition: give edge, predicate, files, source, target, minConfidence or keys, or all: true to accept every suggestion" })) } : {}),
+                                    ...(acceptance.unmatched.length ? { matchedNothing: acceptance.unmatched, hint: "These items matched no suggested link (suggested.links lists what is left; a link already staged or in the model is not suggested again)." } : {}),
+                                  },
+                                }
+                              : {}),
+                            ...(args.acceptDeletes?.length
+                              ? {
+                                  deletes: {
+                                    staged: stagedDeletes.length,
+                                    items: args.acceptDeletes.map((_, i) => ({ index: i, matched: deleteAcceptance.matched[i] ?? 0 })),
+                                    ...(deleteAcceptance.empty.length ? { problems: deleteAcceptance.empty.map((i) => ({ index: i, message: "names no condition: give evidence, files or ids, or all: true" })) } : {}),
+                                    ...(deleteAcceptance.unmatched.length ? { matchedNothing: deleteAcceptance.unmatched } : {}),
+                                    ...(deleteAcceptance.accepted.length > stagedDeletes.length
+                                      ? { notStaged: "Some accepted deletes were not staged: candidateDeletes lists them with why (still referenced, or not in the base model)." }
+                                      : {}),
+                                  },
+                                }
+                              : {}),
+                          },
+                        }
+                      : {}),
                   },
                 }
               : {}),
@@ -5017,8 +5168,9 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
             candidateDeletes: {
               ...capped(plan.candidateDeletes, fit.listLimit, "candidateDeletes"),
               note:
-                "Not staged: the evidence is weaker than a deleted file or a symbol gone from a file that had it (a reference that never matched, a renamed file, nothing to say what the range changed), " +
-                "or other elements still reference it, so check the code and call model_delete only when it is really gone. Each has its evidence. staged.deleted lists the ones staged.",
+                "Suggested deletions, none staged on their own: the index no longer finds the element's code (file-deleted, symbol-missing) or its reference never matched (reference-never-matched), " +
+                "or the file was renamed (file-renamed; replacedBy names the element at the new path). Each has its evidence. Read the code, then acceptDeletes (by evidence, files or ids) for the ones that are really gone, " +
+                "or model_delete one. An element that stays and still references a suggested delete blocks it (detail says so). staged.deleted lists the ones you accepted.",
             },
             ...(plan.retyped.length ? { retyped: capped(plan.retyped, fit.listLimit, "retyped") } : {}),
             ...notElementsResult(decisions, plan.skipped, recordedNow, cleared, fit.listLimit, args.verbose),
@@ -5130,6 +5282,12 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
                     ]
                   )),
               ...(impactedRepeated ? [] : impactStep(impactHints)),
+              ...suggestionSteps({
+                links: suggestedLinks.length,
+                linkEdges: tally(suggestedLinks, linkEdge),
+                deletes: plan.candidateDeletes.length,
+                rerun: `call codebase_extract again with ${changesetRef ? `changeset: "${changesetRef.name}"` : `changeset: "${name}" and intent`}${since ? `, since: "${since}"` : ""}`,
+              }),
               ...tier1Steps(tier1Block, {
                 acceptTier1,
                 accept: undecided.filter((c) => c.tier1?.band === "accept").length,
@@ -5169,7 +5327,7 @@ export const codebaseExtractTool: McpToolDefinition<typeof inputSchema> = {
     "Read cards with view (a filter; {} for all) and page; read any shortened list in full with list, limit and offset. Every list gives its true total " +
     "and, when shortened, the call for the rest. " +
     "Stages only what differs from the model (matched by source file and symbol): new symbols are adds, changed ones " +
-    "updates; elements whose code is gone are staged as deletes when the evidence is unambiguous (with since: the file was deleted in the range, or the symbol is gone from a file that had it; staged.deleted, origin tier0) and the rest are listed as candidateDeletes for you to check. since (a git ref) limits it to " +
+    "updates. Relationships (from calls and other CBM edges, and tests links inferred from a test file's name) and deletions are suggestions: suggested.links lists each relationship with its evidence (the edge, call sites, resolution confidence) and candidateDeletes each element whose code is gone (file-deleted, symbol-missing, ...), and nothing is staged for either until you accept it, in bulk, with acceptLinks (by edge, predicate, files, source, target, minConfidence, keys or all) or acceptDeletes (by evidence, files, ids or all), as your own decision (origin agent). since (a git ref) limits it to " +
     "files changed since then, for verifying a branch: its cards are the symbols the range changed, and the symbols it did not touch are counted " +
     "(undecided.untouched; view: {changed: false} lists them). With a plan active before a since run, or named with plan (a staged changeset's id or name; the active changeset is then left alone, the as-built changeset is not made active and verifies that plan), planCoverage pairs the plan's elements with the as-built side as changeset_verify does (id, name, source file and symbol; a probable pairing says why) and lists those with " +
     "no as-built element yet, with the cards that could be them. " +

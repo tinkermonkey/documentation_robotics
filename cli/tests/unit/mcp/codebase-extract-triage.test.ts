@@ -514,7 +514,7 @@ describe("codebase_extract shared helpers and relationship rules", () => {
   it("reports the functions many services share, and stages their links unless a rule says not to", async () => {
     const handler = createCodebaseExtractHandler(harness(servicesProject()).deps);
     // Elements a rule decides get their relationships in the same run.
-    const first = ok(await handler({ decide: [SERVICES, FUNCTIONS], rootPath }));
+    const first = ok(await handler({ acceptLinks: [{ all: true }], acceptDeletes: [{ all: true }], decide: [SERVICES, FUNCTIONS], rootPath }));
     expect(first.staged.adds).toBe(9);
     expect(first.staged.relationships).toBe(8);
     expect(first.sharedHelpers).toMatchObject({ sharedBy: 5, links: 7, staging: 7 });
@@ -523,15 +523,15 @@ describe("codebase_extract shared helpers and relationship rules", () => {
     expect(first.next.some((s: string) => s.includes("each realize more than 5 services"))).toBe(true);
     // A rerun stages nothing more, and still reports the group, over every link the code shows.
     clearModelCache();
-    const run = ok(await handler({ changeset: first.changeset.name, rootPath }));
+    const run = ok(await handler({ acceptLinks: [{ all: true }], acceptDeletes: [{ all: true }], changeset: first.changeset.name, rootPath }));
     expect(run.staged.relationships).toBe(0);
     expect(run.sharedHelpers).toMatchObject({ sharedBy: 5, links: 7, staging: 0 });
 
     // The line is a default the caller can move, and the output says where it is.
     clearModelCache();
-    expect(ok(await handler({ changeset: first.changeset.name, sharedBy: 7, rootPath })).sharedHelpers).toBeUndefined();
+    expect(ok(await handler({ acceptLinks: [{ all: true }], acceptDeletes: [{ all: true }], changeset: first.changeset.name, sharedBy: 7, rootPath })).sharedHelpers).toBeUndefined();
     clearModelCache();
-    expect(ok(await handler({ changeset: first.changeset.name, sharedBy: 1, rootPath })).sharedHelpers).toMatchObject({ sharedBy: 1, links: 7 });
+    expect(ok(await handler({ acceptLinks: [{ all: true }], acceptDeletes: [{ all: true }], changeset: first.changeset.name, sharedBy: 1, rootPath })).sharedHelpers).toMatchObject({ sharedBy: 1, links: 7 });
 
     // Deciding the helper's links none, on record: the staged ones are unstaged, and later runs don't stage them.
     clearModelCache();
@@ -549,7 +549,7 @@ describe("codebase_extract shared helpers and relationship rules", () => {
     // "tool1Handler" breaks after the digit (#1184): tool1-handler.
     expect(left).toEqual(["application.applicationfunction.build-plan::realizes::application.applicationservice.tool1-handler"]);
     clearModelCache();
-    const again = ok(await handler({ changeset: first.changeset.name, rootPath }));
+    const again = ok(await handler({ acceptLinks: [{ all: true }], acceptDeletes: [{ all: true }], changeset: first.changeset.name, rootPath }));
     expect(again.staged.relationships).toBe(0);
     expect(again.rules.decided.items).toEqual([expect.objectContaining({ rule: "json-result-is-shared", relationships: 7 })]);
   }, SLOW);
@@ -705,7 +705,7 @@ describe("codebase_extract relationships: a file's other symbols count as its el
     );
     clearModelCache();
     const handler = createCodebaseExtractHandler(harness(wiredProject()).deps);
-    const run = ok(await handler({ pageSize: 50, rootPath }));
+    const run = ok(await handler({ acceptLinks: [{ all: true }], pageSize: 50, rootPath }));
     const rels = (await changesetOf(run.changeset.id)).changes.filter((c) => c.type === "relationship-add");
     const keys = rels.map((c) => c.elementId);
     const T = "testing.testcasesketch";
@@ -716,14 +716,14 @@ describe("codebase_extract relationships: a file's other symbols count as its el
     expect(keys.some((k) => k.includes("security.secureresource"))).toBe(false);
     // No call reaches an element, but the test file is named after Orders.java: inferred, and marked.
     const inferred = rels.find((c) => c.elementId === `${T}.orders-test-test-empty-order::tests::application.applicationcomponent.orders`);
-    expect(inferred?.origin).toEqual({ by: "tier0", rule: "edge:TEST_FILE_NAME" });
+    expect(inferred?.origin).toEqual({ by: "agent", suggestedBy: "edge:TEST_FILE_NAME" });
     // What is still unwired is reported by file.
     expect(run.testLinks).toMatchObject({ inferredFromFileName: 1, unwired: { cases: 1 } });
     expect(run.testLinks.unwired.files.items).toEqual([{ file: "src/test/misc/MiscTests.java", cases: 1 }]);
 
     // A test case someone wired by hand is left alone: no second, inferred link.
     clearModelCache();
-    const again = ok(await handler({ changeset: run.changeset.name, rootPath }));
+    const again = ok(await handler({ acceptLinks: [{ all: true }], acceptDeletes: [{ all: true }], changeset: run.changeset.name, rootPath }));
     expect(again.staged.relationships).toBe(0);
   }, SLOW);
 });

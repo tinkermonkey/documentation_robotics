@@ -134,7 +134,45 @@ export interface PlannedRelationship {
   targetLayer: string;
   /** The CBM edge type it came from. */
   edge: string;
+  /**
+   * What the link rests on, for the agent that decides it: the edge, the call sites and how the
+   * index resolved them. The link is a suggestion; this is what the agent weighs it by (#1492).
+   */
+  evidence?: LinkEvidence;
 }
+
+/** One place a suggested link comes from: a CBM edge between two symbols. */
+export interface LinkSite {
+  from: string;
+  fromFile: string | null;
+  to: string;
+  toFile: string | null;
+  /** The call expression's callee as written (`owner.getPet`), when the index recorded it. */
+  callee?: string;
+}
+
+/**
+ * The evidence behind a suggested relationship. `kind` is `edge:<CBM edge>` (the edge mapping's
+ * suggestion), or `edge:TEST_FILE_NAME` / `edge:TEST_CALL_VIA_REJECTED` for a tests link inferred
+ * from a file name or from following a test's calls through a symbol no element stands for.
+ */
+export interface LinkEvidence {
+  kind: string;
+  /** How many CBM edges of the same pair (the link is one suggestion, however many call it). */
+  edges: number;
+  /** Up to {@link MAX_LINK_SITES} of them. */
+  sites: LinkSite[];
+  /** The best resolution confidence among them (0 to 1), and how the index resolved that one. */
+  confidence?: number;
+  strategy?: string;
+  /** The ends were rolled up to the class or file-owning element their symbols are in. */
+  rolledUp?: boolean;
+  /** For a tests link inferred from a name: what it was inferred from. */
+  inferredFrom?: string;
+}
+
+/** Call sites kept per suggested link. */
+export const MAX_LINK_SITES = 3;
 
 export interface CandidateDelete {
   id: string;
@@ -1730,7 +1768,7 @@ export function planRelationships(
   /** Layers whose elements cite code they are about rather than implement: a test of that code tests its implementation. */
   const CROSS_CUTTING: ReadonlySet<string> = new Set(["security", "technology", "apm"]);
 
-  type Found = { sourceId: string; destinationId: string; relationship: EdgeRelationship; edge: string; reason?: WeakCallReason };
+  type Found = { sourceId: string; destinationId: string; relationship: EdgeRelationship; edge: string; reason?: WeakCallReason; via?: ExtractedEdge; rolledUp?: boolean; inferredFrom?: string; site?: LinkSite };
   const found: Found[] = [];
   const weakPairs = new Map<string, Found>();
   // What a symbol calls, for the test calls that reach a symbol no element stands for (#1443).
@@ -1793,7 +1831,7 @@ export function planRelationships(
       }
       return;
     }
-    found.push({ sourceId, destinationId, relationship: rel, edge: label });
+    found.push({ sourceId, destinationId, relationship: rel, edge: label, via: edge, ...(ra.rolledUp || rb.rolledUp || ra.viaFile || rb.viaFile ? { rolledUp: true } : {}) });
   };
   for (const edge of extraction.edges) {
     const m = mappings.get(edge.type);
@@ -1918,6 +1956,8 @@ export function planRelationships(
         destinationId: owner,
         relationship: { id: triple, source: "testing.testcasesketch", predicate: "tests", destination: `${target.layer}.${target.type}`, inverted: false },
         edge: INFERRED_TEST_EDGE,
+        inferredFrom: `${file} is named after ${named[0]}, which ${owner} owns`,
+        site: { from: s.qualifiedName, fromFile: file, to: owner, toFile: named[0] },
       });
       tested.add(id);
       inferredTests++;
@@ -1930,6 +1970,33 @@ export function planRelationships(
     })
     .sort((x, y) => y.cases - x.cases || x.file.localeCompare(y.file));
 
+  // Every edge of a pair, before the pair is one suggestion: what the agent weighs it by.
+  const evidenceOf = new Map<string, LinkEvidence>();
+  for (const r of found) {
+    const key = `${r.sourceId}|${r.relationship.id}|${r.destinationId}`;
+    let ev = evidenceOf.get(key);
+    if (!ev) evidenceOf.set(key, (ev = { kind: `edge:${r.edge}`, edges: 0, sites: [] }));
+    ev.edges++;
+    if (r.rolledUp) ev.rolledUp = true;
+    if (r.inferredFrom && !ev.inferredFrom) ev.inferredFrom = r.inferredFrom;
+    if (r.site && ev.sites.length < MAX_LINK_SITES) ev.sites.push(r.site);
+    const via = r.via;
+    if (!via) continue;
+    if (ev.sites.length < MAX_LINK_SITES) {
+      ev.sites.push({
+        from: via.from.qualifiedName,
+        fromFile: via.from.file,
+        to: via.to.qualifiedName,
+        toFile: via.to.file,
+        ...(via.evidence?.callee ? { callee: via.evidence.callee } : {}),
+      });
+    }
+    const c = via.evidence?.confidence;
+    if (c !== undefined && (ev.confidence === undefined || c > ev.confidence)) {
+      ev.confidence = c;
+      if (via.evidence?.strategy) ev.strategy = via.evidence.strategy;
+    }
+  }
   const kept = dedupeRelationships(found);
   const keptKeys = new Set(kept.map((r) => `${r.sourceId}|${r.relationship.id}|${r.destinationId}`));
   const inLayers = (r: Found) => !layerSet || layerSet.has(elements.get(r.sourceId)!.layer) || layerSet.has(elements.get(r.destinationId)!.layer);
@@ -1940,6 +2007,9 @@ export function planRelationships(
     sourceLayer: elements.get(r.sourceId)!.layer,
     targetLayer: elements.get(r.destinationId)!.layer,
     edge: r.edge,
+    ...(evidenceOf.has(`${r.sourceId}|${r.relationship.id}|${r.destinationId}`)
+      ? { evidence: evidenceOf.get(`${r.sourceId}|${r.relationship.id}|${r.destinationId}`)! }
+      : {}),
   });
 
   const relationships: PlannedRelationship[] = [];

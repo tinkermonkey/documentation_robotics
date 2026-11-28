@@ -312,6 +312,8 @@ export interface CategoryCounts {
   unverifiable: number;
   /** Relationships only: planned `tests` links to check (#1413), counted in none of the other categories. */
   testsToCheck?: number;
+  /** Planned changes extraction only suggested and the agent hasn't decided (#1492): for the agent to check, counted in none of the other categories. */
+  suggestedToCheck?: number;
   /**
    * Of `unverifiable`, the planned elements a code file may register by name: missing unless it
    * does. Present only when there are some; the verdict text leads with them.
@@ -425,6 +427,8 @@ export interface ExtractionRecord {
     values?: Record<string, unknown>;
   }>;
   candidateDeletes: string[];
+  /** The relationships the last run suggested (`source::predicate::target`), none staged: the agent decides them (#1492). */
+  suggestedLinks: string[];
 }
 
 function readList<T>(value: unknown, keep: (entry: any) => boolean): T[] {
@@ -473,6 +477,9 @@ export async function readExtractionRecord(
     earlierCards: readList(raw.earlierCards, symbol),
     updated: readList(raw.updated, (e) => typeof e.id === "string"),
     candidateDeletes: Array.isArray(raw.candidateDeletes) ? raw.candidateDeletes.filter((d): d is string => typeof d === "string") : [],
+    suggestedLinks: Array.isArray(raw.suggestedLinks)
+      ? raw.suggestedLinks.flatMap((l: unknown) => (typeof l === "string" ? [l] : l && typeof (l as { key?: unknown }).key === "string" ? [(l as { key: string }).key] : []))
+      : [],
   };
 }
 
@@ -547,6 +554,8 @@ export interface VerifyReport {
     unverifiable: UnverifiableElement[];
     unplanned: UnplannedElement[];
     deletionsNotDone: DeletionNotDone[];
+    /** Planned deletions of elements extraction suggested deleting and the agent hasn't decided: for the agent to check, not "not done" (#1492). Absent when none. */
+    deletionsToCheck?: DeletionNotDone[];
   };
   relationships: {
     matched: RelationshipMatch[];
@@ -560,6 +569,8 @@ export interface VerifyReport {
      * not accepted away. For the agent to check (see TESTS_LINKS_TO_CHECK_NOTE). Absent when none.
      */
     testsToCheck?: MissingRelationship[];
+    /** Planned links the build doesn't show that extraction suggested and the agent hasn't accepted or rejected (#1492). Absent when none. */
+    suggestedToCheck?: MissingRelationship[];
   };
   /** Whether extraction's blind spots were taken into account, and where the as-built side came from. */
   extraction?: VerifyExtraction;
@@ -656,6 +667,12 @@ export interface SourceReferenceGaps {
 }
 
 export interface VerifyOptions {
+  /**
+   * When the built side came from extraction: what it only suggested (its record's suggested links and
+   * candidate deletes). A planned link or deletion among them that the build lacks is listed for the
+   * agent to check, not reported missing or not done: the agent hasn't decided the suggestion.
+   */
+  suggested?: { links: ReadonlySet<string>; deletes: ReadonlySet<string> };
   /** Match elements of the same layer and type that share a source file (default true). */
   matchBySource?: boolean;
   /**
@@ -702,6 +719,7 @@ export const VERIFY_SECTIONS = [
   "matched",
   "unverifiable",
   "testsToCheck",
+  "suggestedToCheck",
   "unplanned",
   "deletionsNotDone",
   "sourceReferences",
@@ -790,6 +808,12 @@ export const TESTS_LINKS_TO_CHECK_NOTE =
   "is the link accurate, or did extraction miss it? Fix the model if it is wrong. Once it is accurate, decide whether a test is " +
   "missing and needs writing, or the plan specified a test that isn't needed (unstage the link).";
 
+/** What checking a planned link or deletion extraction only suggested means (#1492). */
+export const SUGGESTED_TO_CHECK_NOTE =
+  "suggestedToCheck lists planned links and deletions the build doesn't show that extraction suggested (its suggested.links and candidateDeletes) and nobody has decided: " +
+  "not missing, not 'not done', and not accepted away. Read the code. If the plan is right, accept the suggestion (codebase_extract acceptLinks or acceptDeletes, with the as-built changeset's own arguments); " +
+  "if the code doesn't have it, the plan or the build is what to fix.";
+
 export interface CompactVerifyReport extends VerifyHeader {
   detail: "compact";
   warning?: string;
@@ -806,6 +830,9 @@ export interface CompactVerifyReport extends VerifyHeader {
   /** Planned tests links the build doesn't show, for the agent to check (testsToCheckNote says how). Absent when none. */
   testsToCheck?: string[];
   testsToCheckNote?: string;
+  /** Planned links and deletions extraction suggested and nobody has decided, for the agent to check (suggestedToCheckNote says how). Absent when none. */
+  suggestedToCheck?: string[];
+  suggestedToCheckNote?: string;
   unplanned: CompactUnplanned;
   sourceReferences?: CompactSourceReferences;
   extraction?: CompactExtraction;
@@ -848,6 +875,8 @@ export interface VerifySectionsReport extends VerifyHeader {
   unverifiable?: Pair<UnverifiableElement, UnverifiableRelationship>;
   /** Planned tests links to check (see TESTS_LINKS_TO_CHECK_NOTE). */
   testsToCheck?: { note: string; relationships: MissingRelationship[] };
+  /** Planned links and deletions extraction suggested and nobody has decided (see SUGGESTED_TO_CHECK_NOTE). */
+  suggestedToCheck?: { note: string; relationships: MissingRelationship[]; deletions: DeletionNotDone[] };
   unplanned?: Pair<UnplannedElement, UnplannedRelationship>;
   deletionsNotDone?: Pair<DeletionNotDone, RelationshipDeletionNotDone>;
   sourceReferences?: SourceReferenceGaps;
@@ -1256,6 +1285,20 @@ export function compactVerifyReport<R extends VerifyReport & { plannedChangeset?
           testsToCheckNote: TESTS_LINKS_TO_CHECK_NOTE,
         }
       : {}),
+    ...(report.relationships.suggestedToCheck?.length || report.elements.deletionsToCheck?.length
+      ? {
+          suggestedToCheck: cappedList(
+            [
+              ...(report.elements.deletionsToCheck ?? []).map((d) => `delete ${d.planned}: suggested by extraction, not decided`),
+              ...(report.relationships.suggestedToCheck ?? []).map((m) => `${relLine(m.planned)}: ${m.reason}`),
+            ],
+            "suggestedToCheck",
+            counts,
+            pager
+          ),
+          suggestedToCheckNote: SUGGESTED_TO_CHECK_NOTE,
+        }
+      : {}),
     unplanned,
     ...(sourceReferences ? { sourceReferences } : {}),
     ...(report.extraction ? { extraction: compactExtraction(report.extraction) } : {}),
@@ -1360,6 +1403,16 @@ export function verifySections(
             "testsToCheck",
             (r.testsToCheck ?? []).filter((m) => keepRel(m.planned))
           ),
+        };
+        break;
+      case "suggestedToCheck":
+        out.suggestedToCheck = {
+          note: SUGGESTED_TO_CHECK_NOTE,
+          relationships: pager.list(
+            "suggestedToCheck",
+            (r.suggestedToCheck ?? []).filter((m) => keepRel(m.planned))
+          ),
+          deletions: (e.deletionsToCheck ?? []).filter((d) => keep(d.planned, d.built)),
         };
         break;
       case "unplanned":
@@ -2000,6 +2053,10 @@ export function verifyChangeset(plan: Plan, built: BuiltSide, options: VerifyOpt
     if (still) {
       claimed.add(still.id);
       if (markUnverifiable(planned)) continue;
+      if (options.suggested?.deletes.has(planned.id)) {
+        (report.elements.deletionsToCheck ??= []).push({ planned: planned.id, built: still.id });
+        continue;
+      }
       report.elements.deletionsNotDone.push({ planned: planned.id, built: still.id });
     } else {
       claimed.add(planned.id);
@@ -2186,7 +2243,13 @@ export function verifyChangeset(plan: Plan, built: BuiltSide, options: VerifyOpt
       ...(candidates.length > 0 ? { candidates } : {}),
     };
     // A tests link the build doesn't show is for the agent to check, not a missing relationship.
-    if (planned.predicate === "tests") (report.relationships.testsToCheck ??= []).push(lacking);
+    // A link extraction suggested and the agent has not decided is for the agent to check too.
+    if (options.suggested?.links.has(`${mapped.source}::${mapped.predicate}::${mapped.target}`)) {
+      (report.relationships.suggestedToCheck ??= []).push({
+        ...lacking,
+        reason: `extraction suggests it (not decided): ${lacking.reason}`,
+      });
+    } else if (planned.predicate === "tests") (report.relationships.testsToCheck ??= []).push(lacking);
     else report.relationships.missing.push(lacking);
   }
 
@@ -2205,10 +2268,14 @@ export function verifyChangeset(plan: Plan, built: BuiltSide, options: VerifyOpt
     }
   }
 
-  report.summary.elements = countCategories(plan.elements.length, report.elements);
+  report.summary.elements = {
+    ...countCategories(plan.elements.length, report.elements),
+    ...(report.elements.deletionsToCheck?.length ? { suggestedToCheck: report.elements.deletionsToCheck.length } : {}),
+  };
   report.summary.relationships = {
     ...countCategories(plan.relationships.length, report.relationships),
     ...(report.relationships.testsToCheck?.length ? { testsToCheck: report.relationships.testsToCheck.length } : {}),
+    ...(report.relationships.suggestedToCheck?.length ? { suggestedToCheck: report.relationships.suggestedToCheck.length } : {}),
   };
   const baseElements = report.elements.unverifiable.filter((u) => u.reason === ALREADY_IN_BASE_REASON).length;
   if (baseElements > 0 || alreadyInBaseRelationships > 0) {
@@ -2248,6 +2315,8 @@ export async function verifyChangesetInModel(
   let extraction: VerifyExtraction;
   let observability: ObservabilityCheck | undefined;
   let defaultedFields: Map<string, Map<string, unknown>> | undefined;
+  // What the as-built side's extraction record says it only suggested (links, deletions): the agent decides those.
+  let suggested: VerifyOptions["suggested"];
   let warning: string | undefined;
   if ("changeset" in options.against) {
     const asBuilt = options.against.changeset;
@@ -2274,6 +2343,7 @@ export async function verifyChangesetInModel(
         );
       }
     } else {
+      suggested = { links: new Set(record.suggestedLinks), deletes: new Set(record.candidateDeletes) };
       defaultedFields = new Map(
         record.staged.filter((st) => st.defaulted?.length).map((st) => [st.id, new Map(st.defaulted!.map((k) => [k, st.attributes?.[k]]))])
       );
@@ -2408,6 +2478,7 @@ export async function verifyChangesetInModel(
     matchBySource: options.matchBySource,
     observability,
     defaultedFields,
+    ...(suggested ? { suggested } : {}),
     ...(observability ? { declaredSymbol: (planned: VerifyElement) => declaredSymbol(planned, buildFiles, changedBuildFiles) } : {}),
   });
   report.extraction = extraction;
@@ -3313,8 +3384,15 @@ function decideVerdict(report: VerifyReport): { verdict: Verdict; text: string }
           .join(" and ")} can't be seen by extraction (unverifiable, not counted): check them in the code or the review.`
       : "";
 
-  const toCheck = r.testsToCheck ?? 0;
-  const toCheckText = toCheck > 0 ? ` ${toCheck} planned tests ${plural(toCheck, "link", "links")} the build doesn't show to check (testsToCheck says how): not counted as missing.` : "";
+  const suggestedToCheck = (r.suggestedToCheck ?? 0) + (e.suggestedToCheck ?? 0);
+  const suggestedText =
+    suggestedToCheck > 0
+      ? ` ${suggestedToCheck} planned ${plural(suggestedToCheck, "link or deletion", "links and deletions")} the build doesn't show ${plural(suggestedToCheck, "is", "are")} suggested by extraction and not yet decided (suggestedToCheck): check ${plural(suggestedToCheck, "it", "them")} in the code, then accept or reject the suggestion; not counted as missing or not done.`
+      : "";
+  const toCheck = (r.testsToCheck ?? 0) + suggestedToCheck;
+  const testsToCheck = r.testsToCheck ?? 0;
+  const toCheckText =
+    (testsToCheck > 0 ? ` ${testsToCheck} planned tests ${plural(testsToCheck, "link", "links")} the build doesn't show to check (testsToCheck says how): not counted as missing.` : "") + suggestedText;
 
   if (e.planned + r.planned === unverifiable + toCheck && e.unplanned + r.unplanned === 0 && unverifiable > 0) {
     return {
