@@ -7,8 +7,8 @@ description: |-
 
   **Done when:** the agent decides every merge (nothing merges automatically); targeted tests pass; plan landed with the PR.
 created: 2026-11-28T13:24:27.988Z
-modified: 2026-11-28T13:37:26.482Z
-status: staged
+modified: 2026-11-28T14:11:57.459Z
+status: committed
 baseSnapshot: v2:sha256:dd8ce0bbd03f580d60091e7602c8841b82b1d55433ba1b83d71b5e4b1606aa7e
 origin:
   kind: plan
