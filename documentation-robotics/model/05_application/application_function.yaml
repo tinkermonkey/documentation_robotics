@@ -21779,7 +21779,7 @@ application.applicationfunction.plan-coverage:
   type: applicationfunction
   layer_id: application
   name: planCoverage
-  description: In a verify run, lists each element the plan adds or changes that has no as-built candidate staged, with the cards in its source file.
+  description: "In a verify run, lists each element the plan adds that code can show: paired with the as-built side by the matcher changeset_verify uses (id, name, source file and symbol), or with the cards that could be it."
   source_reference:
     provenance: extracted
     locations:
