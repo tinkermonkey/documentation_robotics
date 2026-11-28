@@ -165,6 +165,8 @@ export interface LinkEvidence {
   /** The best resolution confidence among them (0 to 1), and how the index resolved that one. */
   confidence?: number;
   strategy?: string;
+  /** The files of the relationship's source element's code at those sites (the callee's, for an inverted predicate). */
+  sourceFiles?: string[];
   /** The ends were rolled up to the class or file-owning element their symbols are in. */
   rolledUp?: boolean;
   /** For a tests link inferred from a name: what it was inferred from. */
@@ -1980,8 +1982,11 @@ export function planRelationships(
     if (r.rolledUp) ev.rolledUp = true;
     if (r.inferredFrom && !ev.inferredFrom) ev.inferredFrom = r.inferredFrom;
     if (r.site && ev.sites.length < MAX_LINK_SITES) ev.sites.push(r.site);
+    if (r.site?.fromFile) (ev.sourceFiles ??= []).includes(r.site.fromFile) || ev.sourceFiles.push(r.site.fromFile);
     const via = r.via;
     if (!via) continue;
+    const srcFile = r.relationship.inverted ? via.to.file : via.from.file;
+    if (srcFile && !(ev.sourceFiles ??= []).includes(srcFile)) ev.sourceFiles.push(srcFile);
     if (ev.sites.length < MAX_LINK_SITES) {
       ev.sites.push({
         from: via.from.qualifiedName,

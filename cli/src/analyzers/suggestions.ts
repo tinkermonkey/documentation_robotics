@@ -50,9 +50,9 @@ export function fileMatches(file: string, patterns: string[]): boolean {
   });
 }
 
-/** The files a suggested link rests on: its call sites' callers' (a test's file for a tests link). */
+/** The files of the suggested link's source element's code (the caller's, for a test; the callee's, for an inverted predicate). */
 export function linkFiles(r: PlannedRelationship): string[] {
-  return [...new Set((r.evidence?.sites ?? []).map((s) => s.fromFile).filter((f): f is string => !!f))];
+  return r.evidence?.sourceFiles ?? [];
 }
 
 /** Every condition of an item must hold; an item with none matches nothing (`all: true` is the explicit "every one"). */

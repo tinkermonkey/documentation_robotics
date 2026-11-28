@@ -328,7 +328,7 @@ const acceptLinkItemSchema = strictItem("An acceptLinks[] item", {
   files: z
     .union([z.string().min(1), z.array(z.string().min(1)).min(1)])
     .optional()
-    .describe("A file, a folder or a glob: suggestions whose caller (a test's file for a tests link) is in it."),
+    .describe("A file, a folder or a glob: suggestions whose source element's code (a test's file for a tests link) is in it."),
   source: z.string().min(1).optional().describe("A suggestion's source element id."),
   target: z.string().min(1).optional().describe("A suggestion's target element id."),
   minConfidence: z.number().min(0).max(1).optional().describe("Only suggestions whose best call has at least this resolution confidence (a suggestion with no recorded confidence is not matched)."),
@@ -5082,7 +5082,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
                               "Relationships the edge mapping suggests from CBM edges (a call, a usage, a test file's name): none is staged, because a call is not a rule for how the code is modelled. " +
                               "Each carries its evidence (the edge, up to three call sites, the best resolution confidence and how it was resolved). You decide: read a sample against the code, " +
                               "then acceptLinks in bulk (edge, predicate, files, source, target, minConfidence, keys, all) as your own decision, and reject the wrong ones. " +
-                              "weakCalls (unchanged) are suggestions the index is least sure of.",
+                              "weakCalls (unchanged) are lower-confidence links the index matched by name: listed to check, not acceptable here; wire a real one with relationship_add.",
                           },
                         }
                       : {}),

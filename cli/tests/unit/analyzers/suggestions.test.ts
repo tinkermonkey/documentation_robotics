@@ -9,7 +9,7 @@ const link = (source: string, predicate: string, target: string, kind: string, e
   sourceLayer: "application",
   targetLayer: "application",
   edge: kind.replace("edge:", ""),
-  evidence: { kind, edges: 1, sites: [{ from: "A", fromFile: file, to: "B", toFile: "src/b.ts" }], ...extra },
+  evidence: { kind, edges: 1, sites: [{ from: "A", fromFile: file, to: "B", toFile: "src/b.ts" }], sourceFiles: [file], ...extra },
 });
 
 const SUGGESTED = [

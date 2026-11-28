@@ -179,8 +179,12 @@ export async function landsEmpty(projectRoot: string, changeset: PurposeSubject)
 export async function emptyLandingHold(projectRoot: string, changeset: PurposeSubject): Promise<string | undefined> {
   const origin = await extractionOrigin(projectRoot, changeset);
   if (origin.layers) return `its extraction was limited to ${origin.layers.join(", ")}, so it says nothing about the rest of the model`;
-  if (origin.open && (origin.open.cards > 0 || origin.open.candidateDeletes > 0)) {
-    return `its extraction left ${origin.open.cards} card(s) undecided and ${origin.open.candidateDeletes} candidate delete(s) unchecked: decide them (model_add, reject, model_delete) and run codebase_extract again`;
+  if (origin.open && (origin.open.cards > 0 || origin.open.candidateDeletes > 0 || origin.open.suggestedLinks > 0)) {
+    const links = origin.open.suggestedLinks > 0 ? ` and ${origin.open.suggestedLinks} suggested link(s) undecided` : "";
+    return (
+      `its extraction left ${origin.open.cards} card(s) undecided and ${origin.open.candidateDeletes} candidate delete(s) unchecked${links}: ` +
+      "decide them (model_add, reject, model_delete, acceptLinks, acceptDeletes) and run codebase_extract again"
+    );
   }
   return undefined;
 }
