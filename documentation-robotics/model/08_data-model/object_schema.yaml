@@ -15012,7 +15012,7 @@ data-model.objectschema.plan-coverage-item:
   type: objectschema
   layer_id: data-model
   name: PlanCoverageItem
-  description: A planned element with no as-built candidate staged, and the cards found in its source file.
+  description: A planned element, staged (paired with an as-built element, probable pairings with their reason) or with the cards found in its source file.
   attributes:
     type: object
   source_reference:

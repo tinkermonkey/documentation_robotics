@@ -235,8 +235,10 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
    could be them, and a card whose symbol a planned element names says `planned` (`view: {planned: true}`):
    stage a card that is the planned element with `decide: [{card, as, reason}]` (`card` takes the
    cardId or `file#symbol`);
-   then call `codebase_extract` again to stage their relationships, and `model_delete` the
-   `candidateDeletes` that are really gone. Then `changeset_verify` with `changeset: <name>` and
+   then call `codebase_extract` again to stage their relationships. A `since` run stages the deletes
+   whose evidence is unambiguous (`staged.deleted`: a deleted file, a symbol gone from a file that had
+   it); `model_delete` the other `candidateDeletes` that are really gone. Pass `plan: "<plan id or
+name>"` to compare with a plan without activating it: the active changeset is left alone. Then `changeset_verify` with `changeset: <name>` and
    `against: {"changeset": "<name>-as-built"}`. It returns a compact report: the verdict and
    counts; missing, divergent and probable matches one line each; unverifiable items one line per
    reason; unplanned changes counted per type; and `sourceReferences`. `sections: [...]` returns
@@ -266,7 +268,7 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
    files that name it: for each one the build has code for, confirm the file in the code and pass
    `{id, sourceFile, sourceSymbol}` in `references` to `changeset_adopt_source_references`.
    `changeset_activate` the plan again afterwards (the extract
-   result's `previousActive`). After verify, the plan is what lands (step 8), not the as-built
+   result's `previousActive`; not needed when you passed `plan`). After verify, the plan is what lands (step 8), not the as-built
    changeset: it is the plan's verification record, and `changeset_commit` refuses to land it,
    `force` or not. Ask the human whether to discard the as-built changeset or keep it as a
    record, and discard it only when they agree. To discard it, call
