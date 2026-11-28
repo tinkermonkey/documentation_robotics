@@ -36,6 +36,7 @@ import path from "node:path";
 import { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { Model } from "../../core/model.js";
+import { AnnotationStore } from "../../core/annotation-store.js";
 import type { Changeset } from "../../core/changeset.js";
 import { ChangesetGraph } from "../../core/changeset-graph.js";
 import {
@@ -242,7 +243,8 @@ export function landingSummaryText(
   hash: DriftReport,
   preExistingErrors: number,
   warnings: string[] = [],
-  emptyLine?: string
+  emptyLine?: string,
+  annotations: Array<{ id: string; elementId: string }> = []
 ): string {
   const { byOperation, layers } = summarizeChangeset(changeset);
   const counts = Object.entries(byOperation)
@@ -255,6 +257,9 @@ export function landingSummaryText(
     `Intent: ${changeset.description?.trim() || "(no description)"}`,
     emptyLine ? `Changes: ${emptyLine}` : `Changes: ${changeset.changes.length} (${counts})`,
     `Layers: ${layers.join(", ") || "none"}`,
+    ...(annotations.length > 0
+      ? [`Annotations: ${annotations.length} staged, landing with the plan in documentation-robotics/annotations/ (${annotations.map((a) => `${a.id} on ${a.elementId}`).join(", ")})`]
+      : []),
     ...driftLines(drift, hash, changeset.name),
     preExistingErrors > 0
       ? `Validation: passed. ${preExistingErrors} error(s) already in the base model are not counted.`
@@ -452,7 +457,12 @@ async function summarizeLanding(target: LandingTarget, toolName: string): Promis
   const { total, named } = overlapSummary(drift, OVERLAPS_NAMED_PER_KIND);
   const landsOn = await landsOnSentence(target.rootPath);
   const emptyLine = await emptyReconcileLine(target);
-  const message = landingSummaryText(changeset, drift, hash, preExistingErrors, warnings, emptyLine);
+  const stagedRead = await AnnotationStore.forChangeset(manager.changesetPath(changeset.id!))
+    .listWithProblems()
+    .catch((error) => ({ annotations: [], problems: [`the staged annotations could not be read: ${getErrorMessage(error)}`] }));
+  // A staged annotation that can't be read would not land: the summary says so.
+  warnings.push(...stagedRead.problems.map((p) => `Staged annotation not landing: ${p}`));
+  const message = landingSummaryText(changeset, drift, hash, preExistingErrors, warnings, emptyLine, stagedRead.annotations);
   return {
     warnings,
     // The branch is named in the summary (#1422).
@@ -572,6 +582,7 @@ async function landOne(name: string, rootArg: string | undefined, forceIgnored: 
     failed: result.failed,
     preExistingErrors: result.validation.preExistingErrors ?? 0,
     deactivated: result.deactivated,
+    ...(result.annotationsLanded ? { annotationsLanded: result.annotationsLanded } : {}),
     ...(result.driftWarning
       ? {
           drift: {
@@ -588,7 +599,12 @@ async function landOne(name: string, rootArg: string | undefined, forceIgnored: 
         }
       : {}),
     ...(warnings.length > 0 ? { warnings } : {}),
-    filesToCommit: await filesToCommit(rootPath, current).catch(() => [path.join("documentation-robotics")]),
+    ...(result.annotationsWarning ? { annotationsWarning: result.annotationsWarning } : {}),
+    filesToCommit: [
+      ...(await filesToCommit(rootPath, current).catch(() => [path.join("documentation-robotics")])),
+      // The annotations staged in the plan are written to the base's annotations folder as it lands.
+      ...(result.annotationsLanded ? [path.join("documentation-robotics", "annotations")] : []),
+    ],
     // Only an as-built landing reconciles the model with the code (code drift in project_status).
     ...(result.reconciled
       ? {

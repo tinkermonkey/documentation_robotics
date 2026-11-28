@@ -1418,6 +1418,39 @@ server watches the folder and broadcasts changes the agent makes (`annotation.ad
 annotations survive a restart. The viewer accepts a comment on an element in the model or on one a
 staged changeset adds.
 
+### Annotations staged in a changeset
+
+While a changeset is active, `annotation_create` stages the annotation in it instead of writing the
+base model's `annotations/` folder; `annotation_create` also takes `changeset` (ID or name) to stage
+in a changeset that is not active. With no changeset active it writes to the base, as before.
+
+A staged annotation is a file in the changeset's own folder, in the same format as the base's:
+
+```
+documentation-robotics/changesets/<id>/
+├── metadata.yaml
+├── changes.yaml
+└── annotations/            # optional: absent in a changeset made before staged annotations
+    └── <annotation-id>.yaml    # id, elementId, author, content, createdAt, tags, resolved, replies[]
+```
+
+- `annotation_get`, `annotation_update`, `annotation_reply` and `annotation_delete` look in the
+  active (or named) changeset's `annotations/` first, then the base; a reply or update to a staged
+  annotation is written to the staged file, so it stays staged. `annotation_list` returns the
+  base's annotations and the changeset's, each staged one marked `staged: { changeset }`.
+- `changeset_brief` lists each staged annotation in `feedback` with `staged: true` (it need not be on
+  a changed element), and the landing summary of `changeset_commit_preview` / `changeset_commit`
+  gives an `Annotations:` line naming them. `filesToCommit` adds `documentation-robotics/annotations`
+  when any landed.
+- Landing writes each staged annotation to `documentation-robotics/annotations/` (an id already
+  there is left alone) after the model changes have landed; a failure there is a warning
+  (`annotationsWarning`), not "not landed", and the staged copies stay in the changeset's folder as
+  the plan's record. Discarding the changeset deletes its folder, annotations included.
+- A changeset with no `annotations/` folder (every changeset made before this) reads as having none.
+  A plan that stages annotations and no model changes still has nothing to land.
+- The viewer's REST routes (`/api/annotations`) still read and write the base's folder only; showing
+  staged annotations there is a viewer-side change.
+
 ## Known limits
 
 - Impact walks relationships in both directions and does not weigh predicates. Whether, say, a

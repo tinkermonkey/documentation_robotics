@@ -3,7 +3,7 @@ schema: documentation-robotics-v1
 cli_version: 0.9.0
 spec_version: 0.16.0
 created: 2026-02-20T15:28:17.945Z
-updated: 2026-11-28T13:20:19.393Z
+updated: 2026-11-28T13:37:26.932Z
 project:
   name: dr-codebase
   description: ""
@@ -52,7 +52,7 @@ layers:
     elements:
       applicationcomponent: 110
       applicationevent: 2
-      applicationfunction: 1711
+      applicationfunction: 1715
       applicationinterface: 4
       applicationservice: 116
       dataobject: 13
@@ -119,7 +119,7 @@ layers:
     path: documentation-robotics/model/13_testing/
     enabled: true
     elements:
-      testcasesketch: 2677
+      testcasesketch: 2682
       testcoveragemodel: 1
       testcoveragetarget: 9
 changeset_history:
@@ -269,6 +269,9 @@ changeset_history:
     action: committed
   - name: cli010-t1-exports-r7
     committed_at: 2026-11-28T13:20:19.322Z
+    action: committed
+  - name: cli010-n1-annotations
+    committed_at: 2026-11-28T13:37:26.177Z
     action: committed
 reconciled:
   changeset: extract-723c609..5b32f88

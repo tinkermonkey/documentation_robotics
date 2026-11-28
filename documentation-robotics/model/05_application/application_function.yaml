@@ -29008,3 +29008,71 @@ application.applicationfunction.is-declared-variable:
     created_at: 2026-11-28T13:18:48.964Z
     updated_at: 2026-11-28T13:18:48.964Z
     version: 1
+application.applicationfunction.annotation-store-for-changeset:
+  id: a101c8d1-95d1-47ec-b86f-4a9df81e30b2
+  path: application.applicationfunction.annotation-store-for-changeset
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: AnnotationStore forChangeset
+  description: "The store of the annotations staged in a changeset: its folder's annotations/, the same file format as the base store."
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/core/annotation-store.ts
+        symbol: AnnotationStore.forChangeset
+  metadata:
+    created_at: 2026-11-28T13:28:28.301Z
+    updated_at: 2026-11-28T13:28:28.301Z
+    version: 1
+application.applicationfunction.annotation-store-land-into:
+  id: 4664eeac-fc5a-4992-bf0d-0ebddb005ce4
+  path: application.applicationfunction.annotation-store-land-into
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: AnnotationStore landInto
+  description: Lands a changeset's staged annotations into the base store, leaving an id already there alone.
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/core/annotation-store.ts
+        symbol: AnnotationStore.landInto
+  metadata:
+    created_at: 2026-11-28T13:28:28.302Z
+    updated_at: 2026-11-28T13:28:28.302Z
+    version: 1
+application.applicationfunction.annotation-write-target:
+  id: 8cfe7f9d-16aa-4721-b9f9-2580bd400430
+  path: application.applicationfunction.annotation-write-target
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: annotationWriteTarget
+  description: "Where an annotation goes: the named or active changeset's staged annotations, else the base."
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/mcp/tools/annotation-shared.ts
+        symbol: annotationWriteTarget
+  metadata:
+    created_at: 2026-11-28T13:28:28.302Z
+    updated_at: 2026-11-28T13:28:28.302Z
+    version: 1
+application.applicationfunction.find-annotation:
+  id: 9159016d-8cb9-4c0b-9742-f6550417832e
+  path: application.applicationfunction.find-annotation
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: findAnnotation
+  description: Finds an annotation by id in the active changeset's staged annotations, then the base.
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/mcp/tools/annotation-shared.ts
+        symbol: findAnnotation
+  metadata:
+    created_at: 2026-11-28T13:28:28.302Z
+    updated_at: 2026-11-28T13:28:28.302Z
+    version: 1

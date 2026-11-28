@@ -225,7 +225,7 @@ product.feature.annotations:
   type: feature
   layer_id: product
   name: Annotations
-  description: "MCP: annotation_list/get/create/update/delete/reply. Viewer: comments on elements."
+  description: "MCP: annotation_list/get/create/update/delete/reply. While a changeset is active an annotation is staged in it (or in the one named by changeset): it lands with the plan and is discarded with it. With no changeset it is written to the base model."
   attributes:
     priority: medium
     status: delivered

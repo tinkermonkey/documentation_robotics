@@ -82,6 +82,9 @@ function notBefore(iso: string): string {
   return new Date(Math.max(Date.now(), Date.parse(iso) || 0)).toISOString();
 }
 
+/** The folder of a changeset that holds its staged annotations, one file each, as the base store does. */
+export const STAGED_ANNOTATIONS_DIR = "annotations";
+
 export class AnnotationStore {
   private annotationsDir: string;
 
@@ -89,10 +92,52 @@ export class AnnotationStore {
     this.annotationsDir = path.join(rootPath, "documentation-robotics", "annotations");
   }
 
+  /**
+   * The store of the annotations staged in a changeset: `{changeset folder}/annotations/`, the same
+   * file format as the base store. A changeset made before annotations could be staged has no such
+   * folder and reads as having none.
+   */
+  static forChangeset(changesetPath: string): AnnotationStore {
+    const store = new AnnotationStore("");
+    store.annotationsDir = path.join(changesetPath, STAGED_ANNOTATIONS_DIR);
+    return store;
+  }
+
+  /**
+   * Lands a changeset's staged annotations: writes each into the base store (an id already there
+   * is left alone), keeping the staged copies as the plan's record. Returns how many were written.
+   */
+  async landInto(base: AnnotationStore): Promise<{ landed: number; problems: string[] }> {
+    let landed = 0;
+    const { annotations, problems } = await this.listWithProblems();
+    for (const annotation of annotations) {
+      try {
+        if (await base.get(annotation.id)) continue;
+        await base.put(annotation);
+        landed++;
+      } catch (error) {
+        problems.push(`${annotation.id}: ${getErrorMessage(error)}`);
+      }
+    }
+    return { landed, problems };
+  }
+
+  /** Writes an annotation as it is (the id and times it already has). */
+  async put(annotation: Annotation): Promise<void> {
+    await ensureDir(this.annotationsDir);
+    await atomicWrite(this.getPath(annotation.id), stringifyDrYaml(annotation));
+  }
+
   /** Lists all annotations, optionally filtered to a single element, oldest first. Skips (and warns on) individual files that fail to load rather than failing the whole list. */
   async list(elementId?: string): Promise<Annotation[]> {
+    return (await this.listWithProblems(elementId)).annotations;
+  }
+
+  /** As list, and with the files it could not load, one line each (list only warns on stderr). */
+  async listWithProblems(elementId?: string): Promise<{ annotations: Annotation[]; problems: string[] }> {
+    const problems: string[] = [];
     if (!(await fileExists(this.annotationsDir))) {
-      return [];
+      return { annotations: [], problems };
     }
 
     const entries = await readdir(this.annotationsDir, { withFileTypes: true });
@@ -107,6 +152,7 @@ export class AnnotationStore {
         annotation = await this.get(id);
       } catch (error) {
         process.stderr.write(`Warning: Skipping annotation '${id}': ${getErrorMessage(error)}\n`);
+        problems.push(`${id}: ${getErrorMessage(error)}`);
         continue;
       }
 
@@ -115,7 +161,7 @@ export class AnnotationStore {
       }
     }
 
-    return annotations.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    return { annotations: annotations.sort((a, b) => a.createdAt.localeCompare(b.createdAt)), problems };
   }
 
   async get(id: string): Promise<Annotation | null> {

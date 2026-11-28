@@ -411,7 +411,8 @@ export interface BriefUnwired {
 
 export interface BriefInput {
   graph: ChangesetGraph;
-  annotations?: Annotation[];
+  /** Open annotations; one staged in the changeset itself carries `staged: true`. */
+  annotations?: Array<Annotation & { staged?: boolean }>;
   /** Hash-only drift (`{isDrifted, warnings}`) or the structured one from `describeDrift`. */
   drift?: BriefDrift;
   /** How to show unwired connections (default `summary`). */
@@ -549,6 +550,8 @@ export interface ChangesetBrief {
     content: string;
     tags: string[];
     replies: number;
+    /** Staged in this changeset: it lands with the plan. */
+    staged?: boolean;
   }>;
 }
 
@@ -769,7 +772,7 @@ export function buildBrief({
   // Feedback: open annotations on what the change touches.
   const watched = new Set([...changedIds, ...neighborIds]);
   const feedback = annotations
-    .filter((a) => !a.resolved && watched.has(graph.resolve(a.elementId)))
+    .filter((a) => !a.resolved && (a.staged || watched.has(graph.resolve(a.elementId))))
     .map((a) => ({
       annotationId: a.id,
       elementId: a.elementId,
@@ -777,6 +780,7 @@ export function buildBrief({
       content: a.content,
       tags: a.tags,
       replies: a.replies.length,
+      ...(a.staged ? { staged: true } : {}),
     }));
 
   return {

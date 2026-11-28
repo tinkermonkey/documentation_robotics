@@ -343,7 +343,17 @@ export async function changesetBriefHandler(args: ChangesetBriefArgs): Promise<C
     const model = await loadModel(args.rootPath);
     const { manager, changeset, graph } = await loadChangesetGraph(model, changesetArg(args));
 
-    const annotations = await new AnnotationStore(model.rootPath).list();
+    // The base's annotations, and the ones staged in this changeset (they land with it).
+    const stagedAnnotations = await AnnotationStore.forChangeset(manager.changesetPath(changeset.id!))
+      .list()
+      .catch((error) => {
+        process.stderr.write(`Warning: the changeset's staged annotations could not be read: ${getErrorMessage(error)}\n`);
+        return [];
+      });
+    const annotations = [
+      ...(await new AnnotationStore(model.rootPath).list()),
+      ...stagedAnnotations.map((a) => ({ ...a, staged: true })),
+    ];
     // The reviewer's verdicts from the viewer (keep / drop / ask, with notes), when there are any.
     const review = reviewForAgent(changeset, changeset.review);
     const withReview = <T extends object>(result: T): T => (review ? { ...result, review } : result);

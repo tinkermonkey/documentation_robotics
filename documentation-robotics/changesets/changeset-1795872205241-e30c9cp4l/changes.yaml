@@ -1,0 +1,283 @@
+- type: add
+  elementId: application.applicationfunction.annotation-store-for-changeset
+  layerName: application
+  after:
+    id: a101c8d1-95d1-47ec-b86f-4a9df81e30b2
+    path: application.applicationfunction.annotation-store-for-changeset
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: AnnotationStore forChangeset
+    description: "The store of the annotations staged in a changeset: its folder's annotations/, the same file format as the base store."
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/core/annotation-store.ts
+          symbol: AnnotationStore.forChangeset
+    metadata:
+      created_at: 2026-11-28T13:28:28.301Z
+      updated_at: 2026-11-28T13:28:28.301Z
+      version: 1
+  timestamp: 2026-11-28T13:28:28.332Z
+  sequenceNumber: 0
+- type: add
+  elementId: application.applicationfunction.annotation-store-land-into
+  layerName: application
+  after:
+    id: 4664eeac-fc5a-4992-bf0d-0ebddb005ce4
+    path: application.applicationfunction.annotation-store-land-into
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: AnnotationStore landInto
+    description: Lands a changeset's staged annotations into the base store, leaving an id already there alone.
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/core/annotation-store.ts
+          symbol: AnnotationStore.landInto
+    metadata:
+      created_at: 2026-11-28T13:28:28.302Z
+      updated_at: 2026-11-28T13:28:28.302Z
+      version: 1
+  timestamp: 2026-11-28T13:28:28.332Z
+  sequenceNumber: 1
+- type: add
+  elementId: application.applicationfunction.annotation-write-target
+  layerName: application
+  after:
+    id: 8cfe7f9d-16aa-4721-b9f9-2580bd400430
+    path: application.applicationfunction.annotation-write-target
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: annotationWriteTarget
+    description: "Where an annotation goes: the named or active changeset's staged annotations, else the base."
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/mcp/tools/annotation-shared.ts
+          symbol: annotationWriteTarget
+    metadata:
+      created_at: 2026-11-28T13:28:28.302Z
+      updated_at: 2026-11-28T13:28:28.302Z
+      version: 1
+  timestamp: 2026-11-28T13:28:28.332Z
+  sequenceNumber: 2
+- type: add
+  elementId: application.applicationfunction.find-annotation
+  layerName: application
+  after:
+    id: 9159016d-8cb9-4c0b-9742-f6550417832e
+    path: application.applicationfunction.find-annotation
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: findAnnotation
+    description: Finds an annotation by id in the active changeset's staged annotations, then the base.
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/mcp/tools/annotation-shared.ts
+          symbol: findAnnotation
+    metadata:
+      created_at: 2026-11-28T13:28:28.302Z
+      updated_at: 2026-11-28T13:28:28.302Z
+      version: 1
+  timestamp: 2026-11-28T13:28:28.332Z
+  sequenceNumber: 3
+- type: add
+  elementId: testing.testcasesketch.annotations-staged-in-a-changeset-stages-while-a-changeset-is-active-keeps-replies-and-updates-585ef336
+  layerName: testing
+  after:
+    id: 684be09e-646f-4510-9e0d-37bd8189586e
+    path: testing.testcasesketch.annotations-staged-in-a-changeset-stages-while-a-changeset-is-active-keeps-replies-and-updates-585ef336
+    spec_node_id: testing.testcasesketch
+    type: testcasesketch
+    layer_id: testing
+    name: annotations staged in a changeset stages while a changeset is active, keeps replies and updates staged, and lands with the plan
+    attributes:
+      status: automated
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/tests/unit/mcp/staged-annotations.test.ts
+          symbol: annotations staged in a changeset > stages while a changeset is active, keeps replies and updates staged, and lands with the plan
+    metadata:
+      created_at: 2026-11-28T13:28:33.386Z
+      updated_at: 2026-11-28T13:28:33.386Z
+      version: 1
+  timestamp: 2026-11-28T13:28:53.128Z
+  sequenceNumber: 4
+- type: add
+  elementId: testing.testcasesketch.annotations-staged-in-a-changeset-is-discarded-with-the-plan
+  layerName: testing
+  after:
+    id: 54d446ba-3fb9-47d6-97e6-1f3b90c8e6ee
+    path: testing.testcasesketch.annotations-staged-in-a-changeset-is-discarded-with-the-plan
+    spec_node_id: testing.testcasesketch
+    type: testcasesketch
+    layer_id: testing
+    name: annotations staged in a changeset is discarded with the plan
+    attributes:
+      status: automated
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/tests/unit/mcp/staged-annotations.test.ts
+          symbol: annotations staged in a changeset > is discarded with the plan
+    metadata:
+      created_at: 2026-11-28T13:28:33.386Z
+      updated_at: 2026-11-28T13:28:33.386Z
+      version: 1
+  timestamp: 2026-11-28T13:28:53.128Z
+  sequenceNumber: 5
+- type: relationship-add
+  elementId: application.applicationcomponent.annotation-store::assigned-to::application.applicationfunction.annotation-store-for-changeset
+  layerName: application
+  after:
+    source: application.applicationcomponent.annotation-store
+    target: application.applicationfunction.annotation-store-for-changeset
+    predicate: assigned-to
+    layer: application
+    category: structural
+  timestamp: 2026-11-28T13:28:33.392Z
+  sequenceNumber: 6
+- type: relationship-add
+  elementId: application.applicationcomponent.annotation-store::assigned-to::application.applicationfunction.annotation-store-land-into
+  layerName: application
+  after:
+    source: application.applicationcomponent.annotation-store
+    target: application.applicationfunction.annotation-store-land-into
+    predicate: assigned-to
+    layer: application
+    category: structural
+  timestamp: 2026-11-28T13:28:33.392Z
+  sequenceNumber: 7
+- type: relationship-add
+  elementId: application.applicationfunction.annotation-write-target::realizes::application.applicationservice.annotation-create-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.annotation-write-target
+    target: application.applicationservice.annotation-create-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-28T13:28:37.694Z
+  sequenceNumber: 8
+- type: relationship-add
+  elementId: application.applicationfunction.find-annotation::realizes::application.applicationservice.annotation-reply-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.find-annotation
+    target: application.applicationservice.annotation-reply-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-28T13:28:37.694Z
+  sequenceNumber: 9
+- type: update
+  elementId: product.feature.annotations
+  layerName: product
+  before:
+    id: b0fbe578-e5ff-4141-a5c5-3efa3425f149
+    path: product.feature.annotations
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Annotations
+    description: "MCP: annotation_list/get/create/update/delete/reply. Viewer: comments on elements."
+    attributes: &a1
+      priority: medium
+      status: delivered
+      documentation: "MCP: annotation_list/get/create/update/delete/reply. Viewer: comments on elements."
+    source_reference: &a2
+      provenance: manual
+      locations:
+        - file: cli/src/core/annotation-store.ts
+    metadata: &a3
+      created_at: 2026-11-09T21:54:57.648Z
+      updated_at: 2026-11-09T21:54:57.648Z
+      version: 1
+  after:
+    id: b0fbe578-e5ff-4141-a5c5-3efa3425f149
+    path: product.feature.annotations
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Annotations
+    description: "MCP: annotation_list/get/create/update/delete/reply. While a changeset is active an annotation is staged in it (or in the one named by changeset): it lands with the plan and is discarded with it. With no changeset it is written to the base model."
+    attributes: *a1
+    source_reference: *a2
+    metadata: *a3
+  timestamp: 2026-11-28T13:28:39.263Z
+  sequenceNumber: 10
+- type: add
+  elementId: testing.testcasesketch.annotations-staged-in-a-changeset-deletes-a-staged-annotation-from-the-changeset-not-the-base
+  layerName: testing
+  after:
+    id: f7e1d38e-4750-4c0e-ac11-0cf506940675
+    path: testing.testcasesketch.annotations-staged-in-a-changeset-deletes-a-staged-annotation-from-the-changeset-not-the-base
+    spec_node_id: testing.testcasesketch
+    type: testcasesketch
+    layer_id: testing
+    name: annotations staged in a changeset deletes a staged annotation from the changeset, not the base
+    attributes:
+      status: automated
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/tests/unit/mcp/staged-annotations.test.ts
+          symbol: annotations staged in a changeset > deletes a staged annotation from the changeset, not the base
+    metadata:
+      created_at: 2026-11-28T13:28:48.270Z
+      updated_at: 2026-11-28T13:28:48.270Z
+      version: 1
+  timestamp: 2026-11-28T13:28:53.128Z
+  sequenceNumber: 11
+- type: add
+  elementId: testing.testcasesketch.annotations-staged-in-a-changeset-takes-changeset-to-stage-in-a-changeset-that-is-not-active
+  layerName: testing
+  after:
+    id: 11e19d78-497e-45d6-86f8-45661b99a836
+    path: testing.testcasesketch.annotations-staged-in-a-changeset-takes-changeset-to-stage-in-a-changeset-that-is-not-active
+    spec_node_id: testing.testcasesketch
+    type: testcasesketch
+    layer_id: testing
+    name: annotations staged in a changeset takes `changeset` to stage in a changeset that is not active
+    attributes:
+      status: automated
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/tests/unit/mcp/staged-annotations.test.ts
+          symbol: annotations staged in a changeset > takes `changeset` to stage in a changeset that is not active
+    metadata:
+      created_at: 2026-11-28T13:28:48.270Z
+      updated_at: 2026-11-28T13:28:48.270Z
+      version: 1
+  timestamp: 2026-11-28T13:28:53.128Z
+  sequenceNumber: 12
+- type: add
+  elementId: testing.testcasesketch.annotations-staged-in-a-changeset-writes-to-the-base-as-before-when-no-changeset-is-active-and-03ec4b06
+  layerName: testing
+  after:
+    id: 989bfc30-1736-4540-8620-9d0aa60ebc5f
+    path: testing.testcasesketch.annotations-staged-in-a-changeset-writes-to-the-base-as-before-when-no-changeset-is-active-and-03ec4b06
+    spec_node_id: testing.testcasesketch
+    type: testcasesketch
+    layer_id: testing
+    name: annotations staged in a changeset writes to the base as before when no changeset is active, and reads a changeset without annotations
+    attributes:
+      status: automated
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/tests/unit/mcp/staged-annotations.test.ts
+          symbol: annotations staged in a changeset > writes to the base as before when no changeset is active, and reads a changeset without annotations
+    metadata:
+      created_at: 2026-11-28T13:28:48.270Z
+      updated_at: 2026-11-28T13:28:48.270Z
+      version: 1
+  timestamp: 2026-11-28T13:28:53.128Z
+  sequenceNumber: 13

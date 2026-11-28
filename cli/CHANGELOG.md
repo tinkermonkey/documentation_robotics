@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Annotations made during a plan are staged in it (#1447):** while a changeset is active,
+  `annotation_create` writes the annotation into the changeset's folder (`annotations/`) instead of
+  `documentation-robotics/annotations/`, or takes `changeset` to name one. Replies, updates and
+  deletes of a staged annotation stay staged; `annotation_list` and `annotation_get` show it marked
+  `staged`; `changeset_brief` lists it in `feedback` and the landing summary has an `Annotations:` line.
+  It lands with the plan and is discarded with it. With no changeset active nothing changes, and a
+  changeset made before reads as having no staged annotations. Format in `docs/CHANGE_MODELING.md`.
 - **`changeset_verify` says what it did not check (#1383, #1307, #1346):** a plan that changes only
   descriptions is no longer a verdict that reads like a pass: it says "Not checked: the plan changes
   only descriptions", and `descriptionOnly` lists what could be checked (each element's source files

@@ -231,7 +231,7 @@ export interface CompactBrief {
   codeTouched: string[];
   /** Files that hold only existing elements next to the change: the build must not break them. */
   neighborFiles: string[];
-  /** `annotationId on elementId (author, n replies): content`. */
+  /** `annotationId on elementId (author, n replies[, staged]): content`. */
   feedback: string[];
   delta?: CompactDelta;
   /** Set when the call had arguments this form doesn't use (e.g. `layers` or `ids` without `sections`). */
@@ -773,7 +773,7 @@ export function compactBrief(
 }
 
 const feedbackLine = (f: ChangesetBrief["feedback"][number]) =>
-  `${f.annotationId} on ${f.elementId} (${f.author}, ${f.replies} ${f.replies === 1 ? "reply" : "replies"}): ${cut(f.content, FEEDBACK_LIMIT)}`;
+  `${f.annotationId} on ${f.elementId} (${f.author}, ${f.replies} ${f.replies === 1 ? "reply" : "replies"}${f.staged ? ", staged in this changeset: lands with it" : ""}): ${cut(f.content, FEEDBACK_LIMIT)}`;
 
 
 // ---------------------------------------------------------------------------

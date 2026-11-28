@@ -9,6 +9,7 @@
  */
 
 import path from "path";
+import { rm } from "fs/promises";
 import ansis from "ansis";
 import { StagedChangesetStorage } from "./staged-changeset-storage.js";
 import {
@@ -29,6 +30,7 @@ import { BaseSnapshotManager } from "./base-snapshot-manager.js";
 import { Changeset, StagedChange, withSequenceNumbers, type ChangesetStatus } from "./changeset.js";
 import { ChangesetValidator } from "./changeset-validator.js";
 import { fileExists } from "../utils/file-io.js";
+import { AnnotationStore, STAGED_ANNOTATIONS_DIR } from "./annotation-store.js";
 import { trackModelWrite } from "./model-write-tracker.js";
 import type { Model } from "./model.js";
 import type { VirtualProjectionEngine } from "./virtual-projection.js";
@@ -167,6 +169,10 @@ export interface CommitResult {
    * when it was not active, on a dry run, or when clearing failed (see deactivationError).
    */
   deactivated: boolean;
+  /** How many annotations staged in the changeset landed in the base model's annotations. */
+  annotationsLanded?: number;
+  /** Set when the staged annotations could not be written to the base after the landing. */
+  annotationsWarning?: string;
   /**
    * Set when the landed changeset was active and its on-disk marker could not be cleared. The model
    * passed to commit is already deactivated; only the marker remains, so a model loaded afterwards
@@ -1640,6 +1646,28 @@ export class StagingAreaManager {
         // The plan has landed: the verification records that name it are kept as records now.
         await this.recordVerificationsOf(changeset);
 
+        // The annotations staged in the plan land with it, after the landing is safe: a failure here
+        // is a warning, never "not landed", and the staged copies stay in the changeset's folder.
+        try {
+          const { landed, problems } = await AnnotationStore.forChangeset(this.changesetPath(changeset.id!)).landInto(
+            new AnnotationStore(model.rootPath)
+          );
+          if (landed > 0) result.annotationsLanded = landed;
+          if (problems.length > 0) {
+            throw new Error(`${problems.length} not landed: ${problems.join("; ")}`);
+          }
+        } catch (error) {
+          result.annotationsWarning =
+            `Some staged annotations could not be written to documentation-robotics/annotations/ (${getErrorMessage(error)}); ` +
+            `they are still in the changeset's folder, under annotations/.`;
+          // The viewer's Apply and the CLI do not read the result's warning: say it on the console too.
+          console.warn(`Warning: changeset '${changeset.name}' landed. ${result.annotationsWarning}`);
+          emitLog(SeverityNumber.WARN, "Failed to land the changeset's staged annotations", {
+            "changeset.id": changesetId,
+            "error.message": getErrorMessage(error),
+          });
+        }
+
         (span as any).setAttribute("commit.success", true);
         (span as any).setAttribute("commit.committed", result.committed);
         if (drift.isDrifted) {
@@ -2055,6 +2083,8 @@ export class StagingAreaManager {
     await this.storage.save(changeset);
     // Only the record stays (name, description, status): nothing reads a base index after this.
     await this.storage.removeSideFiles(id);
+    // Nor its staged annotations: they landed with the plan, or are not wanted now.
+    await rm(path.join(this.changesetPath(id), STAGED_ANNOTATIONS_DIR), { recursive: true, force: true });
     if ((await this.readActiveMarker()) === id) {
       await this.clearActive();
     }
