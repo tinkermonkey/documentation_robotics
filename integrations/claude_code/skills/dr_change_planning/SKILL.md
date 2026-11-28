@@ -287,6 +287,10 @@ name>"` to compare with a plan without activating it: the active changeset is le
    `changeset_commit_preview` is the read-only dry run, if you want its `summary` first. Drift doesn't
    refuse it: the result lists each staged change the base overlapped and what landing did about it, so
    tell them that (`force` is ignored; `changeset_update` with `rebaseline: true` re-baselines a plan
+   Part of a plan can land while the rest stays planned (what is built, say): choose it with `ids`, `milestone`
+   or `withSourceReference` on `changeset_commit_preview` (it lists the staged links that cross the boundary;
+   `crossing: "include"` brings their far ends, `"leave"` keeps those links staged), then call `changeset_commit`
+   with the same arguments. The part lands as its own committed changeset; the plan stays staged with the rest.
    whose base moved). Then commit the result's `filesToCommit`: the model's changed files, the manifest
    and the changeset's folder, with the code on the branch (`project_status` warns when a landed
    changeset's folder is untracked). A validation error refuses it, and so does a changeset-only

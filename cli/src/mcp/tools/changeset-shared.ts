@@ -136,3 +136,20 @@ export async function loadChangesetGraph(
   const graph = await ChangesetGraph.build(model, changeset);
   return { manager, changeset, graph };
 }
+
+/** The `milestone` argument of the tools that scope a call to a milestone (#1389). */
+export const milestoneField = z
+  .union([z.string(), z.array(z.string())])
+  .optional()
+  .describe(
+    "Only what belongs to this milestone (an id such as product.milestone.<name>, or its name), or to any of several: " +
+      "the elements scheduled for it (scheduled-for) and everything in the plan that realizes, serves or composes them, " +
+      "followed transitively. Read from the plan's own links: what no link ties to the milestone is not in it " +
+      "(model_search with milestone lists the set; check it against the code before relying on it)."
+  );
+
+/** The milestone names a call gives, as a list. */
+export function milestoneArgs(milestone: string | string[] | undefined): string[] {
+  if (milestone === undefined) return [];
+  return (Array.isArray(milestone) ? milestone : [milestone]).filter((m) => m.trim().length > 0);
+}

@@ -27,7 +27,7 @@ import {
   refuseWhileLanding,
 } from "./changeset-write-refusal.js";
 import { BaseSnapshotManager } from "./base-snapshot-manager.js";
-import { Changeset, StagedChange, withSequenceNumbers, type ChangesetStatus } from "./changeset.js";
+import { Changeset, StagedChange, withSequenceNumbers, type ChangesetStatus, type LandedPart } from "./changeset.js";
 import { ChangesetValidator } from "./changeset-validator.js";
 import { fileExists } from "../utils/file-io.js";
 import { AnnotationStore, STAGED_ANNOTATIONS_DIR } from "./annotation-store.js";
@@ -711,6 +711,42 @@ export class StagingAreaManager {
     const engine = await this.getProjectionEngine();
     await engine.invalidateOnUnstage(changeset.id);
     return removedAt;
+  }
+
+  /**
+   * The changeset that lands a part of a plan (#1388): a new staged changeset holding `changes` (the
+   * plan's own, sequence numbers kept) under the plan's base, so the landing reads the drift and
+   * overlaps the plan has. It is landed with `commit` like any other, which is the record of what
+   * landed; the plan keeps the rest (see `removeLanded`). Named after the plan, with a number when
+   * that name is taken.
+   */
+  async createPart(plan: Changeset, changes: StagedChange[], description: string): Promise<Changeset> {
+    const taken = new Set((await this.list()).map((c) => c.name));
+    let name = `${plan.name}-landed`;
+    for (let n = 2; taken.has(name); n++) name = `${plan.name}-landed-${n}`;
+    const part = await this.create(name, description, undefined, { purpose: "plan" });
+    part.changes = changes;
+    part.baseSnapshot = plan.baseSnapshot;
+    part.lastSequence = Math.max(-1, ...changes.map((c) => c.sequenceNumber));
+    part.updateModified();
+    await this.storage.save(part);
+    // The plan's record of what predates it, so the part's drift is the plan's.
+    const { readBaseIndex, writeBaseIndex } = await import("./changeset-base-index.js");
+    try {
+      const index = plan.id ? await readBaseIndex(this.rootPath, plan.id) : undefined;
+      if (index) await writeBaseIndex(this.rootPath, part.id!, index);
+    } catch (error) {
+      console.warn(`Warning: could not copy the base index of '${plan.name}' to '${name}': ${getErrorMessage(error)}`);
+    }
+    return part;
+  }
+
+  /** Takes the changes of a plan that landed as `part` out of it, and records the part (#1388). */
+  async removeLanded(planId: string, sequences: number[], part: LandedPart): Promise<void> {
+    this.validateChangesetId(planId);
+    await this.storage.removeLanded(planId, sequences, part);
+    const engine = await this.getProjectionEngine();
+    await engine.invalidateOnUnstage(planId);
   }
 
   /**

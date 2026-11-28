@@ -230,6 +230,8 @@ export interface StagedChangesetData {
   verifies?: string;
   /** For a verification record: what its extraction read. */
   scope?: VerificationScope;
+  /** Parts of this plan that landed on their own (metadata.yaml). */
+  landed?: LandedPart[];
   /** The reviewer's verdicts, read from review.yaml (never written by save; see updateReview). */
   review?: ChangesetReview;
   stats?: {
@@ -237,6 +239,25 @@ export interface StagedChangesetData {
     modifications: number;
     deletions: number;
   };
+}
+
+/**
+ * A part of a plan that landed on its own (#1388): the committed changeset that holds what landed,
+ * and what it was. The plan keeps the rest staged.
+ */
+export interface LandedPart {
+  /** The committed changeset that holds the landed changes. */
+  changeset: string;
+  id: string;
+  at: string;
+  /** How the part was chosen, in words (ids, milestone, source references). */
+  selection: string;
+  /** Elements whose changes landed. */
+  elements: string[];
+  /** Relationship changes that landed. */
+  relationships: number;
+  /** Links that crossed the boundary and stayed staged in the plan. */
+  leftStaged?: number;
 }
 
 /**
@@ -271,6 +292,8 @@ export class Changeset {
   verifies?: string;
   /** For a verification record: what its extraction read. */
   scope?: VerificationScope;
+  /** Parts of this plan that landed on their own, oldest first (#1388). */
+  landed?: LandedPart[];
   /**
    * The reviewer's verdicts as read from review.yaml when the changeset was loaded. Read-only here:
    * `save` never writes it; StagedChangesetStorage.updateReview does, under the changeset's lock.
@@ -329,6 +352,7 @@ export class Changeset {
     if (data.purpose) this.purpose = data.purpose;
     if (data.verifies) this.verifies = data.verifies;
     if (data.scope) this.scope = data.scope;
+    if (Array.isArray(data.landed) && data.landed.length > 0) this.landed = data.landed;
     if (data.review) this.review = data.review;
     // Note: Stats are computed from changes array via getter; ignore any stored stats
   }

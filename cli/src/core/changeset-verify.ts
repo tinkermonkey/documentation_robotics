@@ -499,9 +499,19 @@ export interface ObservabilityCheck {
   field?(element: VerifyElement, field: string): boolean;
 }
 
+/** A filter as an answer shows it: a milestone's scope counted, not listed. */
+export type ShownFilter = Omit<VerifyFilter, "milestone"> & {
+  milestone?: { milestones: string[]; elementCount: number };
+};
+
+export function shownFilter(filter: VerifyFilter): ShownFilter {
+  const { milestone, ...rest } = filter;
+  return { ...rest, ...(milestone ? { milestone: { milestones: milestone.milestones, elementCount: milestone.elements.length } } : {}) };
+}
+
 /** What a narrowed report covers. */
 export interface SubsetScope {
-  filter: VerifyFilter;
+  filter: ShownFilter;
   /** The planned changes the filter keeps. */
   planned: { elements: number; relationships: number };
   note: string;
@@ -813,6 +823,12 @@ export const VERIFY_SECTION_PAGE_SIZE = 50;
 export interface VerifyFilter {
   layers?: string[];
   ids?: string[];
+  /**
+   * A milestone scope (#1389): the milestones named and the elements in their scope (see
+   * core/milestone-scope.ts). Keeps what `ids` would for those elements; a milestone with an empty
+   * scope keeps nothing.
+   */
+  milestone?: { milestones: string[]; elements: string[] };
 }
 
 type Pair<E, R> = { elements: E[]; relationships: R[] };
@@ -823,7 +839,7 @@ export interface VerifySectionsReport extends VerifyHeader {
   /** The sections returned, in the order asked. */
   sections: VerifySection[];
   /** The filter applied, when one was given. */
-  filter?: VerifyFilter;
+  filter?: ShownFilter;
   missing?: Pair<MissingElement, MissingRelationship>;
   divergent?: Pair<DivergentElement, DivergentRelationship>;
   probable?: Pair<ElementMatch | DivergentElement, RelationshipMatch | DivergentRelationship>;
@@ -849,6 +865,8 @@ export interface CompactVerifyOptions {
   layers?: string[];
   /** With sections: only items touching these element ids. */
   ids?: string[];
+  /** Only items touching the elements in a milestone's scope (#1389); the verdict and counts are over them. */
+  milestone?: VerifyFilter["milestone"];
   /**
    * The most lines (compact, default VERIFY_LIST_LIMIT) or items (sections, default
    * VERIFY_SECTION_PAGE_SIZE) to return from each list. A page size, not a cut-off.
@@ -955,7 +973,8 @@ function headerOf(report: VerifyReport & { plannedChangeset?: { id: string; name
 
 /** Which items a filter keeps: those touching an element with one of its ids or in one of its layers. */
 function filterKeeper(filter: VerifyFilter | undefined) {
-  const ids = filter?.ids?.length ? new Set(filter.ids) : undefined;
+  const ids =
+    filter?.ids?.length || filter?.milestone ? new Set([...(filter.ids ?? []), ...(filter.milestone?.elements ?? [])]) : undefined;
   const layers = filter?.layers?.length ? new Set(filter.layers) : undefined;
   const keep = (...elementIds: string[]): boolean =>
     !(ids || layers) || elementIds.some((id) => (ids?.has(id) ?? false) || (layers?.has(id.split(".")[0]) ?? false));
@@ -1002,6 +1021,7 @@ export function narrowVerifyReport<R extends VerifyReport>(report: R, filter: Ve
   if (registered > 0) summary.elements.missingUnlessRegisteredByName = registered;
 
   const parts = [
+    filter.milestone ? `milestone ${filter.milestone.milestones.join(", ")} (${filter.milestone.elements.length} elements in its scope)` : "",
     filter.ids?.length ? `${filter.ids.length} id${filter.ids.length === 1 ? "" : "s"}` : "",
     filter.layers?.length ? `layer${filter.layers.length === 1 ? "" : "s"} ${filter.layers.join(", ")}` : "",
   ].filter(Boolean);
@@ -1042,7 +1062,7 @@ export function narrowVerifyReport<R extends VerifyReport>(report: R, filter: Ve
     elements,
     relationships,
     subset: {
-      filter,
+      filter: shownFilter(filter),
       planned,
       note:
         `verdict, verdictText and summary are over the ${planned.elements} planned elements and ${planned.relationships} relationships the filter keeps, ` +
@@ -1132,6 +1152,7 @@ export function compactVerifyReport<R extends VerifyReport & { plannedChangeset?
   const filter: VerifyFilter = {
     ...(options.layers?.length ? { layers: options.layers } : {}),
     ...(options.ids?.length ? { ids: options.ids } : {}),
+    ...(options.milestone ? { milestone: options.milestone } : {}),
   };
   const filtered = Object.keys(filter).length > 0;
   // ids and layers narrow the verdict and counts too, not only the lists (#1346).
@@ -1290,7 +1311,7 @@ export function verifySections(
     detail: "compact",
     ...headerOf(report),
     sections: names,
-    ...(filterKeeper(filter).narrows ? { filter } : {}),
+    ...(filterKeeper(filter).narrows ? { filter: shownFilter(filter!) } : {}),
     page: pager.page(),
     more: "",
   };
