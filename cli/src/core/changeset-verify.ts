@@ -210,8 +210,22 @@ export interface ElementMatch {
   editedAfterExtraction?: ExtractionEdit[];
 }
 
+/**
+ * A ready call that takes the built value for one divergence, for the agent to make once it has
+ * judged that the build is right (#1325). Offered, never applied: verify stays read-only. The calls
+ * stage into the active changeset, so activate the plan first.
+ */
+export interface TakeBuiltCall {
+  /** The divergent field, or `predicate` / `direction` for a relationship. */
+  field: string;
+  tool: "model_update" | "relationship_add" | "relationship_delete";
+  arguments: Record<string, unknown>;
+}
+
 export interface DivergentElement extends ElementMatch {
   fields: FieldDifference[];
+  /** One call per field the built value can be taken for (a built side with no value offers none). */
+  takeBuilt?: TakeBuiltCall[];
 }
 
 export interface MissingElement {
@@ -274,6 +288,8 @@ export interface RelationshipMatch {
 
 export interface DivergentRelationship extends RelationshipMatch {
   fields: FieldDifference[];
+  /** Taking the built relationship: delete the planned one, add the built one (in that order). */
+  takeBuilt?: TakeBuiltCall[];
 }
 
 export interface MissingRelationship {
@@ -1281,6 +1297,10 @@ export function compactVerifyReport<R extends VerifyReport & { plannedChangeset?
       ? 'The as-built share is in counts: sections: ["extraction"] lists extraction.asBuilt.agentAdded (why each one ' +
         "doesn't count). "
       : "") +
+    (divergent.length > 0
+      ? 'Each divergent item in sections: ["divergent"] carries takeBuilt: ready calls that take the built value. ' +
+        "Judge each first (the build may be what is wrong); they are offered, never applied, and stage into the active changeset (activate the plan). Description notes are never offered. "
+      : "") +
     nextPageSentence(pager) +
     (unverifiable.some((line) => line.includes(" more)")) || missing.some((line) => line.includes(" more]"))
       ? `A line that groups several items shows its first ${IDS_PER_LINE} ids (sections: ["unverifiable"] or ["missing"] lists every one). `
@@ -1959,7 +1979,10 @@ export function verifyChangeset(plan: Plan, built: BuiltSide, options: VerifyOpt
       }
     }
     if (informational.length > 0) match.notes = informational;
-    if (differences.length > 0) report.elements.divergent.push({ ...match, fields: differences });
+    if (differences.length > 0) {
+      const takeBuilt = takeBuiltForElement(planned.id, differences);
+      report.elements.divergent.push({ ...match, fields: differences, ...(takeBuilt.length > 0 ? { takeBuilt } : {}) });
+    }
     else report.elements.matched.push(match);
   }
 
@@ -2149,6 +2172,7 @@ export function verifyChangeset(plan: Plan, built: BuiltSide, options: VerifyOpt
         op: "add",
         ...matchInfo,
         fields,
+        takeBuilt: takeBuiltForRelationship(plannedRef, alternative.predicate, alternative.predicate === plannedRef.predicate),
       });
       continue;
     }
@@ -3058,6 +3082,39 @@ export function asBuiltWarning(share: AsBuiltShare, blindSpotsApplied = true): s
 // ---------------------------------------------------------------------------
 
 /** Lowercase with every non-alphanumeric removed: "Export Orders", "export-orders", "exportOrders" → "exportorders". */
+/**
+ * The calls that take the built value for each divergent field of a planned element. Only a value
+ * the build has can be taken: a name, description or type the build lacks offers nothing, and an
+ * attribute the build lacks is removed (a null in attributePatch). Description notes are never
+ * here: they are not divergences.
+ */
+function takeBuiltForElement(id: string, fields: FieldDifference[]): TakeBuiltCall[] {
+  const calls: TakeBuiltCall[] = [];
+  for (const f of fields) {
+    if (f.field.startsWith("attributes.")) {
+      calls.push({ field: f.field, tool: "model_update", arguments: { id, attributePatch: { [f.field.slice("attributes.".length)]: f.built ?? null } } });
+    } else if ((f.field === "name" || f.field === "description" || f.field === "type") && typeof f.built === "string" && f.built !== "") {
+      calls.push({ field: f.field, tool: "model_update", arguments: { id, [f.field]: f.built } });
+    }
+  }
+  return calls;
+}
+
+/** Take the built relationship: delete the planned one, then add the built predicate or the reversed direction. */
+function takeBuiltForRelationship(planned: VerifyRelationship, builtPredicate: string, reversed: boolean): TakeBuiltCall[] {
+  const field = reversed ? "direction" : "predicate";
+  return [
+    { field, tool: "relationship_delete", arguments: { source: planned.source, target: planned.target, predicate: planned.predicate } },
+    {
+      field,
+      tool: "relationship_add",
+      arguments: reversed
+        ? { source: planned.target, target: planned.source, predicate: planned.predicate }
+        : { source: planned.source, target: planned.target, predicate: builtPredicate },
+    },
+  ];
+}
+
 /**
  * Fields where the built element differs from what the plan states. Only what the plan states is
  * compared: a description or attribute the build adds beyond the plan is not a divergence. The

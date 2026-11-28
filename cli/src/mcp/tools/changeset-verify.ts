@@ -93,7 +93,9 @@ const inputSchema = {
     .describe(
       "Return only these sections, each in full (elements and relationships), under the verdict and counts. " +
         '["unplanned"] lists the unplanned items the compact report counts; ["matched"] every match with its notes; ' +
-        '["probable"] the probable matches with their reasons; ["sourceReferences"] each gap with the reference to adopt.'
+        '["probable"] the probable matches with their reasons; ["sourceReferences"] each gap with the reference to adopt. ' +
+        '["divergent"] carries takeBuilt on each item: ready model_update, relationship_delete and relationship_add calls ' +
+        "that take the built value. They are offered, never applied: judge each first, activate the plan, then make the call."
     ),
   layers: z
     .array(z.string())

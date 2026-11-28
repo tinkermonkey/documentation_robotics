@@ -603,6 +603,28 @@ export class StagingAreaManager {
   }
 
   /**
+   * Replace the `after` of staged changes in place, by sequence number, leaving the plan's
+   * sequence bookkeeping and `modified` untouched (see StagedChangesetStorage.amendChangesInPlace).
+   */
+  async amendInPlace(
+    changesetId: string,
+    amendments: Array<{ sequenceNumber: number; layerName: string; after: Record<string, unknown> }>
+  ): Promise<number[]> {
+    if (amendments.length === 0) return [];
+    this.validateChangesetId(changesetId);
+    const changeset = await this.load(changesetId);
+    if (!changeset) throw new Error(`Changeset '${changesetId}' not found`);
+    if (changeset.status !== "staged") throw changesetNotStagedError(changeset);
+    const amended = await this.storage.amendChangesInPlace(
+      changesetId,
+      amendments.map(({ sequenceNumber, after }) => ({ sequenceNumber, after }))
+    );
+    const engine = await this.getProjectionEngine();
+    for (const layerName of new Set(amendments.map((a) => a.layerName))) engine.invalidateOnStage(changesetId, layerName);
+    return amended;
+  }
+
+  /**
    * Rewrite a staged change in place, keeping its sequence number: e.g. to fold an update of an
    * element into the changeset's add of it. The changeset must be in 'staged' status.
    *
